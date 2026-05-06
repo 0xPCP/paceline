@@ -51,6 +51,8 @@ def _is_auth_timeout_exempt(endpoint):
         'auth.logout',
         'auth.register',
         'auth.setup_account',
+        'auth.password_reset_request',
+        'auth.password_reset',
     }
 
 

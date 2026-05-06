@@ -79,6 +79,7 @@ class Config:
         'GOOGLE_OAUTH_USERINFO_URL',
         'https://openidconnect.googleapis.com/v1/userinfo',
     ).strip()
+    PASSWORD_RESET_MAX_AGE_SECONDS = int(os.environ.get('PASSWORD_RESET_MAX_AGE_SECONDS', 3600))
 
     # Media uploads — see docs/media_strategy.md for rationale and update guidance
     UPLOAD_FOLDER = os.environ.get(

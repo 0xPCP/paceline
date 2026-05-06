@@ -7,10 +7,15 @@ from flask_login import (
     login_fresh, fresh_login_required,
 )
 from flask_babel import gettext as _, refresh as refresh_locale
+from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 import requests
 from ..extensions import db, bcrypt
 from ..models import User, Ride, RideSignup, ClubInvite
-from ..forms import DisableMfaForm, MfaCodeForm, RegisterForm, LoginForm, ProfileForm, SetPasswordForm
+from ..forms import (
+    DisableMfaForm, MfaCodeForm, PasswordResetRequestForm, RegisterForm,
+    LoginForm, ProfileForm, SetPasswordForm,
+)
+from ..email import send_password_reset_email
 from ..geocoding import geocode_zip
 from ..gear import GEAR_CATALOG
 from ..mfa import generate_backup_codes, generate_totp_secret, totp_uri, verify_totp
@@ -60,6 +65,41 @@ def _mfa_code_valid(user, code):
     if len(clean_code) == 8 and _consume_backup_code(user, clean_code):
         return True
     return False
+
+
+def _password_reset_serializer():
+    return URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt='paceline-password-reset')
+
+
+def _password_reset_payload(user):
+    return {
+        'user_id': user.id,
+        'email': user.email,
+        'session_token_version': user.session_token_version or 0,
+        'password_hash': user.password_hash[-32:],
+    }
+
+
+def _password_reset_token(user):
+    return _password_reset_serializer().dumps(_password_reset_payload(user))
+
+
+def _user_from_password_reset_token(token):
+    max_age = current_app.config.get('PASSWORD_RESET_MAX_AGE_SECONDS', 3600)
+    data = _password_reset_serializer().loads(token, max_age=max_age)
+    user = db.session.get(User, data.get('user_id'))
+    if not user or not user.is_active:
+        raise BadSignature('Invalid user')
+    expected = _password_reset_payload(user)
+    if data != expected:
+        raise BadSignature('Token does not match current account state')
+    return user
+
+
+def _send_password_reset(user):
+    token = _password_reset_token(user)
+    reset_url = url_for('auth.password_reset', token=token, _external=True)
+    send_password_reset_email(user, reset_url)
 
 
 def _google_oauth_configured():
@@ -220,6 +260,56 @@ def login():
         flash(_('Invalid email or password.'), 'danger')
 
     return render_template('auth/login.html', form=form)
+
+
+@auth_bp.route('/password-reset', methods=['GET', 'POST'])
+def password_reset_request():
+    if current_user.is_authenticated and login_fresh():
+        return redirect(url_for('auth.profile'))
+
+    form = PasswordResetRequestForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data.lower()).first()
+        if user and user.is_active:
+            _send_password_reset(user)
+        flash('If that email is on a Paceline account, a password reset link has been sent.', 'info')
+        return redirect(url_for('auth.login'))
+
+    return render_template('auth/password_reset_request.html', form=form)
+
+
+@auth_bp.route('/password-reset/request-profile', methods=['POST'])
+@fresh_login_required
+def password_reset_profile_request():
+    _send_password_reset(current_user)
+    flash('We sent a password setup/reset link to your account email.', 'success')
+    return redirect(url_for('auth.profile'))
+
+
+@auth_bp.route('/password-reset/<token>', methods=['GET', 'POST'])
+def password_reset(token):
+    try:
+        user = _user_from_password_reset_token(token)
+    except SignatureExpired:
+        flash('That password reset link has expired. Request a new one.', 'danger')
+        return redirect(url_for('auth.password_reset_request'))
+    except BadSignature:
+        flash('That password reset link is invalid or has already been used.', 'danger')
+        return redirect(url_for('auth.password_reset_request'))
+
+    form = SetPasswordForm()
+    if form.validate_on_submit():
+        user.password_hash = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+        user.revoke_sessions()
+        db.session.commit()
+        if current_user.is_authenticated:
+            logout_user()
+            session.pop('_paceline_auth_started_at', None)
+            session.pop('_paceline_trusted_browser', None)
+        flash('Password updated. Please sign in with your new password.', 'success')
+        return redirect(url_for('auth.login'))
+
+    return render_template('auth/password_reset.html', form=form, token=token, user=user)
 
 
 @auth_bp.route('/google')

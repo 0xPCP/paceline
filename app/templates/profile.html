@@ -138,6 +138,11 @@
 
       <div class="detail-card mb-3">
         <h5 class="detail-card-title">Security</h5>
+        <p class="text-muted small">Password changes are verified through your account email before they take effect.</p>
+        <form method="post" action="{{ url_for('auth.password_reset_profile_request') }}" class="mb-3">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline-secondary btn-sm">Email Password Setup Link</button>
+        </form>
         {% if current_user.mfa_enabled %}
         <p class="text-muted small">MFA is enabled for password sign-ins.</p>
         <form method="post" action="{{ url_for('auth.mfa_disable') }}" class="row g-2">

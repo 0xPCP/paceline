@@ -247,6 +247,16 @@ def send_import_invite_email(invite):
     logger.info('Import invite email sent to %s for club %d', invite.email, invite.club_id)
 
 
+def send_password_reset_email(user, reset_url):
+    """Send an email-verified password setup/reset link."""
+    if not user.email:
+        return
+    html = render_template('email/password_reset.html', user=user, reset_url=reset_url)
+    text = render_template('email/password_reset.txt', user=user, reset_url=reset_url)
+    _send('Set or reset your Paceline password', [user.email], html, text)
+    logger.info('Password reset email sent to %s', user.email)
+
+
 def send_weekly_digest(club, rides):
     """
     Send the Sunday weekly digest to all active club members.

@@ -49,6 +49,11 @@ class DisableMfaForm(FlaskForm):
     submit = SubmitField('Disable MFA')
 
 
+class PasswordResetRequestForm(FlaskForm):
+    email = StringField('Email Address', validators=[DataRequired(), Email()])
+    submit = SubmitField('Email Reset Link')
+
+
 class ProfileForm(FlaskForm):
     username = StringField('Username', validators=[
         DataRequired(), Length(3, 50),
