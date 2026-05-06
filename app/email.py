@@ -56,7 +56,7 @@ def _send_resend(subject, recipients, html_body, text_body=None):
     api_key = current_app.config['RESEND_API_KEY']
     api_url = current_app.config.get('RESEND_API_URL', 'https://api.resend.com/emails')
     timeout = current_app.config.get('RESEND_TIMEOUT_SECONDS', 10)
-    sender = current_app.config.get('MAIL_DEFAULT_SENDER') or 'Paceline <noreply@pcp.dev>'
+    sender = current_app.config.get('MAIL_DEFAULT_SENDER') or 'Paceline <noreply@paceline.club>'
     headers = {
         'Authorization': f'Bearer {api_key}',
         'Content-Type': 'application/json',

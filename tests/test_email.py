@@ -1,9 +1,9 @@
 """Tests for email notification helpers."""
 import pytest
-from datetime import date, time, timedelta
+from datetime import date, datetime, time, timedelta
 from unittest.mock import patch, MagicMock, call
 
-from app.models import EmailDeliveryLog, Ride, RideSignup, ClubMembership
+from app.models import ClubInvite, EmailDeliveryLog, Ride, RideSignup, ClubMembership
 from app.extensions import db
 
 
@@ -30,6 +30,12 @@ def _sign_up(db, user, ride):
     db.session.add(signup)
     db.session.commit()
     return signup
+
+
+def _assert_paceline_branding(msg):
+    assert 'paceline' in msg.html.lower()
+    assert 'paceline.club' in msg.html
+    assert 'https://paceline.club' in msg.html
 
 
 # ── Cancellation email tests ──────────────────────────────────────────────────
@@ -103,7 +109,7 @@ def test_cancellation_email_swallows_exceptions(app, sample_club, regular_user):
 def test_resend_provider_posts_email_payload(app):
     """When configured, Resend sends through the HTTP API instead of SMTP."""
     app.config['RESEND_API_KEY'] = 're_test_key'
-    app.config['MAIL_DEFAULT_SENDER'] = 'Paceline <noreply@pcp.dev>'
+    app.config['MAIL_DEFAULT_SENDER'] = 'Paceline <noreply@paceline.club>'
     from app.email import _send
 
     mock_response = MagicMock()
@@ -116,7 +122,7 @@ def test_resend_provider_posts_email_payload(app):
     _, kwargs = mock_post.call_args
     assert kwargs['headers']['Authorization'] == 'Bearer re_test_key'
     assert kwargs['json'] == {
-        'from': 'Paceline <noreply@pcp.dev>',
+        'from': 'Paceline <noreply@paceline.club>',
         'to': ['rider@test.com'],
         'subject': 'Subject',
         'html': '<p>Hello</p>',
@@ -203,6 +209,22 @@ def test_reminder_no_email_if_no_signups(app, sample_club):
         mock_mail.send.assert_not_called()
 
 
+def test_all_ride_email_templates_include_paceline_branding(app, sample_club, regular_user):
+    ride = _make_ride(db, sample_club, days_ahead=0)
+    _sign_up(db, regular_user, ride)
+
+    with patch('app.email.mail') as mock_mail:
+        from app.email import send_cancellation_emails, send_ride_reminder
+        ride.is_cancelled = True
+        ride.cancel_reason = 'Storms nearby'
+        db.session.commit()
+        send_cancellation_emails(ride)
+        send_ride_reminder(ride)
+
+    for call_item in mock_mail.send.call_args_list:
+        _assert_paceline_branding(call_item.args[0])
+
+
 # ── New ride notification tests ───────────────────────────────────────────────
 
 def test_new_ride_notification_sent_to_members(app, sample_club, regular_user):
@@ -228,6 +250,129 @@ def test_new_ride_no_email_if_no_members(app, sample_club):
         from app.email import send_new_ride_notification
         send_new_ride_notification(ride)
         mock_mail.send.assert_not_called()
+
+
+def test_membership_approved_email(app, sample_club, regular_user):
+    with patch('app.email.mail') as mock_mail:
+        from app.email import send_membership_approved
+        send_membership_approved(regular_user, sample_club)
+    msg = mock_mail.send.call_args.args[0]
+    assert msg.recipients == [regular_user.email]
+    assert 'Membership Approved' in msg.subject
+    _assert_paceline_branding(msg)
+
+
+def test_membership_rejected_email(app, sample_club, regular_user):
+    with patch('app.email.mail') as mock_mail:
+        from app.email import send_membership_rejected
+        send_membership_rejected(regular_user, sample_club)
+    msg = mock_mail.send.call_args.args[0]
+    assert msg.recipients == [regular_user.email]
+    assert 'Membership Request' in msg.subject
+    _assert_paceline_branding(msg)
+
+
+def test_waitlist_promoted_email(app, sample_club, regular_user):
+    ride = _make_ride(db, sample_club)
+    signup = RideSignup(ride_id=ride.id, user_id=regular_user.id, is_waitlist=False)
+    db.session.add(signup)
+    db.session.commit()
+    with patch('app.email.mail') as mock_mail:
+        from app.email import send_waitlist_promoted
+        send_waitlist_promoted(signup)
+    msg = mock_mail.send.call_args.args[0]
+    assert msg.recipients == [regular_user.email]
+    assert "You're off the waitlist" in msg.subject
+    _assert_paceline_branding(msg)
+
+
+def test_invite_email(app, sample_club, admin_user):
+    invite = ClubInvite(
+        club_id=sample_club.id,
+        email='invitee@example.com',
+        token='invite-token',
+        expires_at=datetime.now() + timedelta(days=7),
+        created_by=admin_user.id,
+    )
+    db.session.add(invite)
+    db.session.commit()
+    with patch('app.email.mail') as mock_mail:
+        from app.email import send_invite_email
+        send_invite_email(invite)
+    msg = mock_mail.send.call_args.args[0]
+    assert msg.recipients == ['invitee@example.com']
+    assert "You're invited" in msg.subject
+    assert 'invite-token' in msg.html
+    _assert_paceline_branding(msg)
+
+
+def test_import_welcome_email(app, sample_club, admin_user):
+    invite = ClubInvite(
+        club_id=sample_club.id,
+        email='newmember@example.com',
+        token='setup-token',
+        expires_at=datetime.now() + timedelta(days=7),
+        created_by=admin_user.id,
+        is_new_user=True,
+    )
+    db.session.add(invite)
+    db.session.commit()
+    with patch('app.email.mail') as mock_mail:
+        from app.email import send_import_welcome_email
+        send_import_welcome_email(invite)
+    msg = mock_mail.send.call_args.args[0]
+    assert msg.recipients == ['newmember@example.com']
+    assert 'set up your Paceline account' in msg.subject
+    assert 'setup-token' in msg.html
+    _assert_paceline_branding(msg)
+
+
+def test_import_invite_email(app, sample_club, admin_user):
+    invite = ClubInvite(
+        club_id=sample_club.id,
+        email='existing@example.com',
+        token='import-token',
+        expires_at=datetime.now() + timedelta(days=7),
+        created_by=admin_user.id,
+    )
+    db.session.add(invite)
+    db.session.commit()
+    with patch('app.email.mail') as mock_mail:
+        from app.email import send_import_invite_email
+        send_import_invite_email(invite)
+    msg = mock_mail.send.call_args.args[0]
+    assert msg.recipients == ['existing@example.com']
+    assert "You've been added" in msg.subject
+    assert 'import-token' in msg.html
+    _assert_paceline_branding(msg)
+
+
+def test_weekly_digest_email(app, sample_club, regular_user):
+    db.session.add(ClubMembership(user_id=regular_user.id, club_id=sample_club.id, status='active'))
+    ride = _make_ride(db, sample_club)
+    db.session.commit()
+    with patch('app.email.mail') as mock_mail:
+        from app.email import send_weekly_digest
+        send_weekly_digest(sample_club, [ride])
+    msg = mock_mail.send.call_args.args[0]
+    assert regular_user.email in msg.recipients
+    assert "This week's rides" in msg.subject
+    assert ride.title in msg.html
+    _assert_paceline_branding(msg)
+
+
+def test_feedback_notification_email(app, admin_user):
+    from app.models import SiteFeedback
+    feedback = SiteFeedback(name='Rider', email='rider@example.com', message='Looks good', source='test')
+    db.session.add(feedback)
+    db.session.commit()
+    with patch('app.email.mail') as mock_mail:
+        from app.email import send_feedback_notification
+        send_feedback_notification(feedback)
+    msg = mock_mail.send.call_args.args[0]
+    assert admin_user.email in msg.recipients
+    assert 'New Paceline feedback' in msg.subject
+    _assert_paceline_branding(msg)
 
 
 # ── Admin integration tests ───────────────────────────────────────────────────
