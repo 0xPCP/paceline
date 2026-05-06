@@ -27,13 +27,18 @@ class Config:
     STRAVA_CLUB_REFRESH_TOKEN = os.environ.get('STRAVA_CLUB_REFRESH_TOKEN')
 
     # Email (Flask-Mail / SMTP)
+    EMAIL_PROVIDER = os.environ.get('EMAIL_PROVIDER', '').strip().lower()
+    RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '').strip()
+    RESEND_API_URL = os.environ.get('RESEND_API_URL', 'https://api.resend.com/emails').strip()
+    RESEND_TIMEOUT_SECONDS = int(os.environ.get('RESEND_TIMEOUT_SECONDS', 10))
+    EMAIL_RECIPIENT_OVERRIDE = os.environ.get('EMAIL_RECIPIENT_OVERRIDE', '').strip()
     MAIL_SERVER   = os.environ.get('MAIL_SERVER', '')
     MAIL_PORT     = int(os.environ.get('MAIL_PORT', 587))
     MAIL_USE_TLS  = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME', '')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '')
-    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@paceline.app')
-    MAIL_SUPPRESS_SEND = not bool(os.environ.get('MAIL_SERVER', ''))
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'Paceline <noreply@pcp.dev>')
+    MAIL_SUPPRESS_SEND = not bool(RESEND_API_KEY or os.environ.get('MAIL_SERVER', ''))
 
     # Internationalisation
     BABEL_DEFAULT_LOCALE = 'en'

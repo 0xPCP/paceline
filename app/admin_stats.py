@@ -8,7 +8,7 @@ from flask import current_app
 from sqlalchemy import func
 
 from .extensions import db
-from .models import Club, Ride, RideMedia, RideSignup, User
+from .models import Club, EmailDeliveryLog, Ride, RideMedia, RideSignup, User
 
 
 def configured_superadmin_emails():
@@ -143,6 +143,73 @@ def storage_report():
     }
 
 
+def email_report():
+    now = datetime.now(timezone.utc)
+    today_start = datetime.combine(now.date(), datetime.min.time())
+    month_start = datetime(now.year, now.month, 1)
+    year_start = datetime(now.year, 1, 1)
+
+    def count_since(status, start):
+        return (
+            db.session.query(func.sum(EmailDeliveryLog.recipient_count))
+            .filter(EmailDeliveryLog.status == status, EmailDeliveryLog.created_at >= start)
+            .scalar()
+            or 0
+        )
+
+    total_sent = (
+        db.session.query(func.sum(EmailDeliveryLog.recipient_count))
+        .filter(EmailDeliveryLog.status == 'sent')
+        .scalar()
+        or 0
+    )
+    failed_30d = (
+        db.session.query(func.count(EmailDeliveryLog.id))
+        .filter(
+            EmailDeliveryLog.status == 'failed',
+            EmailDeliveryLog.created_at >= now - timedelta(days=30),
+        )
+        .scalar()
+        or 0
+    )
+    last_success = (
+        EmailDeliveryLog.query
+        .filter_by(status='sent')
+        .order_by(EmailDeliveryLog.created_at.desc())
+        .first()
+    )
+    last_failure = (
+        EmailDeliveryLog.query
+        .filter_by(status='failed')
+        .order_by(EmailDeliveryLog.created_at.desc())
+        .first()
+    )
+
+    provider = current_app.config.get('EMAIL_PROVIDER') or ('resend' if current_app.config.get('RESEND_API_KEY') else 'smtp')
+    resend_configured = bool(current_app.config.get('RESEND_API_KEY'))
+    smtp_configured = bool(current_app.config.get('MAIL_SERVER'))
+    configured = resend_configured if provider == 'resend' else smtp_configured
+    status = 'configured' if configured else 'not_configured'
+    if configured and last_failure and (not last_success or last_failure.created_at > last_success.created_at):
+        status = 'attention'
+
+    return {
+        'provider': provider,
+        'status': status,
+        'resend_configured': resend_configured,
+        'smtp_configured': smtp_configured,
+        'from_address': current_app.config.get('MAIL_DEFAULT_SENDER', ''),
+        'recipient_override': current_app.config.get('EMAIL_RECIPIENT_OVERRIDE', ''),
+        'sent_today': count_since('sent', today_start),
+        'sent_month': count_since('sent', month_start),
+        'sent_year': count_since('sent', year_start),
+        'total_sent': total_sent,
+        'failed_30d': failed_30d,
+        'last_success': last_success,
+        'last_failure': last_failure,
+    }
+
+
 def platform_report(started_at):
     today = date.today()
     thirty_days_ago = datetime.combine(today - timedelta(days=30), datetime.min.time())
@@ -187,6 +254,7 @@ def platform_report(started_at):
         'club_growth': club_growth,
         'ride_growth': ride_growth,
         'storage': storage_report(),
+        'email': email_report(),
         'dashboard_elapsed_ms': elapsed_ms,
         'dashboard_slow': elapsed_ms >= slow_threshold,
         'slow_threshold_ms': slow_threshold,

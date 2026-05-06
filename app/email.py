@@ -4,31 +4,98 @@ Email notification helpers.
 All send_* functions are fire-and-forget: they log errors but never raise,
 so a mail failure never breaks a user-facing request or the scheduler.
 
-MAIL_SERVER must be configured in the environment for emails to be sent.
-When MAIL_SERVER is empty, Flask-Mail suppresses sending automatically.
+Configure RESEND_API_KEY to send through Resend. Without it, the helper falls
+back to Flask-Mail/SMTP. If neither is configured, Flask-Mail suppresses sends.
 """
 import logging
 from flask import render_template, current_app
 from flask_mail import Message
+import requests
 from .extensions import mail
 
 logger = logging.getLogger(__name__)
+RESEND_BATCH_SIZE = 50
 
 
 def _send(subject, recipients, html_body, text_body=None):
     """Send a single message, swallowing all exceptions."""
     if not recipients:
         return
+    override = current_app.config.get('EMAIL_RECIPIENT_OVERRIDE', '').strip()
+    if override:
+        recipients = [override]
+    unique_recipients = list(dict.fromkeys(recipients))
     try:
-        msg = Message(
-            subject=subject,
-            recipients=recipients,
-            html=html_body,
-            body=text_body or '',
-        )
-        mail.send(msg)
+        if _use_resend():
+            _send_resend(subject, unique_recipients, html_body, text_body)
+        else:
+            _send_smtp(subject, unique_recipients, html_body, text_body)
     except Exception as exc:
+        _record_delivery(_provider_name(), subject, len(unique_recipients), 'failed', str(exc))
         logger.warning('Email send failed (%s): %s', subject, exc)
+
+
+def _use_resend():
+    provider = current_app.config.get('EMAIL_PROVIDER', '')
+    api_key = current_app.config.get('RESEND_API_KEY', '')
+    return bool(api_key and provider in ('', 'resend'))
+
+
+def _send_smtp(subject, recipients, html_body, text_body=None):
+    msg = Message(
+        subject=subject,
+        recipients=recipients,
+        html=html_body,
+        body=text_body or '',
+    )
+    mail.send(msg)
+    _record_delivery('smtp', subject, len(recipients), 'sent')
+
+
+def _send_resend(subject, recipients, html_body, text_body=None):
+    api_key = current_app.config['RESEND_API_KEY']
+    api_url = current_app.config.get('RESEND_API_URL', 'https://api.resend.com/emails')
+    timeout = current_app.config.get('RESEND_TIMEOUT_SECONDS', 10)
+    sender = current_app.config.get('MAIL_DEFAULT_SENDER') or 'Paceline <noreply@pcp.dev>'
+    headers = {
+        'Authorization': f'Bearer {api_key}',
+        'Content-Type': 'application/json',
+    }
+    for start in range(0, len(recipients), RESEND_BATCH_SIZE):
+        batch = recipients[start:start + RESEND_BATCH_SIZE]
+        payload = {
+            'from': sender,
+            'to': batch,
+            'subject': subject,
+            'html': html_body,
+            'text': text_body or '',
+        }
+        response = requests.post(api_url, json=payload, headers=headers, timeout=timeout)
+        response.raise_for_status()
+        _record_delivery('resend', subject, len(batch), 'sent')
+
+
+def _provider_name():
+    if _use_resend():
+        return 'resend'
+    return 'smtp'
+
+
+def _record_delivery(provider, subject, recipient_count, status, error=None):
+    try:
+        from .models import EmailDeliveryLog
+        from .extensions import db
+        db.session.add(EmailDeliveryLog(
+            provider=provider,
+            subject=(subject or '')[:255],
+            recipient_count=recipient_count,
+            status=status,
+            error=(error or '')[:1000] or None,
+        ))
+        db.session.commit()
+    except Exception as exc:
+        db.session.rollback()
+        logger.debug('Email telemetry write failed: %s', exc)
 
 
 def send_cancellation_emails(ride):

@@ -3,7 +3,7 @@ import pytest
 from datetime import date, time, timedelta
 from unittest.mock import patch, MagicMock, call
 
-from app.models import Ride, RideSignup, ClubMembership
+from app.models import EmailDeliveryLog, Ride, RideSignup, ClubMembership
 from app.extensions import db
 
 
@@ -98,6 +98,82 @@ def test_cancellation_email_swallows_exceptions(app, sample_club, regular_user):
         mock_mail.send.side_effect = Exception('SMTP error')
         from app.email import send_cancellation_emails
         send_cancellation_emails(ride)  # must not raise
+
+
+def test_resend_provider_posts_email_payload(app):
+    """When configured, Resend sends through the HTTP API instead of SMTP."""
+    app.config['RESEND_API_KEY'] = 're_test_key'
+    app.config['MAIL_DEFAULT_SENDER'] = 'Paceline <noreply@pcp.dev>'
+    from app.email import _send
+
+    mock_response = MagicMock()
+    with patch('app.email.requests.post', return_value=mock_response) as mock_post, \
+         patch('app.email.mail') as mock_mail:
+        _send('Subject', ['rider@test.com'], '<p>Hello</p>', 'Hello')
+
+    mock_mail.send.assert_not_called()
+    mock_post.assert_called_once()
+    _, kwargs = mock_post.call_args
+    assert kwargs['headers']['Authorization'] == 'Bearer re_test_key'
+    assert kwargs['json'] == {
+        'from': 'Paceline <noreply@pcp.dev>',
+        'to': ['rider@test.com'],
+        'subject': 'Subject',
+        'html': '<p>Hello</p>',
+        'text': 'Hello',
+    }
+    mock_response.raise_for_status.assert_called_once()
+    log = EmailDeliveryLog.query.one()
+    assert log.provider == 'resend'
+    assert log.status == 'sent'
+    assert log.recipient_count == 1
+
+
+def test_resend_provider_chunks_large_recipient_lists(app):
+    """Resend accepts up to 50 `to` addresses per request."""
+    app.config['RESEND_API_KEY'] = 're_test_key'
+    from app.email import _send
+
+    recipients = [f'rider{i}@example.com' for i in range(121)]
+    mock_response = MagicMock()
+    with patch('app.email.requests.post', return_value=mock_response) as mock_post:
+        _send('Subject', recipients, '<p>Hello</p>', 'Hello')
+
+    assert mock_post.call_count == 3
+    assert len(mock_post.call_args_list[0].kwargs['json']['to']) == 50
+    assert len(mock_post.call_args_list[1].kwargs['json']['to']) == 50
+    assert len(mock_post.call_args_list[2].kwargs['json']['to']) == 21
+    assert sum(log.recipient_count for log in EmailDeliveryLog.query.all()) == 121
+
+
+def test_resend_provider_swallows_http_errors(app):
+    """A Resend failure should not break the user-facing request."""
+    app.config['RESEND_API_KEY'] = 're_test_key'
+    from app.email import _send
+
+    mock_response = MagicMock()
+    mock_response.raise_for_status.side_effect = Exception('resend down')
+    with patch('app.email.requests.post', return_value=mock_response):
+        _send('Subject', ['rider@test.com'], '<p>Hello</p>', 'Hello')
+    log = EmailDeliveryLog.query.one()
+    assert log.provider == 'resend'
+    assert log.status == 'failed'
+    assert log.recipient_count == 1
+    assert 'resend down' in log.error
+
+
+def test_email_recipient_override_redirects_resend_recipients(app):
+    app.config['RESEND_API_KEY'] = 're_test_key'
+    app.config['EMAIL_RECIPIENT_OVERRIDE'] = 'delivered@resend.dev'
+    from app.email import _send
+
+    mock_response = MagicMock()
+    with patch('app.email.requests.post', return_value=mock_response) as mock_post:
+        _send('Subject', ['real1@example.com', 'real2@example.com'], '<p>Hello</p>', 'Hello')
+
+    assert mock_post.call_args.kwargs['json']['to'] == ['delivered@resend.dev']
+    log = EmailDeliveryLog.query.one()
+    assert log.recipient_count == 1
 
 
 # ── Ride reminder tests ───────────────────────────────────────────────────────

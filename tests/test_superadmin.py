@@ -12,7 +12,7 @@ import pytest
 from datetime import date, time, timedelta
 from unittest.mock import patch
 from app.extensions import db, bcrypt
-from app.models import AdminAuditLog, Club, Ride, RideMedia, RideSignup, User
+from app.models import AdminAuditLog, Club, EmailDeliveryLog, Ride, RideMedia, RideSignup, User
 from tests.conftest import login, logout
 
 
@@ -459,6 +459,31 @@ class TestPlatformStatistics:
         assert b'Active Riders' in resp.data
         assert b'Rides Last 30 Days' in resp.data
         assert b'Video Links' in resp.data
+
+    def test_dashboard_shows_email_delivery_monitoring(self, client, db, admin_user):
+        db.session.add(EmailDeliveryLog(
+            provider='resend',
+            subject='Welcome',
+            recipient_count=3,
+            status='sent',
+        ))
+        db.session.add(EmailDeliveryLog(
+            provider='resend',
+            subject='Reminder',
+            recipient_count=1,
+            status='failed',
+            error='rate limited',
+        ))
+        db.session.commit()
+        login_as(client, admin_user)
+        resp = client.get('/admin/')
+        assert resp.status_code == 200
+        assert b'Email Delivery' in resp.data
+        assert b'Sent Today' in resp.data
+        assert b'Sent This Month' in resp.data
+        assert b'Sent This Year' in resp.data
+        assert b'Failures Last 30 Days' in resp.data
+        assert b'rate limited' in resp.data
 
     def test_dashboard_shows_recent_audit_activity(self, client, db, admin_user, regular_user):
         login_as(client, admin_user)

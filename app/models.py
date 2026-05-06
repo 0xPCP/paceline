@@ -390,6 +390,19 @@ class SiteFeedback(db.Model):
     read_by = db.relationship('User', foreign_keys=[read_by_id])
 
 
+class EmailDeliveryLog(db.Model):
+    """Aggregated local telemetry for transactional email sends."""
+    __tablename__ = 'email_delivery_logs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    provider = db.Column(db.String(30), nullable=False)
+    subject = db.Column(db.String(255), nullable=True)
+    recipient_count = db.Column(db.Integer, default=0, nullable=False)
+    status = db.Column(db.String(20), nullable=False)  # 'sent' | 'failed'
+    error = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
 class WaiverSignature(db.Model):
     """Records that a user accepted a club's waiver for a given year."""
     __tablename__ = 'waiver_signatures'

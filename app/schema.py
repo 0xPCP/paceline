@@ -48,6 +48,11 @@ def ensure_runtime_schema():
         SiteFeedback.__table__.create(db.engine, checkfirst=True)
         changed = True
 
+    if 'email_delivery_logs' not in inspector.get_table_names():
+        from .models import EmailDeliveryLog
+        EmailDeliveryLog.__table__.create(db.engine, checkfirst=True)
+        changed = True
+
     superadmin_emails = _configured_superadmin_emails()
     if superadmin_emails:
         from .models import User

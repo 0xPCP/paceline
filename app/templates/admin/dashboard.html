@@ -98,6 +98,79 @@
     </div>
   </div>
 
+  {# Email monitoring #}
+  <div class="row g-4 mb-5">
+    <div class="col-lg-7">
+      <div class="detail-card h-100">
+        <h5 class="detail-card-title">Email Delivery</h5>
+        <div class="row g-3 mb-3">
+          <div class="col-4">
+            <div class="admin-stat-card">
+              <div class="admin-stat-num">{{ report.email.sent_today }}</div>
+              <div class="admin-stat-label">Sent Today</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="admin-stat-card">
+              <div class="admin-stat-num">{{ report.email.sent_month }}</div>
+              <div class="admin-stat-label">Sent This Month</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="admin-stat-card">
+              <div class="admin-stat-num">{{ report.email.sent_year }}</div>
+              <div class="admin-stat-label">Sent This Year</div>
+            </div>
+          </div>
+        </div>
+        <dl class="detail-dl mb-0">
+          <dt>Total Sent</dt>
+          <dd>{{ report.email.total_sent }}</dd>
+          <dt>Failures Last 30 Days</dt>
+          <dd>{{ report.email.failed_30d }}</dd>
+          <dt>Last Successful Send</dt>
+          <dd>{{ report.email.last_success.created_at | strftime('%b %-d, %Y %-I:%M %p') if report.email.last_success else '—' }}</dd>
+          <dt>Last Failed Send</dt>
+          <dd>{{ report.email.last_failure.created_at | strftime('%b %-d, %Y %-I:%M %p') if report.email.last_failure else '—' }}</dd>
+        </dl>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="detail-card h-100">
+        <h5 class="detail-card-title">Email Provider Status</h5>
+        <dl class="detail-dl mb-3">
+          <dt>Provider</dt>
+          <dd>{{ report.email.provider | upper }}</dd>
+          <dt>Status</dt>
+          <dd>
+            {% if report.email.status == 'configured' %}
+            <span class="badge bg-success">Configured</span>
+            {% elif report.email.status == 'attention' %}
+            <span class="badge bg-warning text-dark">Needs attention</span>
+            {% else %}
+            <span class="badge bg-secondary">Not configured</span>
+            {% endif %}
+          </dd>
+          <dt>Resend API Key</dt>
+          <dd>{{ 'Configured' if report.email.resend_configured else 'Missing' }}</dd>
+          <dt>Default Sender</dt>
+          <dd>{{ report.email.from_address or '—' }}</dd>
+          <dt>Recipient Override</dt>
+          <dd>{{ report.email.recipient_override or 'Off' }}</dd>
+        </dl>
+        {% if report.email.last_failure %}
+        <div class="alert alert-warning small mb-0">
+          Latest error: {{ report.email.last_failure.error or 'Unknown email send failure' }}
+        </div>
+        {% else %}
+        <p class="text-muted small mb-0">
+          Counts are tracked locally when Paceline attempts to send transactional email.
+        </p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
   {# Usage analytics #}
   <div class="row g-4 mb-5">
     <div class="col-lg-7">
