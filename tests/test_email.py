@@ -168,6 +168,63 @@ def test_resend_provider_swallows_http_errors(app):
     assert 'resend down' in log.error
 
 
+def test_resend_retries_transient_rate_limit(app):
+    """A temporary Resend 429 is retried before telemetry records success."""
+    app.config['RESEND_API_KEY'] = 're_test_key'
+    app.config['RESEND_RETRY_BACKOFF_SECONDS'] = (0,)
+    from app.email import _send
+
+    rate_limited = MagicMock(status_code=429, headers={})
+    success = MagicMock(status_code=200, headers={})
+    with patch('app.email.requests.post', side_effect=[rate_limited, success]) as mock_post, \
+         patch('app.email.time.sleep') as mock_sleep:
+        _send('Subject', ['rider@test.com'], '<p>Hello</p>', 'Hello')
+
+    assert mock_post.call_count == 2
+    mock_sleep.assert_called_once_with(0)
+    success.raise_for_status.assert_called_once()
+    log = EmailDeliveryLog.query.one()
+    assert log.provider == 'resend'
+    assert log.status == 'sent'
+
+
+def test_resend_retry_honors_retry_after_header(app):
+    """Resend Retry-After controls the sleep before retrying."""
+    app.config['RESEND_API_KEY'] = 're_test_key'
+    from app.email import _send
+
+    rate_limited = MagicMock(status_code=429, headers={'Retry-After': '7'})
+    success = MagicMock(status_code=200, headers={})
+    with patch('app.email.requests.post', side_effect=[rate_limited, success]), \
+         patch('app.email.time.sleep') as mock_sleep:
+        _send('Subject', ['rider@test.com'], '<p>Hello</p>', 'Hello')
+
+    mock_sleep.assert_called_once_with(7)
+    assert EmailDeliveryLog.query.one().status == 'sent'
+
+
+def test_resend_records_failure_after_retry_exhaustion(app):
+    """Repeated transient failures are logged once after attempts are exhausted."""
+    app.config['RESEND_API_KEY'] = 're_test_key'
+    app.config['RESEND_MAX_ATTEMPTS'] = 2
+    app.config['RESEND_RETRY_BACKOFF_SECONDS'] = (0,)
+    from app.email import _send
+
+    first = MagicMock(status_code=429, headers={})
+    second = MagicMock(status_code=429, headers={})
+    second.raise_for_status.side_effect = Exception('still rate limited')
+    with patch('app.email.requests.post', side_effect=[first, second]) as mock_post, \
+         patch('app.email.time.sleep') as mock_sleep:
+        _send('Subject', ['rider@test.com'], '<p>Hello</p>', 'Hello')
+
+    assert mock_post.call_count == 2
+    mock_sleep.assert_called_once_with(0)
+    log = EmailDeliveryLog.query.one()
+    assert log.status == 'failed'
+    assert log.recipient_count == 1
+    assert 'still rate limited' in log.error
+
+
 def test_email_recipient_override_redirects_resend_recipients(app):
     app.config['RESEND_API_KEY'] = 're_test_key'
     app.config['EMAIL_RECIPIENT_OVERRIDE'] = 'delivered@resend.dev'

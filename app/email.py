@@ -8,6 +8,7 @@ Configure RESEND_API_KEY to send through Resend. Without it, the helper falls
 back to Flask-Mail/SMTP. If neither is configured, Flask-Mail suppresses sends.
 """
 import logging
+import time
 from flask import render_template, current_app
 from flask_mail import Message
 import requests
@@ -15,6 +16,7 @@ from .extensions import mail
 
 logger = logging.getLogger(__name__)
 RESEND_BATCH_SIZE = 50
+RESEND_TRANSIENT_STATUS_CODES = {429, 500, 502, 503, 504}
 
 
 def _send(subject, recipients, html_body, text_body=None):
@@ -70,9 +72,37 @@ def _send_resend(subject, recipients, html_body, text_body=None):
             'html': html_body,
             'text': text_body or '',
         }
-        response = requests.post(api_url, json=payload, headers=headers, timeout=timeout)
+        response = _post_resend_with_retry(api_url, payload, headers, timeout)
         response.raise_for_status()
         _record_delivery('resend', subject, len(batch), 'sent')
+
+
+def _post_resend_with_retry(api_url, payload, headers, timeout):
+    attempts = max(1, int(current_app.config.get('RESEND_MAX_ATTEMPTS', 3)))
+    for attempt in range(attempts):
+        response = requests.post(api_url, json=payload, headers=headers, timeout=timeout)
+        status_code = getattr(response, 'status_code', None)
+        is_transient = isinstance(status_code, int) and status_code in RESEND_TRANSIENT_STATUS_CODES
+        if is_transient and attempt < attempts - 1:
+            time.sleep(_resend_retry_delay(response, attempt))
+            continue
+        return response
+    return response
+
+
+def _resend_retry_delay(response, attempt):
+    retry_after = getattr(response, 'headers', {}).get('Retry-After')
+    if retry_after:
+        try:
+            return max(0, int(retry_after))
+        except ValueError:
+            pass
+    delays = current_app.config.get('RESEND_RETRY_BACKOFF_SECONDS', (2, 5, 15))
+    if isinstance(delays, str):
+        delays = [int(value.strip()) for value in delays.split(',') if value.strip()]
+    if not delays:
+        return 0
+    return delays[min(attempt, len(delays) - 1)]
 
 
 def _provider_name():

@@ -31,6 +31,12 @@ class Config:
     RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '').strip()
     RESEND_API_URL = os.environ.get('RESEND_API_URL', 'https://api.resend.com/emails').strip()
     RESEND_TIMEOUT_SECONDS = int(os.environ.get('RESEND_TIMEOUT_SECONDS', 10))
+    RESEND_MAX_ATTEMPTS = int(os.environ.get('RESEND_MAX_ATTEMPTS', 3))
+    RESEND_RETRY_BACKOFF_SECONDS = tuple(
+        int(value.strip())
+        for value in os.environ.get('RESEND_RETRY_BACKOFF_SECONDS', '2,5,15').split(',')
+        if value.strip()
+    )
     EMAIL_RECIPIENT_OVERRIDE = os.environ.get('EMAIL_RECIPIENT_OVERRIDE', '').strip()
     MAIL_SERVER   = os.environ.get('MAIL_SERVER', '')
     MAIL_PORT     = int(os.environ.get('MAIL_PORT', 587))
