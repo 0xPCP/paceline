@@ -33,6 +33,15 @@ def ensure_runtime_schema():
         db.session.execute(text(ddl))
         changed = True
 
+    if 'sport_preferences' not in user_columns:
+        db.session.execute(text('ALTER TABLE users ADD COLUMN sport_preferences JSON'))
+        changed = True
+
+    club_columns = {col['name'] for col in inspector.get_columns('clubs')} if 'clubs' in inspector.get_table_names() else set()
+    if club_columns and 'sport_type' not in club_columns:
+        db.session.execute(text("ALTER TABLE clubs ADD COLUMN sport_type VARCHAR(20) NOT NULL DEFAULT 'cycling'"))
+        changed = True
+
     ride_columns = {col['name'] for col in inspector.get_columns('rides')} if 'rides' in inspector.get_table_names() else set()
     if ride_columns and 'garmin_groupride_code' not in ride_columns:
         db.session.execute(text('ALTER TABLE rides ADD COLUMN garmin_groupride_code VARCHAR(6)'))

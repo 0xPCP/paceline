@@ -61,6 +61,9 @@ class Config:
     # are promoted on startup and cannot have superadmin access revoked in-app.
     SUPERADMIN_EMAILS = os.environ.get('SUPERADMIN_EMAILS', 'phil@pcp.dev')
 
+    # Dormant multi-sport support. Keep false until running-club UI/filtering ships.
+    MULTISPORT_UI_ENABLED = os.environ.get('MULTISPORT_UI_ENABLED', 'false').lower() == 'true'
+
     # Media uploads — see docs/media_strategy.md for rationale and update guidance
     UPLOAD_FOLDER = os.environ.get(
         'UPLOAD_FOLDER',

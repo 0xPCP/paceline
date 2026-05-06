@@ -3,6 +3,7 @@ from datetime import datetime, date, timedelta, timezone
 from flask_login import UserMixin
 from .extensions import db, login_manager
 from .security import video_embed_url
+from .sports import DEFAULT_SPORT, normalize_sport, normalize_sport_preferences
 
 
 @login_manager.user_loader
@@ -49,6 +50,7 @@ class User(db.Model, UserMixin):
     gender   = db.Column(db.String(10), nullable=True)  # 'male' | 'female' | 'nonbinary'
     bio      = db.Column(db.Text, nullable=True)
     language = db.Column(db.String(5), nullable=True)   # preferred UI language code
+    sport_preferences = db.Column(db.JSON, nullable=True)  # dormant multi-sport support
 
     # Strava linking
     strava_id = db.Column(db.BigInteger, unique=True, nullable=True)
@@ -119,6 +121,16 @@ class User(db.Model, UserMixin):
             user_id=self.id, club_id=club.id, year=year
         ).first() is not None
 
+    @property
+    def preferred_sports(self):
+        return normalize_sport_preferences(self.sport_preferences)
+
+    def prefers_sport(self, sport):
+        return normalize_sport(sport) in self.preferred_sports
+
+    def set_sport_preferences(self, sports):
+        self.sport_preferences = normalize_sport_preferences(sports)
+
     def user_rides_this_week(self):
         """Count of user-owned rides in the current calendar week (Mon–Sun)."""
         today = date.today()
@@ -150,6 +162,7 @@ class Club(db.Model):
     lng = db.Column(db.Float, nullable=True)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    sport_type = db.Column(db.String(20), default=DEFAULT_SPORT, nullable=False)
 
     # Club theming
     theme_primary = db.Column(db.String(7), nullable=True)   # hex e.g. "#2d6a4f"
@@ -200,6 +213,10 @@ class Club(db.Model):
     @property
     def member_count(self):
         return ClubMembership.query.filter_by(club_id=self.id, status='active').count()
+
+    @property
+    def normalized_sport_type(self):
+        return normalize_sport(self.sport_type)
 
     @property
     def current_waiver(self):
