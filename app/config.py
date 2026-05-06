@@ -64,6 +64,22 @@ class Config:
     # Dormant multi-sport support. Keep false until running-club UI/filtering ships.
     MULTISPORT_UI_ENABLED = os.environ.get('MULTISPORT_UI_ENABLED', 'false').lower() == 'true'
 
+    # Google OAuth sign-in / registration
+    GOOGLE_OAUTH_CLIENT_ID = os.environ.get('GOOGLE_OAUTH_CLIENT_ID', '').strip()
+    GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get('GOOGLE_OAUTH_CLIENT_SECRET', '').strip()
+    GOOGLE_OAUTH_AUTH_URL = os.environ.get(
+        'GOOGLE_OAUTH_AUTH_URL',
+        'https://accounts.google.com/o/oauth2/v2/auth',
+    ).strip()
+    GOOGLE_OAUTH_TOKEN_URL = os.environ.get(
+        'GOOGLE_OAUTH_TOKEN_URL',
+        'https://oauth2.googleapis.com/token',
+    ).strip()
+    GOOGLE_OAUTH_USERINFO_URL = os.environ.get(
+        'GOOGLE_OAUTH_USERINFO_URL',
+        'https://openidconnect.googleapis.com/v1/userinfo',
+    ).strip()
+
     # Media uploads — see docs/media_strategy.md for rationale and update guidance
     UPLOAD_FOLDER = os.environ.get(
         'UPLOAD_FOLDER',

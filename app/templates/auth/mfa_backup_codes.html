@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}MFA Backup Codes — Paceline{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:720px">
+  <div class="detail-card">
+    <h1 class="h4 mb-3">Save Your Backup Codes</h1>
+    <p class="text-muted">Each backup code can be used once if you cannot access your authenticator app.</p>
+
+    <div class="row g-2 mb-3">
+      {% for code in backup_codes %}
+      <div class="col-6 col-sm-4">
+        <div class="form-control font-monospace text-center">{{ code }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <a href="{{ url_for('auth.profile') }}" class="btn btn-paceline">Done</a>
+  </div>
+</div>
+{% endblock %}

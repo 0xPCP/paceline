@@ -121,6 +121,10 @@
         <dl class="detail-dl mb-0">
           <dt>Member since</dt>
           <dd>{{ current_user.created_at.strftime('%B %Y') }}</dd>
+          {% if current_user.google_sub %}
+          <dt>Sign-in</dt>
+          <dd><span class="badge bg-light text-dark border">Google linked</span></dd>
+          {% endif %}
           {% if current_user.is_admin %}
           <dt>Role</dt>
           <dd><span class="badge bg-success">Superadmin</span></dd>
@@ -130,6 +134,25 @@
           <dd>{{ current_user.zip_code }}{% if current_user.lat %} <span class="text-muted small">(geocoded)</span>{% endif %}</dd>
           {% endif %}
         </dl>
+      </div>
+
+      <div class="detail-card mb-3">
+        <h5 class="detail-card-title">Security</h5>
+        {% if current_user.mfa_enabled %}
+        <p class="text-muted small">MFA is enabled for password sign-ins.</p>
+        <form method="post" action="{{ url_for('auth.mfa_disable') }}" class="row g-2">
+          {{ disable_mfa_form.hidden_tag() }}
+          <div class="col-sm-8">
+            {{ disable_mfa_form.password(class="form-control", placeholder="Confirm password") }}
+          </div>
+          <div class="col-sm-4">
+            {{ disable_mfa_form.submit(class="btn btn-outline-danger w-100") }}
+          </div>
+        </form>
+        {% else %}
+        <p class="text-muted small">Add MFA for password sign-ins using Google Authenticator or another authenticator app.</p>
+        <a href="{{ url_for('auth.mfa_setup') }}" class="btn btn-outline-secondary btn-sm">Set Up MFA</a>
+        {% endif %}
       </div>
 
       <div class="detail-card mb-3">

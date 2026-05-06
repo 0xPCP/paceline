@@ -7,6 +7,13 @@
     <div class="auth-logo"><img src="{{ url_for('static', filename='img/logo.svg') }}?v={{ version }}" alt="Paceline" style="height:36px;width:auto"></div>
     <h2 class="auth-title">{{ _('Create Account') }}</h2>
 
+    {% if google_oauth_enabled %}
+    <a class="btn btn-outline-secondary w-100 mb-3" href="{{ url_for('auth.google_login', next=request.args.get('next', '')) }}">
+      {{ _('Continue with Google') }}
+    </a>
+    <div class="text-center text-muted small mb-3">{{ _('or create an account with email') }}</div>
+    {% endif %}
+
     <form method="post" action="{{ url_for('auth.register', next=request.args.get('next', '')) }}" novalidate>
       {{ form.hidden_tag() }}
 

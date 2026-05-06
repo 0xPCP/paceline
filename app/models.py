@@ -28,7 +28,11 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(50), unique=True, nullable=False)
     email = db.Column(db.String(255), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
+    google_sub = db.Column(db.String(255), unique=True, nullable=True)
     session_token_version = db.Column(db.Integer, default=0, nullable=False)
+    mfa_enabled = db.Column(db.Boolean, default=False, nullable=False)
+    mfa_secret = db.Column(db.String(64), nullable=True)
+    mfa_backup_codes = db.Column(db.JSON, nullable=True)
     is_admin   = db.Column(db.Boolean, default=False, nullable=False)  # global superadmin
     is_active  = db.Column(db.Boolean, default=True,  nullable=False)  # False = account disabled
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))

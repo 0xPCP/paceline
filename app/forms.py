@@ -36,6 +36,19 @@ class LoginForm(FlaskForm):
     submit = SubmitField('Sign In')
 
 
+class MfaCodeForm(FlaskForm):
+    code = StringField('Authentication Code', validators=[
+        DataRequired(),
+        Regexp(r'^[0-9 ]{6,12}$', message='Enter a 6-digit code or an 8-digit backup code.'),
+    ])
+    submit = SubmitField('Verify')
+
+
+class DisableMfaForm(FlaskForm):
+    password = PasswordField('Password', validators=[DataRequired()])
+    submit = SubmitField('Disable MFA')
+
+
 class ProfileForm(FlaskForm):
     username = StringField('Username', validators=[
         DataRequired(), Length(3, 50),

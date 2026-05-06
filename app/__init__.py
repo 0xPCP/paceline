@@ -96,6 +96,10 @@ def create_app(config_class=Config):
             'version': __version__,
             'current_locale': str(_get_locale() or 'en'),
             'languages': LANGUAGE_NAMES,
+            'google_oauth_enabled': bool(
+                app.config.get('GOOGLE_OAUTH_CLIENT_ID')
+                and app.config.get('GOOGLE_OAUTH_CLIENT_SECRET')
+            ),
         }
 
     @app.before_request

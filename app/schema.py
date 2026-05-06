@@ -33,6 +33,22 @@ def ensure_runtime_schema():
         db.session.execute(text(ddl))
         changed = True
 
+    if 'google_sub' not in user_columns:
+        db.session.execute(text('ALTER TABLE users ADD COLUMN google_sub VARCHAR(255)'))
+        changed = True
+
+    if 'mfa_enabled' not in user_columns:
+        db.session.execute(text('ALTER TABLE users ADD COLUMN mfa_enabled BOOLEAN NOT NULL DEFAULT FALSE'))
+        changed = True
+
+    if 'mfa_secret' not in user_columns:
+        db.session.execute(text('ALTER TABLE users ADD COLUMN mfa_secret VARCHAR(64)'))
+        changed = True
+
+    if 'mfa_backup_codes' not in user_columns:
+        db.session.execute(text('ALTER TABLE users ADD COLUMN mfa_backup_codes JSON'))
+        changed = True
+
     if 'sport_preferences' not in user_columns:
         db.session.execute(text('ALTER TABLE users ADD COLUMN sport_preferences JSON'))
         changed = True

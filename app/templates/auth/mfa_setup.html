@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Set Up MFA — Paceline{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:720px">
+  <div class="detail-card">
+    <h1 class="h4 mb-3">Set Up MFA</h1>
+    <p class="text-muted">Add this account to Google Authenticator, 1Password, Authy, or another TOTP-compatible app, then enter the current 6-digit code.</p>
+
+    <div class="mb-3">
+      <label class="form-label">Manual setup key</label>
+      <div class="form-control font-monospace">{{ secret }}</div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Authenticator URI</label>
+      <textarea class="form-control font-monospace" rows="3" readonly>{{ otpauth_uri }}</textarea>
+      <div class="form-text">Use this URI if your authenticator app supports importing an otpauth link.</div>
+    </div>
+
+    <form method="post" novalidate>
+      {{ form.hidden_tag() }}
+      <div class="mb-3">
+        {{ form.code.label(class="form-label") }}
+        {{ form.code(class="form-control" + (" is-invalid" if form.code.errors else ""), inputmode="numeric", autocomplete="one-time-code") }}
+        {% for e in form.code.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="d-flex gap-2">
+        {{ form.submit(class="btn btn-paceline") }}
+        <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

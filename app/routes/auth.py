@@ -1,15 +1,19 @@
+import secrets
 from datetime import date, datetime, timezone
+from urllib.parse import urlencode
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session, current_app
 from flask_login import (
     login_user, logout_user, login_required, current_user,
     login_fresh, fresh_login_required,
 )
 from flask_babel import gettext as _, refresh as refresh_locale
+import requests
 from ..extensions import db, bcrypt
 from ..models import User, Ride, RideSignup, ClubInvite
-from ..forms import RegisterForm, LoginForm, ProfileForm, SetPasswordForm
+from ..forms import DisableMfaForm, MfaCodeForm, RegisterForm, LoginForm, ProfileForm, SetPasswordForm
 from ..geocoding import geocode_zip
 from ..gear import GEAR_CATALOG
+from ..mfa import generate_backup_codes, generate_totp_secret, totp_uri, verify_totp
 from ..utils import is_safe_url
 
 auth_bp = Blueprint('auth', __name__)
@@ -19,6 +23,125 @@ def _mark_interactive_login(trusted_browser=False):
     session.permanent = True
     session['_paceline_auth_started_at'] = datetime.now(timezone.utc).timestamp()
     session['_paceline_trusted_browser'] = bool(trusted_browser)
+
+
+def _clear_pending_mfa():
+    session.pop('_pending_mfa_user_id', None)
+    session.pop('_pending_mfa_trusted_browser', None)
+    session.pop('_pending_mfa_next', None)
+
+
+def _clean_mfa_code(code):
+    return ''.join(ch for ch in str(code or '') if ch.isdigit())
+
+
+def _hash_backup_codes(codes):
+    return [bcrypt.generate_password_hash(code).decode('utf-8') for code in codes]
+
+
+def _consume_backup_code(user, code):
+    code = _clean_mfa_code(code)
+    remaining = []
+    matched = False
+    for code_hash in user.mfa_backup_codes or []:
+        if not matched and bcrypt.check_password_hash(code_hash, code):
+            matched = True
+            continue
+        remaining.append(code_hash)
+    if matched:
+        user.mfa_backup_codes = remaining
+    return matched
+
+
+def _mfa_code_valid(user, code):
+    clean_code = _clean_mfa_code(code)
+    if user.mfa_secret and verify_totp(user.mfa_secret, clean_code):
+        return True
+    if len(clean_code) == 8 and _consume_backup_code(user, clean_code):
+        return True
+    return False
+
+
+def _google_oauth_configured():
+    return bool(
+        current_app.config.get('GOOGLE_OAUTH_CLIENT_ID')
+        and current_app.config.get('GOOGLE_OAUTH_CLIENT_SECRET')
+    )
+
+
+def _google_redirect_uri():
+    return url_for('auth.google_callback', _external=True)
+
+
+def _unique_username_from_email(email):
+    base = (email.split('@', 1)[0] or 'rider').lower()
+    base = ''.join(ch if ch.isalnum() or ch in '_.-' else '-' for ch in base).strip('.-_') or 'rider'
+    base = base[:40]
+    candidate = base
+    counter = 2
+    while User.query.filter_by(username=candidate).first():
+        suffix = f'-{counter}'
+        candidate = f'{base[:50 - len(suffix)]}{suffix}'
+        counter += 1
+    return candidate
+
+
+def _google_userinfo(code):
+    token_response = requests.post(
+        current_app.config.get('GOOGLE_OAUTH_TOKEN_URL', 'https://oauth2.googleapis.com/token'),
+        data={
+            'code': code,
+            'client_id': current_app.config['GOOGLE_OAUTH_CLIENT_ID'],
+            'client_secret': current_app.config['GOOGLE_OAUTH_CLIENT_SECRET'],
+            'redirect_uri': _google_redirect_uri(),
+            'grant_type': 'authorization_code',
+        },
+        timeout=10,
+    )
+    token_response.raise_for_status()
+    access_token = token_response.json().get('access_token')
+    if not access_token:
+        raise ValueError('Google did not return an access token.')
+    userinfo_response = requests.get(
+        current_app.config.get('GOOGLE_OAUTH_USERINFO_URL', 'https://openidconnect.googleapis.com/v1/userinfo'),
+        headers={'Authorization': f'Bearer {access_token}'},
+        timeout=10,
+    )
+    userinfo_response.raise_for_status()
+    return userinfo_response.json()
+
+
+def _user_from_google_profile(profile):
+    google_sub = profile.get('sub')
+    email = (profile.get('email') or '').strip().lower()
+    email_verified = profile.get('email_verified') is True or profile.get('email_verified') == 'true'
+    if not google_sub or not email or not email_verified:
+        raise ValueError('Google account must include a verified email address.')
+
+    linked_user = User.query.filter_by(google_sub=google_sub).first()
+    if linked_user:
+        return linked_user
+
+    user = User.query.filter_by(email=email).first()
+    if user:
+        user.google_sub = google_sub
+        return user
+
+    superadmin_emails = {
+        address.strip().lower()
+        for address in current_app.config.get('SUPERADMIN_EMAILS', '').split(',')
+        if address.strip()
+    }
+    user = User(
+        username=_unique_username_from_email(email),
+        email=email,
+        google_sub=google_sub,
+        password_hash=bcrypt.generate_password_hash(secrets.token_urlsafe(32)).decode('utf-8'),
+        is_admin=User.query.count() == 0 or email in superadmin_emails,
+        is_active=True,
+    )
+    db.session.add(user)
+    return user
 
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
@@ -81,6 +204,13 @@ def login():
                 flash(_('This account has been deactivated. Please contact support.'), 'danger')
                 return render_template('auth/login.html', form=form)
             trusted_browser = bool(form.remember.data)
+            if user.mfa_enabled:
+                session['_pending_mfa_user_id'] = user.id
+                session['_pending_mfa_trusted_browser'] = trusted_browser
+                next_page = request.args.get('next')
+                if next_page and is_safe_url(next_page):
+                    session['_pending_mfa_next'] = next_page
+                return redirect(url_for('auth.mfa_verify'))
             login_user(user, remember=trusted_browser)
             _mark_interactive_login(trusted_browser=trusted_browser)
             next_page = request.args.get('next')
@@ -90,6 +220,95 @@ def login():
         flash(_('Invalid email or password.'), 'danger')
 
     return render_template('auth/login.html', form=form)
+
+
+@auth_bp.route('/google')
+def google_login():
+    if current_user.is_authenticated and login_fresh():
+        return redirect(url_for('main.index'))
+    if not _google_oauth_configured():
+        flash('Google sign-in is not configured yet.', 'warning')
+        return redirect(url_for('auth.login'))
+
+    state = secrets.token_urlsafe(32)
+    session['_google_oauth_state'] = state
+    next_page = request.args.get('next')
+    if next_page and is_safe_url(next_page):
+        session['_google_oauth_next'] = next_page
+
+    params = {
+        'client_id': current_app.config['GOOGLE_OAUTH_CLIENT_ID'],
+        'redirect_uri': _google_redirect_uri(),
+        'response_type': 'code',
+        'scope': 'openid email profile',
+        'state': state,
+        'prompt': 'select_account',
+    }
+    auth_url = current_app.config.get('GOOGLE_OAUTH_AUTH_URL', 'https://accounts.google.com/o/oauth2/v2/auth')
+    return redirect(f"{auth_url}?{urlencode(params)}")
+
+
+@auth_bp.route('/google/callback')
+def google_callback():
+    expected_state = session.pop('_google_oauth_state', None)
+    next_page = session.pop('_google_oauth_next', None)
+    state = request.args.get('state')
+    code = request.args.get('code')
+    if not expected_state or not state or not secrets.compare_digest(expected_state, state):
+        flash('Google sign-in could not be verified. Please try again.', 'danger')
+        return redirect(url_for('auth.login'))
+    if not code:
+        flash('Google sign-in was cancelled or did not return an authorization code.', 'warning')
+        return redirect(url_for('auth.login'))
+
+    try:
+        profile = _google_userinfo(code)
+        user = _user_from_google_profile(profile)
+        if not user.is_active:
+            db.session.rollback()
+            flash(_('This account has been deactivated. Please contact support.'), 'danger')
+            return redirect(url_for('auth.login'))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception('Google OAuth sign-in failed')
+        flash('Google sign-in failed. Please try again.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    login_user(user, remember=False)
+    _mark_interactive_login(trusted_browser=False)
+    if next_page and is_safe_url(next_page):
+        return redirect(next_page)
+    return redirect(url_for('main.index'))
+
+
+@auth_bp.route('/mfa', methods=['GET', 'POST'])
+def mfa_verify():
+    user_id = session.get('_pending_mfa_user_id')
+    if not user_id:
+        return redirect(url_for('auth.login'))
+    user = db.session.get(User, user_id)
+    if user is None or not user.is_active or not user.mfa_enabled:
+        _clear_pending_mfa()
+        flash(_('Please sign in again.'), 'info')
+        return redirect(url_for('auth.login'))
+
+    form = MfaCodeForm()
+    if form.validate_on_submit():
+        if _mfa_code_valid(user, form.code.data):
+            trusted_browser = bool(session.get('_pending_mfa_trusted_browser'))
+            next_page = session.get('_pending_mfa_next')
+            _clear_pending_mfa()
+            db.session.commit()
+            login_user(user, remember=trusted_browser)
+            _mark_interactive_login(trusted_browser=trusted_browser)
+            if next_page and is_safe_url(next_page):
+                return redirect(next_page)
+            return redirect(url_for('main.index'))
+        db.session.rollback()
+        flash(_('Invalid authentication code.'), 'danger')
+
+    return render_template('auth/mfa_verify.html', form=form)
 
 
 @auth_bp.route('/setup-account/<token>', methods=['GET', 'POST'])
@@ -139,6 +358,9 @@ def logout():
     logout_user()
     session.pop('_paceline_auth_started_at', None)
     session.pop('_paceline_trusted_browser', None)
+    session.pop('_google_oauth_state', None)
+    session.pop('_google_oauth_next', None)
+    _clear_pending_mfa()
     return redirect(url_for('main.index'))
 
 
@@ -202,5 +424,63 @@ def profile():
         'elevation': sum(s.ride.elevation_feet or 0 for s in ytd_signups),
     }
     return render_template('profile.html', form=form,
+                           disable_mfa_form=DisableMfaForm(),
                            gear_catalog=GEAR_CATALOG, owned_gear=owned,
                            past_signups=past_signups, ytd_stats=ytd_stats)
+
+
+@auth_bp.route('/mfa/setup', methods=['GET', 'POST'])
+@fresh_login_required
+def mfa_setup():
+    if current_user.mfa_enabled:
+        flash('MFA is already enabled for your account.', 'info')
+        return redirect(url_for('auth.profile'))
+
+    secret = session.get('_mfa_setup_secret')
+    if not secret:
+        secret = generate_totp_secret()
+        session['_mfa_setup_secret'] = secret
+
+    form = MfaCodeForm()
+    if form.validate_on_submit():
+        if verify_totp(secret, form.code.data):
+            backup_codes = generate_backup_codes()
+            current_user.mfa_secret = secret
+            current_user.mfa_backup_codes = _hash_backup_codes(backup_codes)
+            current_user.mfa_enabled = True
+            current_user.revoke_sessions()
+            db.session.commit()
+            session.pop('_mfa_setup_secret', None)
+            login_user(current_user)
+            _mark_interactive_login()
+            return render_template('auth/mfa_backup_codes.html', backup_codes=backup_codes)
+        flash('Invalid authentication code. Check the code in your authenticator app and try again.', 'danger')
+
+    return render_template(
+        'auth/mfa_setup.html',
+        form=form,
+        secret=secret,
+        otpauth_uri=totp_uri(secret, current_user.email),
+    )
+
+
+@auth_bp.route('/mfa/disable', methods=['POST'])
+@fresh_login_required
+def mfa_disable():
+    form = DisableMfaForm()
+    if not form.validate_on_submit():
+        flash('Enter your password to disable MFA.', 'danger')
+        return redirect(url_for('auth.profile'))
+    if not bcrypt.check_password_hash(current_user.password_hash, form.password.data):
+        flash('Password did not match. MFA was not changed.', 'danger')
+        return redirect(url_for('auth.profile'))
+
+    current_user.mfa_enabled = False
+    current_user.mfa_secret = None
+    current_user.mfa_backup_codes = None
+    current_user.revoke_sessions()
+    db.session.commit()
+    login_user(current_user)
+    _mark_interactive_login()
+    flash('MFA disabled.', 'success')
+    return redirect(url_for('auth.profile'))
