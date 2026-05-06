@@ -3,6 +3,7 @@ import secrets
 from datetime import datetime, timezone
 from flask import Flask, request, session, redirect, url_for, flash, g
 from flask_login import current_user, logout_user, login_fresh
+from werkzeug.middleware.proxy_fix import ProxyFix
 from .config import Config
 from .extensions import db, login_manager, bcrypt, csrf, mail, babel
 
@@ -56,6 +57,7 @@ def _is_auth_timeout_exempt(endpoint):
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     db.init_app(app)
     bcrypt.init_app(app)

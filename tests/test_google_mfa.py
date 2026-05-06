@@ -35,6 +35,20 @@ def test_google_login_redirects_to_google_with_state(client, app):
         assert sess['_google_oauth_next'] == '/clubs/'
 
 
+def test_google_login_uses_forwarded_https_redirect_uri(client, app):
+    _enable_google(app)
+
+    resp = client.get('/auth/google', headers={
+        'Host': 'cyclingclub.pcp.dev',
+        'X-Forwarded-Proto': 'https',
+        'X-Forwarded-Host': 'cyclingclub.pcp.dev',
+    })
+
+    parsed = urlparse(resp.headers['Location'])
+    query = parse_qs(parsed.query)
+    assert query['redirect_uri'] == ['https://cyclingclub.pcp.dev/auth/google/callback']
+
+
 def test_google_callback_creates_user_for_verified_email(client, app):
     _enable_google(app)
     with client.session_transaction() as sess:
