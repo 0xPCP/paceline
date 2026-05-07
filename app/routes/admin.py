@@ -53,6 +53,13 @@ def _ensure_owner_membership_and_admin(club, user):
     club.owner_id = user.id
 
 
+def _confirm_membership_dues(membership, confirmed_by):
+    membership.status = 'active'
+    membership.dues_paid_until = _default_dues_expiration(membership.club)
+    membership.dues_confirmed_at = datetime.now(timezone.utc)
+    membership.dues_confirmed_by_id = confirmed_by.id
+
+
 def _can_transfer_club_owner(club):
     owner = club.effective_owner
     if current_user.is_admin:
@@ -67,6 +74,22 @@ def _find_user_by_email(email):
     if not email:
         return None
     return User.query.filter(func.lower(User.email) == email).first()
+
+
+def _add_months(start_date, months):
+    month = start_date.month - 1 + max(1, int(months or 12))
+    year = start_date.year + month // 12
+    month = month % 12 + 1
+    last_day = [
+        31,
+        29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0) else 28,
+        31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
+    ][month - 1]
+    return date(year, month, min(start_date.day, last_day))
+
+
+def _default_dues_expiration(club):
+    return _add_months(date.today(), club.membership_duration_months or 12)
 
 
 def _require_fresh_auth():
@@ -571,6 +594,9 @@ def club_settings(slug):
         club.is_private         = form.is_private.data
         club.require_membership = form.require_membership.data
         club.join_approval      = form.join_approval.data if form.join_approval.data in ('auto', 'manual') else 'auto'
+        club.membership_dues_required = form.membership_dues_required.data
+        club.membership_dues_url = form.membership_dues_url.data or None
+        club.membership_duration_months = form.membership_duration_months.data or 12
 
         club.facebook_url      = form.facebook_url.data or None
         club.instagram_url     = form.instagram_url.data or None
@@ -781,12 +807,16 @@ def club_team(slug):
     pending = (ClubMembership.query.filter_by(club_id=club.id, status='pending')
                .join(User, ClubMembership.user_id == User.id)
                .add_entity(User).all())
+    pending_payment = (ClubMembership.query.filter_by(club_id=club.id, status='pending_payment')
+                       .join(User, ClubMembership.user_id == User.id)
+                       .add_entity(User).all())
     pending_transfers = (ClubOwnershipTransfer.query
                          .filter_by(club_id=club.id, status='pending')
                          .order_by(ClubOwnershipTransfer.created_at.desc())
                          .all())
     return render_template('admin/club_team.html', club=club,
                            admins=admins, members=members, pending=pending,
+                           pending_payment=pending_payment,
                            owner=club.effective_owner,
                            can_transfer_owner=_can_transfer_club_owner(club),
                            pending_transfers=pending_transfers)
@@ -966,11 +996,27 @@ def club_member_approve(slug, uid):
     return redirect(url_for('admin.club_team', slug=slug))
 
 
+@admin_bp.route('/clubs/<slug>/members/<int:uid>/confirm-dues', methods=['POST'])
+@club_admin_required
+def club_member_confirm_dues(slug, uid):
+    club = _get_club_or_404(slug)
+    row = ClubMembership.query.filter_by(user_id=uid, club_id=club.id, status='pending_payment').first_or_404()
+    _confirm_membership_dues(row, current_user)
+    db.session.commit()
+    send_membership_approved(row.user, club)
+    flash(f'{row.user.username} dues confirmed through {row.dues_paid_until:%b %d, %Y}. Membership is active.', 'success')
+    return redirect(url_for('admin.club_team', slug=slug))
+
+
 @admin_bp.route('/clubs/<slug>/members/<int:uid>/reject', methods=['POST'])
 @club_admin_required
 def club_member_reject(slug, uid):
     club = _get_club_or_404(slug)
-    row = ClubMembership.query.filter_by(user_id=uid, club_id=club.id, status='pending').first_or_404()
+    row = (ClubMembership.query
+           .filter(ClubMembership.user_id == uid,
+                   ClubMembership.club_id == club.id,
+                   ClubMembership.status.in_(('pending', 'pending_payment')))
+           .first_or_404())
     username = row.user.username
     send_membership_rejected(row.user, club)
     db.session.delete(row)
@@ -1201,19 +1247,39 @@ def club_import(slug):
     results = None
 
     if form.validate_on_submit():
-        raw_emails = _re.split(r'[\n,;\s]+', form.emails.data)
-        emails = list(dict.fromkeys(
-            e.strip().lower() for e in raw_emails if e.strip()
-        ))
+        rows = []
+        seen_emails = set()
+        default_expires_on = form.membership_expires_on.data
+        for raw_line in (form.emails.data or '').splitlines():
+            raw_line = raw_line.strip()
+            if not raw_line:
+                continue
+            parts = [part.strip() for part in _re.split(r'[,;]', raw_line) if part.strip()]
+            if len(parts) == 1:
+                email = parts[0].lower()
+                expires_on = default_expires_on
+            else:
+                email = parts[0].lower()
+                try:
+                    expires_on = datetime.strptime(parts[1], '%Y-%m-%d').date()
+                except ValueError:
+                    rows.append((email, default_expires_on, 'Invalid expiration date. Use YYYY-MM-DD.'))
+                    continue
+            if email not in seen_emails:
+                rows.append((email, expires_on, None))
+                seen_emails.add(email)
 
         MAX_IMPORT = 200
-        if len(emails) > MAX_IMPORT:
+        if len(rows) > MAX_IMPORT:
             flash(f'Maximum {MAX_IMPORT} emails per import. Please split into batches.', 'danger')
             return render_template('admin/club_import.html', club=club, form=form, results=None)
 
         created, invited, already_members, invalid = [], [], [], []
 
-        for email in emails:
+        for email, expires_on, row_error in rows:
+            if row_error:
+                invalid.append(f'{email} — {row_error}')
+                continue
             if not _re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email):
                 invalid.append(email)
                 continue
@@ -1225,6 +1291,10 @@ def club_import(slug):
                     user_id=existing_user.id, club_id=club.id
                 ).first()
                 if mem and mem.status == 'active':
+                    if expires_on:
+                        mem.dues_paid_until = expires_on
+                        mem.dues_confirmed_at = datetime.now(timezone.utc)
+                        mem.dues_confirmed_by_id = current_user.id
                     already_members.append(email)
                     continue
                 # Existing Paceline user not yet in this club — send confirmation invite
@@ -1236,6 +1306,7 @@ def club_import(slug):
                     expires_at=datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=7),
                     created_by=current_user.id,
                     is_new_user=False,
+                    membership_expires_on=expires_on,
                 )
                 db.session.add(invite)
                 db.session.flush()
@@ -1254,7 +1325,10 @@ def club_import(slug):
                 db.session.add(new_user)
                 db.session.flush()
                 db.session.add(ClubMembership(
-                    user_id=new_user.id, club_id=club.id, status='active'
+                    user_id=new_user.id, club_id=club.id, status='active',
+                    dues_paid_until=expires_on,
+                    dues_confirmed_at=datetime.now(timezone.utc) if expires_on else None,
+                    dues_confirmed_by_id=current_user.id if expires_on else None,
                 ))
                 token = secrets.token_urlsafe(32)
                 invite = ClubInvite(
@@ -1264,6 +1338,7 @@ def club_import(slug):
                     expires_at=datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=7),
                     created_by=current_user.id,
                     is_new_user=True,
+                    membership_expires_on=expires_on,
                 )
                 db.session.add(invite)
                 db.session.flush()

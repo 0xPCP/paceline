@@ -141,6 +141,12 @@ class ClubSettingsForm(FlaskForm):
         ('auto',   'Auto-approve — users join immediately upon request'),
         ('manual', 'Manual approval — admin must approve each request'),
     ])
+    membership_dues_required = BooleanField('Require paid dues before membership becomes active')
+    membership_dues_url = StringField('External Dues Payment Link',
+                                      validators=[Optional(), SafeURL(), Length(max=500)])
+    membership_duration_months = IntegerField('Dues Valid For (months)',
+                                             validators=[Optional(), NumberRange(min=1, max=60)],
+                                             default=12)
     # Strava integration
     strava_club_id = StringField('Strava Club ID', validators=[Optional(), Length(max=20)])
     # Social media / communication
@@ -241,7 +247,10 @@ class ClubInviteForm(FlaskForm):
 
 class BulkImportForm(FlaskForm):
     emails = TextAreaField('Email Addresses', validators=[DataRequired()],
-                           description='One email per line, or comma-separated. Max 200 per batch.')
+                           description='One email per line. Optionally add an expiration date after a comma, like rider@example.com, 2026-12-31. Max 200 per batch.')
+    membership_expires_on = DateField('Membership Active Until (optional)',
+                                      validators=[Optional()],
+                                      description='Applies to imported active members unless a row includes its own date.')
     message = TextAreaField('Personal Message (optional)',
                             validators=[Optional(), Length(max=500)],
                             description='Included in the email sent to each person.')

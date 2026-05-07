@@ -76,10 +76,10 @@ def member_user(db, club):
     return u
 
 
-def _import_post(client, club, emails_text, message=''):
+def _import_post(client, club, emails_text, message='', membership_expires_on=''):
     return client.post(
         f'/admin/clubs/{club.slug}/import',
-        data={'emails': emails_text, 'message': message},
+        data={'emails': emails_text, 'message': message, 'membership_expires_on': membership_expires_on},
         follow_redirects=True,
     )
 
@@ -129,6 +129,16 @@ class TestNewUserImport:
         mem = ClubMembership.query.filter_by(user_id=user.id, club_id=club.id).first()
         assert mem is not None
         assert mem.status == 'active'
+
+    def test_new_user_import_sets_batch_membership_expiration(self, client, club, club_admin, db):
+        _login(client, club_admin.email, 'password')
+        with pytest.MonkeyPatch().context() as mp:
+            mp.setattr('app.email.send_import_welcome_email', lambda inv: None)
+            _import_post(client, club, 'paid@example.com', membership_expires_on='2026-12-31')
+
+        user = User.query.filter_by(email='paid@example.com').first()
+        mem = ClubMembership.query.filter_by(user_id=user.id, club_id=club.id).first()
+        assert mem.dues_paid_until.isoformat() == '2026-12-31'
 
     def test_invite_token_created_with_is_new_user_true(self, client, club, club_admin, db):
         _login(client, club_admin.email, 'password')
@@ -235,6 +245,22 @@ class TestExistingUserImport:
         mem = ClubMembership.query.filter_by(user_id=existing_user.id, club_id=club.id).first()
         assert mem is not None
         assert mem.status == 'active'
+
+    def test_existing_user_import_applies_row_expiration_after_claim(self, client, club, club_admin, existing_user, db):
+        _login(client, club_admin.email, 'password')
+        with pytest.MonkeyPatch().context() as mp:
+            mp.setattr('app.email.send_import_invite_email', lambda inv: None)
+            _import_post(client, club, f'{existing_user.email}, 2027-01-15')
+
+        invite = ClubInvite.query.filter_by(email=existing_user.email, club_id=club.id).first()
+        assert invite.membership_expires_on.isoformat() == '2027-01-15'
+
+        client.post('/auth/logout')
+        _login(client, existing_user.email, 'password')
+        client.get(f'/clubs/invites/{invite.token}', follow_redirects=True)
+
+        mem = ClubMembership.query.filter_by(user_id=existing_user.id, club_id=club.id).first()
+        assert mem.dues_paid_until.isoformat() == '2027-01-15'
 
 
 # ── Already-member path ───────────────────────────────────────────────────────

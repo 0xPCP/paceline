@@ -129,6 +129,9 @@
               {% if pending %}
               <span class="badge bg-warning text-dark ms-1">{{ pending | length }} pending</span>
               {% endif %}
+              {% if pending_payment %}
+              <span class="badge bg-info text-dark ms-1">{{ pending_payment | length }} payment</span>
+              {% endif %}
             </span>
             <a href="{{ url_for('admin.club_members_export', slug=club.slug) }}"
                class="btn btn-outline-secondary btn-xs ms-auto">
@@ -175,6 +178,39 @@
           </div>
           {% endif %}
 
+          {% if pending_payment %}
+          <h6 class="mb-2">Pending Dues Confirmation</h6>
+          <div class="paceline-table-wrap mb-3">
+            <table class="table table-sm paceline-table">
+              <thead><tr><th>User</th><th>Requested</th><th></th></tr></thead>
+              <tbody>
+                {% for row, user in pending_payment %}
+                <tr>
+                  <td>
+                    <strong>{{ user.username }}</strong><br>
+                    <small class="text-muted">{{ user.email }}</small>
+                  </td>
+                  <td><small class="text-muted">{{ row.joined_at.strftime('%b %d, %Y') }}</small></td>
+                  <td>
+                    <div class="d-flex gap-1">
+                      <form method="post" action="{{ url_for('admin.club_member_confirm_dues', slug=club.slug, uid=user.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn-success btn-xs">Confirm Paid</button>
+                      </form>
+                      <form method="post" action="{{ url_for('admin.club_member_reject', slug=club.slug, uid=user.id) }}"
+                            onsubmit="return confirm('Reject {{ user.username }}\'s membership request?')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn-outline-danger btn-xs">Reject</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% endif %}
+
           {% if members %}
           <div style="max-height:340px;overflow-y:auto" class="mb-3">
             <div class="paceline-table-wrap">
@@ -187,7 +223,12 @@
                       <strong>{{ user.username }}</strong><br>
                       <small class="text-muted">{{ user.email }}</small>
                     </td>
-                    <td><small class="text-muted">{{ row.joined_at.strftime('%b %d, %Y') }}</small></td>
+                    <td>
+                      <small class="text-muted">{{ row.joined_at.strftime('%b %d, %Y') }}</small>
+                      {% if row.dues_paid_until %}
+                      <br><small class="text-muted">Paid through {{ row.dues_paid_until.strftime('%b %d, %Y') }}</small>
+                      {% endif %}
+                    </td>
                     <td>
                       <form method="post"
                             action="{{ url_for('admin.club_member_remove', slug=club.slug, uid=user.id) }}"

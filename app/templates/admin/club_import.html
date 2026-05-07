@@ -98,7 +98,7 @@
       <div class="card border-0 shadow-sm">
         <div class="card-body p-4">
           <h5 class="mb-1">{% if results %}Import Another Batch{% else %}Paste Email List{% endif %}</h5>
-          <p class="text-muted small mb-4">One email per line, or comma-separated. Maximum 200 per batch.</p>
+          <p class="text-muted small mb-4">One email per line. Add an optional paid-through date after a comma. Maximum 200 per batch.</p>
 
           <form method="post" novalidate>
             {{ form.hidden_tag() }}
@@ -106,8 +106,16 @@
             <div class="mb-3">
               {{ form.emails.label(class="form-label fw-semibold") }}
               {{ form.emails(class="form-control font-monospace" + (" is-invalid" if form.emails.errors else ""),
-                             rows=10, placeholder="alice@example.com\nbob@example.com\ncarol@example.com") }}
+                             rows=10, placeholder="alice@example.com\nbob@example.com, 2026-12-31\ncarol@example.com") }}
               {% for e in form.emails.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+              <div class="form-text">{{ form.emails.description }}</div>
+            </div>
+
+            <div class="mb-3">
+              {{ form.membership_expires_on.label(class="form-label fw-semibold") }}
+              {{ form.membership_expires_on(class="form-control" + (" is-invalid" if form.membership_expires_on.errors else "")) }}
+              <div class="form-text">{{ form.membership_expires_on.description }}</div>
+              {% for e in form.membership_expires_on.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
             </div>
 
             <div class="mb-4">
@@ -134,6 +142,7 @@
             <li class="mt-2"><strong>Existing Paceline user</strong> — They receive an email asking them to confirm they want to join {{ club.name }}. Their membership activates when they click the link.</li>
             <li class="mt-2"><strong>Already a member</strong> — Skipped with no email sent.</li>
             <li class="mt-2"><strong>Invalid email</strong> — Skipped and listed in the results.</li>
+            <li class="mt-2"><strong>Paid-through dates</strong> — Use the optional date field for a whole batch, or add <code>, YYYY-MM-DD</code> after an email for a row-specific date.</li>
           </ol>
           <hr class="my-3">
           <p class="small text-muted mb-0">Invite links expire after <strong>7 days</strong>. Re-import any emails that didn't respond to send a fresh link.</p>

@@ -233,6 +233,7 @@ def home(slug):
     weather = get_weather_for_rides(upcoming)
     is_member  = current_user.is_authenticated and current_user.is_active_member_of(club)
     is_pending = current_user.is_authenticated and current_user.is_pending_member_of(club)
+    is_pending_payment = current_user.is_authenticated and current_user.is_pending_payment_member_of(club)
     strava_activities = get_club_activities(club.strava_club_id)
 
     from ..extensions import db as _db
@@ -250,6 +251,7 @@ def home(slug):
 
     return render_template('clubs/home.html', club=club, upcoming=upcoming,
                            weather=weather, is_member=is_member, is_pending=is_pending,
+                           is_pending_payment=is_pending_payment,
                            today=today, strava_activities=strava_activities,
                            club_stats=club_stats)
 
@@ -635,11 +637,19 @@ def join(slug):
     if existing:
         return redirect(url_for('clubs.home', slug=slug))
 
-    status = 'pending' if club.join_approval == 'manual' else 'active'
+    if club.membership_dues_required:
+        status = 'pending_payment'
+    else:
+        status = 'pending' if club.join_approval == 'manual' else 'active'
     db.session.add(ClubMembership(user_id=current_user.id, club_id=club.id, status=status))
     try:
         db.session.commit()
-        if status == 'pending':
+        if status == 'pending_payment':
+            if club.membership_dues_url:
+                flash(f"Your request to join {club.name} is waiting for dues confirmation. Use the club dues link, then a club admin will activate your membership.", 'info')
+            else:
+                flash(f"Your request to join {club.name} is waiting for dues confirmation from a club admin.", 'info')
+        elif status == 'pending':
             flash(f"Your request to join {club.name} has been submitted. An admin will review it shortly.", 'info')
         else:
             flash(f"You've joined {club.name}!", 'success')
@@ -755,13 +765,16 @@ def invite_claim(token):
     if existing:
         if existing.status != 'active':
             existing.status = 'active'
-            db.session.commit()
+        if invite.membership_expires_on:
+            existing.dues_paid_until = invite.membership_expires_on
+        db.session.commit()
         flash(f"You're now an active member of {club.name}!", 'success')
     else:
         db.session.add(ClubMembership(
             user_id=current_user.id,
             club_id=club.id,
             status='active',
+            dues_paid_until=invite.membership_expires_on,
         ))
         invite.used_at = datetime.now(timezone.utc)
         invite.used_by_user_id = current_user.id

@@ -232,6 +232,28 @@
           {% for e in form.join_approval.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
         </div>
 
+        <div class="mb-3">
+          <div class="form-check form-switch">
+            {{ form.membership_dues_required(class="form-check-input", role="switch", id="membership_dues_required") }}
+            {{ form.membership_dues_required.label(class="form-check-label", for="membership_dues_required") }}
+          </div>
+          <div class="form-text">Use this when dues must be paid outside Paceline before membership is active. Paceline does not process, hold, or take a cut of club dues.</div>
+        </div>
+
+        <div class="mb-3">
+          {{ form.membership_dues_url.label(class="form-label") }}
+          {{ form.membership_dues_url(class="form-control" + (" is-invalid" if form.membership_dues_url.errors else ""), placeholder="https://buy.stripe.com/...") }}
+          {% for e in form.membership_dues_url.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          <div class="form-text">Paste the club-owned Stripe, PayPal, Square, or other hosted payment link for dues.</div>
+        </div>
+
+        <div class="mb-4">
+          {{ form.membership_duration_months.label(class="form-label") }}
+          {{ form.membership_duration_months(class="form-control" + (" is-invalid" if form.membership_duration_months.errors else ""), min="1", max="60") }}
+          {% for e in form.membership_duration_months.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          <div class="form-text">When an admin confirms payment, membership is marked active for this many months.</div>
+        </div>
+
         <hr class="my-4" />
         <h5 class="mb-3">Weather Auto-Cancel</h5>
         <p class="text-muted small mb-3">

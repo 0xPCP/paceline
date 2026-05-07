@@ -66,7 +66,9 @@ class User(db.Model, UserMixin):
     strava_token_expires_at = db.Column(db.Integer, nullable=True)
 
     signups = db.relationship('RideSignup', backref='user', lazy=True, cascade='all, delete-orphan')
-    club_memberships = db.relationship('ClubMembership', backref='user', lazy=True, cascade='all, delete-orphan')
+    club_memberships = db.relationship('ClubMembership', backref='user', lazy=True,
+                                       cascade='all, delete-orphan',
+                                       foreign_keys='ClubMembership.user_id')
     club_admin_roles = db.relationship('ClubAdmin', backref='user', lazy=True, cascade='all, delete-orphan')
     waiver_signatures = db.relationship('WaiverSignature', backref='user', lazy=True, cascade='all, delete-orphan')
 
@@ -100,12 +102,21 @@ class User(db.Model, UserMixin):
     def is_active_member_of(self, club):
         """True only if the membership is approved/active."""
         row = ClubMembership.query.filter_by(user_id=self.id, club_id=club.id).first()
-        return row is not None and row.status == 'active'
+        return (
+            row is not None
+            and row.status == 'active'
+            and (row.dues_paid_until is None or row.dues_paid_until >= date.today())
+        )
 
     def is_pending_member_of(self, club):
         """True if the user has requested to join but is awaiting admin approval."""
         row = ClubMembership.query.filter_by(user_id=self.id, club_id=club.id).first()
         return row is not None and row.status == 'pending'
+
+    def is_pending_payment_member_of(self, club):
+        """True if the user joined but still needs club-admin dues confirmation."""
+        row = ClubMembership.query.filter_by(user_id=self.id, club_id=club.id).first()
+        return row is not None and row.status == 'pending_payment'
 
     def is_content_editor(self, club):
         """Can manage news posts and club description only."""
@@ -185,6 +196,9 @@ class Club(db.Model):
     # Membership settings
     require_membership = db.Column(db.Boolean, default=False, nullable=False)  # must join before ride signup
     join_approval = db.Column(db.String(10), default='auto', nullable=False)   # 'auto' | 'manual'
+    membership_dues_required = db.Column(db.Boolean, default=False, nullable=False)
+    membership_dues_url = db.Column(db.String(500), nullable=True)
+    membership_duration_months = db.Column(db.Integer, default=12, nullable=False)
 
     # Strava integration
     strava_club_id = db.Column(db.BigInteger, nullable=True)  # numeric Strava club ID
@@ -223,7 +237,11 @@ class Club(db.Model):
 
     @property
     def member_count(self):
-        return ClubMembership.query.filter_by(club_id=self.id, status='active').count()
+        return ClubMembership.query.filter(
+            ClubMembership.club_id == self.id,
+            ClubMembership.status == 'active',
+            db.or_(ClubMembership.dues_paid_until == None, ClubMembership.dues_paid_until >= date.today()),
+        ).count()
 
     @property
     def normalized_sport_type(self):
@@ -255,8 +273,13 @@ class ClubMembership(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     club_id = db.Column(db.Integer, db.ForeignKey('clubs.id'), nullable=False)
-    status = db.Column(db.String(10), default='active', nullable=False)  # 'active' | 'pending'
+    status = db.Column(db.String(20), default='active', nullable=False)  # 'active' | 'pending' | 'pending_payment'
     joined_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    dues_paid_until = db.Column(db.Date, nullable=True)
+    dues_confirmed_at = db.Column(db.DateTime, nullable=True)
+    dues_confirmed_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
+    dues_confirmed_by = db.relationship('User', foreign_keys=[dues_confirmed_by_id])
 
     __table_args__ = (db.UniqueConstraint('user_id', 'club_id', name='uq_membership'),)
 
@@ -412,6 +435,7 @@ class ClubInvite(db.Model):
     used_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     # True = account was pre-created by bulk import; user must set a password via setup_account
     is_new_user = db.Column(db.Boolean, default=False, nullable=False)
+    membership_expires_on = db.Column(db.Date, nullable=True)
 
     club = db.relationship('Club', foreign_keys=[club_id])
     creator = db.relationship('User', foreign_keys=[created_by])

@@ -89,6 +89,14 @@
           {% elif is_pending %}
           <span class="btn btn-outline-light disabled">Pending Approval</span>
           <p class="text-white-50 small mb-0 mt-1">Your request is under review. You'll be notified when approved.</p>
+          {% elif is_pending_payment %}
+          {% if club.membership_dues_url %}
+          <a class="btn btn-paceline" href="{{ club.membership_dues_url }}" target="_blank" rel="noopener">Pay Club Dues</a>
+          <p class="text-white-50 small mb-0 mt-1">Your membership will activate after a club admin confirms payment.</p>
+          {% else %}
+          <span class="btn btn-outline-light disabled">Payment Pending</span>
+          <p class="text-white-50 small mb-0 mt-1">A club admin needs to confirm your dues payment.</p>
+          {% endif %}
           {% else %}
           <form method="post" action="{{ url_for('clubs.join', slug=club.slug) }}" class="d-inline">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />

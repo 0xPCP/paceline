@@ -28,6 +28,8 @@ def test_club_manager_help_page(client):
     assert b'Create your club' in resp.data
     assert b'Publish rides' in resp.data
     assert b'Manage signups' in resp.data
+    assert b'Handle paid club dues' in resp.data
+    assert b'does not process club dues' in resp.data
     assert b'img/help/club-create.png' in resp.data
     assert b'img/help/club-settings.png' in resp.data
     assert b'img/help/club-team.png' in resp.data

@@ -68,6 +68,45 @@ def ensure_runtime_schema():
     if club_columns and 'owner_id' not in club_columns:
         db.session.execute(text('ALTER TABLE clubs ADD COLUMN owner_id INTEGER'))
         changed = True
+    if club_columns and 'membership_dues_required' not in club_columns:
+        db.session.execute(text('ALTER TABLE clubs ADD COLUMN membership_dues_required BOOLEAN NOT NULL DEFAULT FALSE'))
+        changed = True
+    if club_columns and 'membership_dues_url' not in club_columns:
+        db.session.execute(text('ALTER TABLE clubs ADD COLUMN membership_dues_url VARCHAR(500)'))
+        changed = True
+    if club_columns and 'membership_duration_months' not in club_columns:
+        db.session.execute(text('ALTER TABLE clubs ADD COLUMN membership_duration_months INTEGER NOT NULL DEFAULT 12'))
+        changed = True
+
+    membership_columns = (
+        {col['name'] for col in inspector.get_columns('club_memberships')}
+        if 'club_memberships' in inspector.get_table_names() else set()
+    )
+    if membership_columns and 'dues_paid_until' not in membership_columns:
+        db.session.execute(text('ALTER TABLE club_memberships ADD COLUMN dues_paid_until DATE'))
+        changed = True
+    if membership_columns and 'dues_confirmed_at' not in membership_columns:
+        db.session.execute(text('ALTER TABLE club_memberships ADD COLUMN dues_confirmed_at TIMESTAMP'))
+        changed = True
+    if membership_columns and 'dues_confirmed_by_id' not in membership_columns:
+        db.session.execute(text('ALTER TABLE club_memberships ADD COLUMN dues_confirmed_by_id INTEGER'))
+        changed = True
+    if membership_columns and db.engine.dialect.name == 'postgresql':
+        status_col = next(
+            (col for col in inspector.get_columns('club_memberships') if col['name'] == 'status'),
+            None,
+        )
+        if status_col is not None and getattr(status_col['type'], 'length', None) and status_col['type'].length < 20:
+            db.session.execute(text('ALTER TABLE club_memberships ALTER COLUMN status TYPE VARCHAR(20)'))
+            changed = True
+
+    invite_columns = (
+        {col['name'] for col in inspector.get_columns('club_invites')}
+        if 'club_invites' in inspector.get_table_names() else set()
+    )
+    if invite_columns and 'membership_expires_on' not in invite_columns:
+        db.session.execute(text('ALTER TABLE club_invites ADD COLUMN membership_expires_on DATE'))
+        changed = True
 
     ride_columns = {col['name'] for col in inspector.get_columns('rides')} if 'rides' in inspector.get_table_names() else set()
     if ride_columns and 'garmin_groupride_code' not in ride_columns:

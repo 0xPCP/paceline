@@ -2,6 +2,8 @@
 Tests for membership-gated ride signups, join approval modes,
 pending membership state, and private club route protection.
 """
+from datetime import date, timedelta
+
 import pytest
 from tests.conftest import login, logout
 from app.models import Club, ClubMembership, ClubAdmin
@@ -157,6 +159,29 @@ def test_settings_saves_manual_approval(client, db, sample_club, club_admin_user
     assert sample_club.join_approval == 'manual'
 
 
+def test_settings_saves_paid_dues_configuration(client, db, sample_club, club_admin_user):
+    login(client, email='clubadmin@test.com')
+    r = client.post(f'/admin/clubs/{sample_club.slug}/settings', data={
+        'name': sample_club.name,
+        'description': '', 'city': '', 'state': '', 'zip_code': '', 'address': '',
+        'website': '', 'contact_email': '', 'logo_url': '',
+        'theme_primary': '', 'theme_accent': '', 'banner_url': '',
+        'strava_club_id': '',
+        'require_membership': 'y',
+        'join_approval': 'auto',
+        'membership_dues_required': 'y',
+        'membership_dues_url': 'https://buy.stripe.com/test_dues',
+        'membership_duration_months': '12',
+        'cancel_rain_prob': '80', 'cancel_wind_mph': '35',
+        'cancel_temp_min_f': '28', 'cancel_temp_max_f': '100',
+    }, follow_redirects=True)
+    assert r.status_code == 200
+    db.session.refresh(sample_club)
+    assert sample_club.membership_dues_required is True
+    assert sample_club.membership_dues_url == 'https://buy.stripe.com/test_dues'
+    assert sample_club.membership_duration_months == 12
+
+
 # ── Auto-approve join flow ────────────────────────────────────────────────────
 
 def test_auto_approve_join_creates_active_membership(client, db, membership_club, regular_user):
@@ -172,6 +197,37 @@ def test_auto_approve_join_shows_success_flash(client, db, membership_club, regu
     login(client)
     r = client.post(f'/clubs/{membership_club.slug}/join', follow_redirects=True)
     assert b"joined" in r.data.lower()
+
+
+def test_paid_dues_join_creates_pending_payment_membership(client, db, membership_club, regular_user):
+    membership_club.membership_dues_required = True
+    membership_club.membership_dues_url = 'https://buy.stripe.com/test_dues'
+    db.session.commit()
+    login(client)
+    r = client.post(f'/clubs/{membership_club.slug}/join', follow_redirects=True)
+    row = ClubMembership.query.filter_by(user_id=regular_user.id, club_id=membership_club.id).first()
+    assert r.status_code == 200
+    assert row is not None
+    assert row.status == 'pending_payment'
+    assert b'Pay Club Dues' in r.data
+
+
+def test_admin_confirms_paid_dues_activates_membership(client, db, membership_club, club_admin, regular_user):
+    membership_club.membership_dues_required = True
+    membership_club.membership_duration_months = 6
+    db.session.add(ClubMembership(user_id=regular_user.id, club_id=membership_club.id, status='pending_payment'))
+    db.session.commit()
+
+    login(client, email='clubadmin@test.com')
+    r = client.post(
+        f'/admin/clubs/{membership_club.slug}/members/{regular_user.id}/confirm-dues',
+        follow_redirects=True,
+    )
+    row = ClubMembership.query.filter_by(user_id=regular_user.id, club_id=membership_club.id).first()
+    assert r.status_code == 200
+    assert row.status == 'active'
+    assert row.dues_paid_until is not None
+    assert row.dues_confirmed_by_id == club_admin.id
 
 
 # ── Manual approval join flow ─────────────────────────────────────────────────
@@ -269,6 +325,22 @@ def test_active_member_can_signup(client, db, membership_club, member_ride, regu
     assert signup is not None
 
 
+def test_expired_paid_membership_cannot_signup(client, db, membership_club, member_ride, regular_user):
+    db.session.add(ClubMembership(
+        user_id=regular_user.id,
+        club_id=membership_club.id,
+        status='active',
+        dues_paid_until=date.today() - timedelta(days=1),
+    ))
+    db.session.commit()
+    login(client)
+    client.post(f'/clubs/{membership_club.slug}/rides/{member_ride.id}/signup',
+                follow_redirects=True)
+    from app.models import RideSignup
+    signup = RideSignup.query.filter_by(ride_id=member_ride.id, user_id=regular_user.id).first()
+    assert signup is None
+
+
 def test_ride_detail_shows_membership_warning_for_non_member(client, db, membership_club, member_ride, regular_user):
     login(client)
     r = client.get(f'/clubs/{membership_club.slug}/rides/{member_ride.id}')
@@ -356,5 +428,17 @@ def test_private_club_gpx_allowed_for_active_member(client, db, private_club, pr
 def test_member_count_excludes_pending(db, sample_club, regular_user, second_user):
     db.session.add(ClubMembership(user_id=regular_user.id, club_id=sample_club.id, status='active'))
     db.session.add(ClubMembership(user_id=second_user.id,  club_id=sample_club.id, status='pending'))
+    db.session.commit()
+    assert sample_club.member_count == 1
+
+
+def test_member_count_excludes_expired_paid_membership(db, sample_club, regular_user, second_user):
+    db.session.add(ClubMembership(user_id=regular_user.id, club_id=sample_club.id, status='active'))
+    db.session.add(ClubMembership(
+        user_id=second_user.id,
+        club_id=sample_club.id,
+        status='active',
+        dues_paid_until=date.today() - timedelta(days=1),
+    ))
     db.session.commit()
     assert sample_club.member_count == 1
