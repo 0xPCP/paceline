@@ -3,8 +3,9 @@ Tests for club creation wizard, permission roles, private club access,
 and team/member management routes.
 """
 import pytest
+from unittest.mock import patch
 from tests.conftest import login, logout
-from app.models import Club, ClubAdmin, ClubMembership
+from app.models import Club, ClubAdmin, ClubMembership, ClubOwnershipTransfer
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -291,3 +292,79 @@ def test_club_member_remove(client, db, sample_club, full_admin, regular_user):
     assert r.status_code == 200
     row = ClubMembership.query.filter_by(user_id=regular_user.id, club_id=sample_club.id).first()
     assert row is None
+
+
+def test_club_owner_can_request_ownership_transfer_by_email(client, db, sample_club, full_admin, second_user):
+    login(client, email='clubadmin@test.com')
+    with patch('app.routes.admin.send_club_ownership_transfer_email') as send_email:
+        r = client.post(f'/admin/clubs/{sample_club.slug}/team/transfer-owner', data={
+            'email': second_user.email,
+            'confirm_email': second_user.email,
+        }, follow_redirects=True)
+
+    assert r.status_code == 200
+    assert b'Ownership transfer sent' in r.data
+    transfer = ClubOwnershipTransfer.query.filter_by(
+        club_id=sample_club.id,
+        to_user_id=second_user.id,
+        status='pending',
+    ).first()
+    assert transfer is not None
+    send_email.assert_called_once()
+
+
+def test_club_owner_transfer_requires_matching_email_confirmation(client, db, sample_club, full_admin, second_user):
+    login(client, email='clubadmin@test.com')
+    r = client.post(f'/admin/clubs/{sample_club.slug}/team/transfer-owner', data={
+        'email': second_user.email,
+        'confirm_email': 'different@test.com',
+    }, follow_redirects=True)
+
+    assert r.status_code == 200
+    assert b'Email confirmation must match' in r.data
+    assert ClubOwnershipTransfer.query.count() == 0
+
+
+def test_ownership_transfer_accept_requires_target_user(client, db, sample_club, full_admin, second_user, regular_user):
+    transfer = ClubOwnershipTransfer(
+        club_id=sample_club.id,
+        from_user_id=full_admin.id,
+        to_user_id=second_user.id,
+    )
+    db.session.add(transfer)
+    db.session.commit()
+
+    login(client, email=regular_user.email)
+    r = client.post(f'/admin/ownership-transfer/{transfer.token}', follow_redirects=True)
+
+    assert r.status_code == 200
+    assert b'this ownership transfer was sent to' in r.data
+    db.session.refresh(sample_club)
+    assert sample_club.owner_id is None
+    assert transfer.status == 'pending'
+
+
+def test_ownership_transfer_accept_sets_owner_membership_and_admin(client, db, sample_club, full_admin, second_user):
+    transfer = ClubOwnershipTransfer(
+        club_id=sample_club.id,
+        from_user_id=full_admin.id,
+        to_user_id=second_user.id,
+    )
+    db.session.add(transfer)
+    db.session.commit()
+
+    login(client, email=second_user.email)
+    r = client.post(f'/admin/ownership-transfer/{transfer.token}', follow_redirects=True)
+
+    assert r.status_code == 200
+    assert b'You are now the owner' in r.data
+    db.session.refresh(sample_club)
+    assert sample_club.owner_id == second_user.id
+    admin_row = ClubAdmin.query.filter_by(user_id=second_user.id, club_id=sample_club.id).first()
+    assert admin_row is not None
+    assert admin_row.role == 'admin'
+    member_row = ClubMembership.query.filter_by(user_id=second_user.id, club_id=sample_club.id).first()
+    assert member_row is not None
+    assert member_row.status == 'active'
+    db.session.refresh(transfer)
+    assert transfer.status == 'accepted'

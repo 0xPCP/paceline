@@ -33,6 +33,10 @@ def ensure_runtime_schema():
         db.session.execute(text(ddl))
         changed = True
 
+    if 'username_finalized' not in user_columns:
+        db.session.execute(text('ALTER TABLE users ADD COLUMN username_finalized BOOLEAN NOT NULL DEFAULT TRUE'))
+        changed = True
+
     if 'google_sub' not in user_columns:
         db.session.execute(text('ALTER TABLE users ADD COLUMN google_sub VARCHAR(255)'))
         changed = True
@@ -53,9 +57,16 @@ def ensure_runtime_schema():
         db.session.execute(text('ALTER TABLE users ADD COLUMN sport_preferences JSON'))
         changed = True
 
+    if 'strava_profile_url' not in user_columns:
+        db.session.execute(text('ALTER TABLE users ADD COLUMN strava_profile_url VARCHAR(500)'))
+        changed = True
+
     club_columns = {col['name'] for col in inspector.get_columns('clubs')} if 'clubs' in inspector.get_table_names() else set()
     if club_columns and 'sport_type' not in club_columns:
         db.session.execute(text("ALTER TABLE clubs ADD COLUMN sport_type VARCHAR(20) NOT NULL DEFAULT 'cycling'"))
+        changed = True
+    if club_columns and 'owner_id' not in club_columns:
+        db.session.execute(text('ALTER TABLE clubs ADD COLUMN owner_id INTEGER'))
         changed = True
 
     ride_columns = {col['name'] for col in inspector.get_columns('rides')} if 'rides' in inspector.get_table_names() else set()
@@ -76,6 +87,11 @@ def ensure_runtime_schema():
     if 'email_delivery_logs' not in inspector.get_table_names():
         from .models import EmailDeliveryLog
         EmailDeliveryLog.__table__.create(db.engine, checkfirst=True)
+        changed = True
+
+    if 'club_ownership_transfers' not in inspector.get_table_names():
+        from .models import ClubOwnershipTransfer
+        ClubOwnershipTransfer.__table__.create(db.engine, checkfirst=True)
         changed = True
 
     superadmin_emails = _configured_superadmin_emails()

@@ -33,6 +33,14 @@
           </dd>
           <dt>Active</dt>
           <dd>{{ 'Yes' if club.is_active else 'No' }}</dd>
+          <dt>Owner</dt>
+          <dd>
+            {% if owner %}
+            {{ owner.username }}<br><small class="text-muted">{{ owner.email }}</small>
+            {% else %}
+            <span class="text-muted">Not set</span>
+            {% endif %}
+          </dd>
           <dt>Members</dt>
           <dd>{{ stats.members }}</dd>
           <dt>Rides</dt>
@@ -76,6 +84,23 @@
             </button>
           </form>
         </div>
+      </div>
+
+      <div class="detail-card mb-4">
+        <h5 class="detail-card-title">Transfer Owner</h5>
+        <p class="section-body">
+          Manually assign a new club owner when the current manager cannot complete
+          the normal email-confirmed transfer. The new owner is also made an active
+          member and full club admin.
+        </p>
+        <form method="post" action="{{ url_for('admin.club_superadmin_transfer_owner', slug=club.slug) }}" class="d-grid gap-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input class="form-control form-control-sm" type="email" name="email"
+                 placeholder="New owner email" required>
+          <input class="form-control form-control-sm" type="email" name="confirm_email"
+                 placeholder="Confirm new owner email" required>
+          <button class="btn btn-outline-primary btn-sm">Transfer Ownership</button>
+        </form>
       </div>
 
       <div class="alert alert-warning">

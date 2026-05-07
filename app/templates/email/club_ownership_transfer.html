@@ -1,0 +1,10 @@
+{% extends "email/_base.html" %}
+{% block body %}
+  <div class="club-tag">Club Ownership</div>
+  <h1>Confirm ownership transfer</h1>
+  <p>Hello {{ transfer.to_user.username }},</p>
+  <p>{{ transfer.from_user.username }} has asked to transfer ownership of <strong>{{ transfer.club.name }}</strong> to you on Paceline.</p>
+  <p>Accepting this transfer will make you the club owner and grant you full club admin access.</p>
+  <p><a class="cta" href="{{ accept_url }}">Review Transfer</a></p>
+  <p class="text-muted" style="font-size:.9rem">This link expires in 7 days. Only the Paceline account for {{ transfer.to_user.email }} can accept it.</p>
+{% endblock %}

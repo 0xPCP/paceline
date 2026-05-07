@@ -1,0 +1,12 @@
+Confirm ownership transfer
+
+Hello {{ transfer.to_user.username }},
+
+{{ transfer.from_user.username }} has asked to transfer ownership of {{ transfer.club.name }} to you on Paceline.
+
+Accepting this transfer will make you the club owner and grant you full club admin access.
+
+Review the transfer:
+{{ accept_url }}
+
+This link expires in 7 days. Only the Paceline account for {{ transfer.to_user.email }} can accept it.

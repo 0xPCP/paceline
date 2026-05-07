@@ -6,6 +6,7 @@ from wtforms import (
 )
 from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional, URL, NumberRange, Regexp, ValidationError
 from .security import is_safe_external_url
+from .strava_profile import canonical_strava_profile_url
 
 
 class SafeURL(URL):
@@ -18,6 +19,12 @@ class SafeURL(URL):
                 raise ValidationError('Only plain http:// and https:// URLs are accepted.')
 
 
+class StravaProfileURL:
+    def __call__(self, form, field):
+        if field.data and not canonical_strava_profile_url(field.data):
+            raise ValidationError('Enter your Strava athlete profile URL, like https://www.strava.com/athletes/123456.')
+
+
 class RegisterForm(FlaskForm):
     username = StringField('Username', validators=[
         DataRequired(), Length(3, 50),
@@ -27,6 +34,14 @@ class RegisterForm(FlaskForm):
     password = PasswordField('Password', validators=[DataRequired(), Length(min=8)])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
     submit = SubmitField('Create Account')
+
+
+class UsernameSetupForm(FlaskForm):
+    username = StringField('Username', validators=[
+        DataRequired(), Length(3, 50),
+        Regexp(r'^[a-zA-Z0-9_.-]+$', message='Username may only contain letters, numbers, underscores, hyphens, and dots.'),
+    ])
+    submit = SubmitField('Save Username')
 
 
 class LoginForm(FlaskForm):
@@ -68,6 +83,7 @@ class ProfileForm(FlaskForm):
         ('nonbinary', 'Non-binary'),
     ], validators=[Optional()])
     bio      = TextAreaField('Bio', validators=[Optional(), Length(max=500)])
+    strava_profile_url = StringField('Strava Profile URL', validators=[Optional(), Length(max=500), StravaProfileURL()])
     language = SelectField('Language', choices=[
         ('',   '— Auto-detect —'),
         ('en', 'English'),

@@ -12,7 +12,8 @@ import pytest
 from datetime import date, time, timedelta
 from unittest.mock import patch
 from app.extensions import db, bcrypt
-from app.models import AdminAuditLog, Club, EmailDeliveryLog, Ride, RideMedia, RideSignup, User
+from app.models import (AdminAuditLog, Club, ClubAdmin, ClubMembership,
+                        EmailDeliveryLog, Ride, RideMedia, RideSignup, User)
 from tests.conftest import login, logout
 
 
@@ -529,6 +530,29 @@ class TestSuperadminClubMaintenance:
         assert resp.status_code == 200
         assert b'DELETE test-club' in resp.data
         assert Club.query.filter_by(id=sample_club.id).first() is not None
+
+    def test_superadmin_can_manually_transfer_club_owner(self, client, db, admin_user, sample_club, regular_user):
+        login_as(client, admin_user)
+        resp = client.post(
+            f'/admin/clubs/{sample_club.slug}/superadmin/transfer-owner',
+            data={
+                'email': regular_user.email,
+                'confirm_email': regular_user.email,
+            },
+            follow_redirects=True,
+        )
+
+        assert resp.status_code == 200
+        assert b'ownership was transferred' in resp.data
+        db.session.refresh(sample_club)
+        assert sample_club.owner_id == regular_user.id
+        admin_row = ClubAdmin.query.filter_by(user_id=regular_user.id, club_id=sample_club.id).first()
+        assert admin_row is not None
+        assert admin_row.role == 'admin'
+        member_row = ClubMembership.query.filter_by(user_id=regular_user.id, club_id=sample_club.id).first()
+        assert member_row is not None
+        assert member_row.status == 'active'
+        assert AdminAuditLog.query.filter_by(action='manual_transfer_club_owner').first() is not None
 
     def test_superadmin_can_delete_club_with_confirmation(self, client, db, admin_user, sample_club, sample_rides):
         club_id = sample_club.id

@@ -32,6 +32,14 @@ def test_donate_page_links_to_configured_stripe_link(client, app):
     assert b'Send a note or suggestion' in resp.data
 
 
+def test_donate_page_orders_about_donate_feedback(client, app):
+    app.config['DONATE_URL'] = 'https://buy.stripe.com/test_donation'
+    body = client.get('/donate').get_data(as_text=True)
+
+    assert body.index('About the founder') < body.index('Stripe-hosted donations')
+    assert body.index('Stripe-hosted donations') < body.index('Feedback')
+
+
 def test_donate_page_uses_live_stripe_link(client, app):
     app.config['DONATE_URL'] = 'https://buy.stripe.com/dRm7sFgkK2yb8VwgrZ9AA00'
     resp = client.get('/donate')

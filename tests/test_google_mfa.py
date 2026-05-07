@@ -63,8 +63,11 @@ def test_google_callback_creates_user_for_verified_email(client, app):
         resp = client.get('/auth/google/callback?state=state-token&code=auth-code')
 
     assert resp.status_code == 302
+    assert resp.headers['Location'].endswith('/auth/username')
     user = User.query.filter_by(email='newgoogle@example.com').one()
     assert user.google_sub == 'google-sub-1'
+    assert user.username.startswith('google-')
+    assert user.username_finalized is False
     with client.session_transaction() as sess:
         assert sess['_user_id'] == user.get_id()
         assert sess['_paceline_trusted_browser'] is False
@@ -86,6 +89,37 @@ def test_google_callback_links_existing_verified_email(client, app, regular_user
     assert resp.status_code == 302
     db.session.refresh(regular_user)
     assert regular_user.google_sub == 'google-sub-existing'
+    assert regular_user.username_finalized is True
+
+
+def test_google_user_must_set_unique_username_before_using_app(client, app):
+    _enable_google(app)
+    db.session.add(User(
+        username='taken',
+        email='taken@example.com',
+        password_hash=bcrypt.generate_password_hash('password123').decode(),
+    ))
+    db.session.commit()
+    with client.session_transaction() as sess:
+        sess['_google_oauth_state'] = 'state-token'
+
+    with patch('app.routes.auth.requests.post', return_value=_json_response({'access_token': 'token'})), \
+         patch('app.routes.auth.requests.get', return_value=_json_response({
+             'sub': 'google-sub-needs-name',
+             'email': 'needsname@example.com',
+             'email_verified': True,
+         })):
+        client.get('/auth/google/callback?state=state-token&code=auth-code')
+
+    assert client.get('/clubs/').headers['Location'].endswith('/auth/username')
+    duplicate = client.post('/auth/username', data={'username': 'taken'})
+    assert b'already taken' in duplicate.data
+
+    resp = client.post('/auth/username', data={'username': 'newgoogleuser'}, follow_redirects=False)
+    assert resp.status_code == 302
+    user = User.query.filter_by(email='needsname@example.com').one()
+    assert user.username == 'newgoogleuser'
+    assert user.username_finalized is True
 
 
 def test_google_callback_rejects_unverified_email(client, app):

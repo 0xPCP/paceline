@@ -25,9 +25,10 @@
           <dd>{{ profile_user.gender | capitalize }}</dd>
           {% endif %}
         </dl>
-        {% if profile_user.strava_id %}
+        {% set strava_url = profile_user.strava_profile_url or ('https://www.strava.com/athletes/' ~ profile_user.strava_id if profile_user.strava_id else None) %}
+        {% if strava_url %}
         <div class="mt-3">
-          <a href="https://www.strava.com/athletes/{{ profile_user.strava_id }}"
+          <a href="{{ strava_url }}"
              target="_blank" rel="noopener"
              class="btn btn-sm btn-outline-secondary w-100">
             View on Strava ↗

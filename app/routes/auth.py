@@ -13,12 +13,13 @@ from ..extensions import db, bcrypt
 from ..models import User, Ride, RideSignup, ClubInvite
 from ..forms import (
     DisableMfaForm, MfaCodeForm, PasswordResetRequestForm, RegisterForm,
-    LoginForm, ProfileForm, SetPasswordForm,
+    LoginForm, ProfileForm, SetPasswordForm, UsernameSetupForm,
 )
 from ..email import send_password_reset_email
 from ..geocoding import geocode_zip
 from ..gear import GEAR_CATALOG
 from ..mfa import generate_backup_codes, generate_totp_secret, totp_uri, verify_totp
+from ..strava_profile import canonical_strava_profile_url, strava_profile_athlete_id
 from ..utils import is_safe_url
 
 auth_bp = Blueprint('auth', __name__)
@@ -113,17 +114,11 @@ def _google_redirect_uri():
     return url_for('auth.google_callback', _external=True)
 
 
-def _unique_username_from_email(email):
-    base = (email.split('@', 1)[0] or 'rider').lower()
-    base = ''.join(ch if ch.isalnum() or ch in '_.-' else '-' for ch in base).strip('.-_') or 'rider'
-    base = base[:40]
-    candidate = base
-    counter = 2
-    while User.query.filter_by(username=candidate).first():
-        suffix = f'-{counter}'
-        candidate = f'{base[:50 - len(suffix)]}{suffix}'
-        counter += 1
-    return candidate
+def _temporary_google_username():
+    while True:
+        candidate = f'google-{secrets.token_hex(8)}'
+        if not User.query.filter_by(username=candidate).first():
+            return candidate
 
 
 def _google_userinfo(code):
@@ -173,7 +168,8 @@ def _user_from_google_profile(profile):
         if address.strip()
     }
     user = User(
-        username=_unique_username_from_email(email),
+        username=_temporary_google_username(),
+        username_finalized=False,
         email=email,
         google_sub=google_sub,
         password_hash=bcrypt.generate_password_hash(secrets.token_urlsafe(32)).decode('utf-8'),
@@ -210,6 +206,7 @@ def register():
         is_configured_superadmin = form.email.data.lower() in superadmin_emails
         user = User(
             username=form.username.data,
+            username_finalized=True,
             email=form.email.data.lower(),
             password_hash=hashed,
             is_admin=is_first_user or is_configured_superadmin,
@@ -367,9 +364,33 @@ def google_callback():
 
     login_user(user, remember=False)
     _mark_interactive_login(trusted_browser=False)
+    if not user.username_finalized:
+        return redirect(url_for('auth.username_setup'))
     if next_page and is_safe_url(next_page):
         return redirect(next_page)
     return redirect(url_for('main.index'))
+
+
+@auth_bp.route('/username', methods=['GET', 'POST'])
+@fresh_login_required
+def username_setup():
+    if current_user.username_finalized:
+        return redirect(url_for('main.index'))
+
+    form = UsernameSetupForm()
+    if form.validate_on_submit():
+        username = form.username.data.strip()
+        existing = User.query.filter(User.username == username, User.id != current_user.id).first()
+        if existing:
+            flash('That username is already taken.', 'danger')
+            return render_template('auth/username_setup.html', form=form)
+        current_user.username = username
+        current_user.username_finalized = True
+        db.session.commit()
+        flash('Username saved.', 'success')
+        return redirect(url_for('main.index'))
+
+    return render_template('auth/username_setup.html', form=form)
 
 
 @auth_bp.route('/mfa', methods=['GET', 'POST'])
@@ -459,20 +480,21 @@ def logout():
 def profile():
     form = ProfileForm(obj=current_user)
     if form.validate_on_submit():
-        # Check uniqueness for changed fields
-        if form.username.data != current_user.username:
-            if User.query.filter_by(username=form.username.data).first():
-                flash(_('That username is already taken.'), 'danger')
-                return redirect(url_for('auth.profile'))
         if form.email.data.lower() != current_user.email:
             if User.query.filter_by(email=form.email.data.lower()).first():
                 flash(_('An account with that email already exists.'), 'danger')
                 return redirect(url_for('auth.profile'))
 
-        current_user.username  = form.username.data
         current_user.email     = form.email.data.lower()
         current_user.gender    = form.gender.data or None
         current_user.bio       = (form.bio.data or '').strip() or None
+        strava_profile_url = canonical_strava_profile_url(form.strava_profile_url.data)
+        if strava_profile_url and current_user.strava_id:
+            athlete_id = strava_profile_athlete_id(strava_profile_url)
+            if athlete_id != current_user.strava_id:
+                flash('That Strava profile URL does not match the Strava account connected to your profile.', 'danger')
+                return redirect(url_for('auth.profile'))
+        current_user.strava_profile_url = strava_profile_url
         current_user.language  = form.language.data or None
         current_user.emergency_contact_name  = (form.emergency_contact_name.data or '').strip() or None
         current_user.emergency_contact_phone = (form.emergency_contact_phone.data or '').strip() or None

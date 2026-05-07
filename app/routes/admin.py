@@ -10,7 +10,7 @@ from sqlalchemy import or_, func
 from ..extensions import db, bcrypt
 from ..models import (AdminAuditLog, Club, Ride, RideSignup, SiteFeedback, User,
                       ClubMembership, ClubAdmin, ClubPost, ClubLeader, ClubSponsor,
-                      ClubInvite)
+                      ClubInvite, ClubOwnershipTransfer)
 from ..forms import RideForm, ClubForm, ClubSettingsForm, ClubPostForm, ClubLeaderForm, ClubSponsorForm, ClubInviteForm, BulkImportForm
 from ..recurrence import generate_instances, delete_future_instances
 from ..geocoding import geocode_zip
@@ -18,7 +18,8 @@ from ..admin_stats import (active_superadmin_count, configured_superadmin_emails
                            platform_report)
 from ..email import (send_cancellation_emails, send_new_ride_notification,
                      send_membership_approved, send_membership_rejected, send_invite_email,
-                     send_import_welcome_email, send_import_invite_email)
+                     send_import_welcome_email, send_import_invite_email,
+                     send_club_ownership_transfer_email)
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -34,6 +35,38 @@ def _audit(action, target_user=None, details=None):
 
 def _get_club_or_404(slug):
     return Club.query.filter_by(slug=slug, is_active=True).first_or_404()
+
+
+def _ensure_owner_membership_and_admin(club, user):
+    membership = ClubMembership.query.filter_by(user_id=user.id, club_id=club.id).first()
+    if membership:
+        membership.status = 'active'
+    else:
+        db.session.add(ClubMembership(user_id=user.id, club_id=club.id, status='active'))
+
+    admin_row = ClubAdmin.query.filter_by(user_id=user.id, club_id=club.id).first()
+    if admin_row:
+        admin_row.role = 'admin'
+    else:
+        db.session.add(ClubAdmin(user_id=user.id, club_id=club.id, role='admin'))
+
+    club.owner_id = user.id
+
+
+def _can_transfer_club_owner(club):
+    owner = club.effective_owner
+    if current_user.is_admin:
+        return True
+    if owner and owner.id == current_user.id:
+        return True
+    return owner is None and current_user.is_club_admin(club)
+
+
+def _find_user_by_email(email):
+    email = (email or '').strip().lower()
+    if not email:
+        return None
+    return User.query.filter(func.lower(User.email) == email).first()
 
 
 def _require_fresh_auth():
@@ -409,7 +442,35 @@ def club_superadmin(slug):
                     .filter(Ride.club_id == club.id).count()),
         'posts': ClubPost.query.filter_by(club_id=club.id).count(),
     }
-    return render_template('admin/club_superadmin.html', club=club, stats=stats)
+    return render_template('admin/club_superadmin.html', club=club, stats=stats,
+                           owner=club.effective_owner)
+
+
+@admin_bp.route('/clubs/<slug>/superadmin/transfer-owner', methods=['POST'])
+@superadmin_required
+def club_superadmin_transfer_owner(slug):
+    club = Club.query.filter_by(slug=slug).first_or_404()
+    email = (request.form.get('email') or '').strip()
+    confirm_email = (request.form.get('confirm_email') or '').strip()
+    if email.lower() != confirm_email.lower():
+        flash('Email confirmation must match the new owner email.', 'danger')
+        return redirect(url_for('admin.club_superadmin', slug=club.slug))
+
+    user = _find_user_by_email(email)
+    if not user:
+        flash(f'No active Paceline user was found with email "{email}".', 'danger')
+        return redirect(url_for('admin.club_superadmin', slug=club.slug))
+    if not user.is_active:
+        flash('That account is disabled and cannot own a club.', 'danger')
+        return redirect(url_for('admin.club_superadmin', slug=club.slug))
+
+    previous_owner_id = club.owner_id
+    _ensure_owner_membership_and_admin(club, user)
+    _audit('manual_transfer_club_owner', target_user=user,
+           details=f'club_id={club.id}; from_user_id={previous_owner_id}; to_user_id={user.id}')
+    db.session.commit()
+    flash(f'{club.name} ownership was transferred to {user.username}.', 'success')
+    return redirect(url_for('admin.club_superadmin', slug=club.slug))
 
 
 @admin_bp.route('/clubs/<slug>/toggle-private', methods=['POST'])
@@ -720,8 +781,89 @@ def club_team(slug):
     pending = (ClubMembership.query.filter_by(club_id=club.id, status='pending')
                .join(User, ClubMembership.user_id == User.id)
                .add_entity(User).all())
+    pending_transfers = (ClubOwnershipTransfer.query
+                         .filter_by(club_id=club.id, status='pending')
+                         .order_by(ClubOwnershipTransfer.created_at.desc())
+                         .all())
     return render_template('admin/club_team.html', club=club,
-                           admins=admins, members=members, pending=pending)
+                           admins=admins, members=members, pending=pending,
+                           owner=club.effective_owner,
+                           can_transfer_owner=_can_transfer_club_owner(club),
+                           pending_transfers=pending_transfers)
+
+
+@admin_bp.route('/clubs/<slug>/team/transfer-owner', methods=['POST'])
+@club_admin_required
+def club_team_transfer_owner(slug):
+    club = _get_club_or_404(slug)
+    if not _can_transfer_club_owner(club):
+        abort(403)
+
+    email = (request.form.get('email') or '').strip()
+    confirm_email = (request.form.get('confirm_email') or '').strip()
+    if email.lower() != confirm_email.lower():
+        flash('Email confirmation must match the new owner email.', 'danger')
+        return redirect(url_for('admin.club_team', slug=slug))
+
+    user = _find_user_by_email(email)
+    if not user:
+        flash(f'No active Paceline user was found with email "{email}".', 'danger')
+        return redirect(url_for('admin.club_team', slug=slug))
+    if not user.is_active:
+        flash('That account is disabled and cannot own a club.', 'danger')
+        return redirect(url_for('admin.club_team', slug=slug))
+    if user.id == getattr(club.effective_owner, 'id', None):
+        flash(f'{user.username} already owns this club.', 'info')
+        return redirect(url_for('admin.club_team', slug=slug))
+
+    now = datetime.now(timezone.utc)
+    ClubOwnershipTransfer.query.filter_by(club_id=club.id, status='pending').update({
+        'status': 'cancelled',
+        'cancelled_at': now,
+    })
+    transfer = ClubOwnershipTransfer(
+        club_id=club.id,
+        from_user_id=current_user.id,
+        to_user_id=user.id,
+        expires_at=now + timedelta(days=7),
+    )
+    db.session.add(transfer)
+    _audit('request_club_owner_transfer', target_user=user,
+           details=f'club_id={club.id}; from_user_id={current_user.id}; to_user_id={user.id}')
+    db.session.commit()
+
+    accept_url = url_for('admin.club_ownership_transfer_accept',
+                         token=transfer.token, _external=True)
+    send_club_ownership_transfer_email(transfer, accept_url)
+    flash(f'Ownership transfer sent to {user.email}. They must accept it before ownership changes.', 'success')
+    return redirect(url_for('admin.club_team', slug=slug))
+
+
+@admin_bp.route('/ownership-transfer/<token>', methods=['GET', 'POST'])
+@login_required
+def club_ownership_transfer_accept(token):
+    fresh_response = _require_fresh_auth()
+    if fresh_response:
+        return fresh_response
+    transfer = ClubOwnershipTransfer.query.filter_by(token=token).first_or_404()
+    if transfer.to_user_id != current_user.id:
+        flash('Sign in as the user this ownership transfer was sent to.', 'danger')
+        return redirect(url_for('main.index'))
+    if transfer.status != 'pending' or transfer.is_expired:
+        flash('This ownership transfer is no longer available.', 'danger')
+        return redirect(url_for('main.index'))
+
+    if request.method == 'POST':
+        _ensure_owner_membership_and_admin(transfer.club, current_user)
+        transfer.status = 'accepted'
+        transfer.accepted_at = datetime.now(timezone.utc)
+        _audit('accept_club_owner_transfer', target_user=current_user,
+               details=f'club_id={transfer.club_id}; from_user_id={transfer.from_user_id}; to_user_id={transfer.to_user_id}')
+        db.session.commit()
+        flash(f'You are now the owner of {transfer.club.name}.', 'success')
+        return redirect(url_for('admin.club_dashboard', slug=transfer.club.slug))
+
+    return render_template('admin/club_ownership_transfer.html', transfer=transfer)
 
 
 @admin_bp.route('/clubs/<slug>/team/add', methods=['POST'])

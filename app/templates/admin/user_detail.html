@@ -50,9 +50,13 @@
           <dt>Language</dt>
           <dd>{{ profile_user.language }}</dd>
           {% endif %}
-          {% if profile_user.strava_id %}
+          {% if profile_user.strava_profile_url or profile_user.strava_id %}
           <dt>Strava</dt>
-          <dd><a href="https://www.strava.com/athletes/{{ profile_user.strava_id }}" target="_blank" rel="noopener">{{ profile_user.strava_id }}</a></dd>
+          <dd>
+            <a href="{{ profile_user.strava_profile_url or ('https://www.strava.com/athletes/' ~ profile_user.strava_id) }}" target="_blank" rel="noopener">
+              {{ profile_user.strava_profile_url or profile_user.strava_id }}
+            </a>
+          </dd>
           {% endif %}
         </dl>
       </div>

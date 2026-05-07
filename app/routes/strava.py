@@ -129,6 +129,7 @@ def callback():
 
         data = resp.json()
         current_user.strava_id = data['athlete']['id']
+        current_user.strava_profile_url = f"https://www.strava.com/athletes/{current_user.strava_id}"
         current_user.strava_access_token = data['access_token']
         current_user.strava_refresh_token = data['refresh_token']
         current_user.strava_token_expires_at = data['expires_at']
@@ -144,6 +145,7 @@ def callback():
 @fresh_login_required
 def disconnect():
     current_user.strava_id = None
+    current_user.strava_profile_url = None
     current_user.strava_access_token = None
     current_user.strava_refresh_token = None
     current_user.strava_token_expires_at = None

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Confirm Club Ownership Transfer{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <h1>Confirm ownership transfer</h1>
+    <p class="mb-0">{{ transfer.club.name }}</p>
+  </div>
+</div>
+
+<div class="container py-4" style="max-width:720px">
+  <div class="detail-card">
+    <h5 class="detail-card-title">Transfer Details</h5>
+    <dl class="detail-dl">
+      <dt>Club</dt>
+      <dd>{{ transfer.club.name }}</dd>
+      <dt>Requested by</dt>
+      <dd>{{ transfer.from_user.username }} ({{ transfer.from_user.email }})</dd>
+      <dt>New owner</dt>
+      <dd>{{ transfer.to_user.username }} ({{ transfer.to_user.email }})</dd>
+      <dt>Expires</dt>
+      <dd>{{ transfer.expires_at.strftime('%b %d, %Y') }}</dd>
+    </dl>
+    <p class="section-body">
+      Accepting makes you the club owner and grants full admin access. The previous owner
+      remains on the admin team unless removed separately.
+    </p>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-paceline">Accept Ownership</button>
+      <a class="btn btn-outline-secondary" href="{{ url_for('main.index') }}">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

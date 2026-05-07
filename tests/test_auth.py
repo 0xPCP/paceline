@@ -24,6 +24,7 @@ class TestRegistration:
         assert resp.status_code == 200
         user = User.query.filter_by(username='newrider').first()
         assert user is not None
+        assert user.username_finalized is True
 
     def test_first_user_becomes_admin(self, client, db):
         client.post('/auth/register', data={
@@ -260,13 +261,15 @@ class TestProfile:
         login(client)
         assert b'Zip Code' in client.get('/auth/profile').data
 
-    def test_profile_update_username(self, client, regular_user, db):
+    def test_profile_cannot_update_username(self, client, regular_user, db):
         login(client)
         client.post('/auth/profile', data={
             'username': 'newrider', 'email': 'rider@test.com', 'zip_code': '',
         }, follow_redirects=True)
         from app.models import User
-        assert User.query.filter_by(username='newrider').first() is not None
+        db.session.refresh(regular_user)
+        assert regular_user.username == 'rider'
+        assert User.query.filter_by(username='newrider').first() is None
 
     def test_profile_update_zip_saves(self, client, regular_user, db):
         from unittest.mock import patch
@@ -280,12 +283,65 @@ class TestProfile:
         assert u.zip_code == '22101'
         assert u.lat == 38.9
 
-    def test_duplicate_username_rejected(self, client, regular_user, second_user, db):
+    def test_profile_saves_canonical_strava_profile_url(self, client, regular_user, db):
+        login(client)
+        resp = client.post('/auth/profile', data={
+            'username': 'rider',
+            'email': 'rider@test.com',
+            'zip_code': '',
+            'strava_profile_url': 'http://strava.com/athletes/123456',
+        }, follow_redirects=True)
+
+        assert resp.status_code == 200
+        db.session.refresh(regular_user)
+        assert regular_user.strava_profile_url == 'https://www.strava.com/athletes/123456'
+
+    def test_profile_rejects_non_strava_profile_url(self, client, regular_user, db):
+        login(client)
+        resp = client.post('/auth/profile', data={
+            'username': 'rider',
+            'email': 'rider@test.com',
+            'zip_code': '',
+            'strava_profile_url': 'https://example.com/rider',
+        }, follow_redirects=True)
+
+        assert b'Enter your Strava athlete profile URL' in resp.data
+        db.session.refresh(regular_user)
+        assert regular_user.strava_profile_url is None
+
+    def test_profile_rejects_strava_url_that_does_not_match_connected_account(self, client, regular_user, db):
+        regular_user.strava_id = 111
+        db.session.commit()
+        login(client)
+        resp = client.post('/auth/profile', data={
+            'username': 'rider',
+            'email': 'rider@test.com',
+            'zip_code': '',
+            'strava_profile_url': 'https://www.strava.com/athletes/222',
+        }, follow_redirects=True)
+
+        assert b'does not match the Strava account connected' in resp.data
+        db.session.refresh(regular_user)
+        assert regular_user.strava_profile_url is None
+
+    def test_public_profile_uses_saved_strava_profile_url(self, client, regular_user, db):
+        regular_user.strava_profile_url = 'https://www.strava.com/athletes/123456'
+        db.session.commit()
+        login(client)
+
+        resp = client.get(f'/users/{regular_user.username}')
+
+        assert resp.status_code == 200
+        assert b'https://www.strava.com/athletes/123456' in resp.data
+
+    def test_profile_ignores_submitted_duplicate_username(self, client, regular_user, second_user, db):
         login(client)
         resp = client.post('/auth/profile', data={
             'username': 'rider2', 'email': 'rider@test.com', 'zip_code': '',
         }, follow_redirects=True)
-        assert b'already taken' in resp.data
+        assert resp.status_code == 200
+        db.session.refresh(regular_user)
+        assert regular_user.username == 'rider'
 
     def test_profile_shows_ytd_stats(self, client, regular_user, sample_club, db):
         login(client)

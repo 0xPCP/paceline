@@ -18,9 +18,10 @@
           {{ form.hidden_tag() }}
 
           <div class="mb-3">
-            {{ form.username.label(class="form-label") }}
-            {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else "")) }}
-            {% for e in form.username.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            <label class="form-label">Username</label>
+            <div class="form-control bg-light">{{ current_user.username }}</div>
+            <input type="hidden" name="username" value="{{ current_user.username }}">
+            <div class="form-text">Usernames are set once and cannot be changed.</div>
           </div>
 
           <div class="mb-3">
@@ -46,6 +47,17 @@
             {{ form.bio.label(class="form-label") }}
             {{ form.bio(class="form-control" + (" is-invalid" if form.bio.errors else ""), rows=3, placeholder="Tell other riders a bit about yourself (optional). Visible on your public profile.") }}
             {% for e in form.bio.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="mb-3">
+            <div class="d-flex align-items-center gap-2">
+              {{ form.strava_profile_url.label(class="form-label mb-0") }}
+              <span class="text-muted"
+                    title="Open Strava, go to your profile page, and copy the browser URL. It should look like https://www.strava.com/athletes/123456.">ⓘ</span>
+            </div>
+            {{ form.strava_profile_url(class="form-control" + (" is-invalid" if form.strava_profile_url.errors else ""), placeholder="https://www.strava.com/athletes/123456") }}
+            {% for e in form.strava_profile_url.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            <div class="form-text">Visible on your public Paceline profile.</div>
           </div>
 
           <div class="mb-3">
@@ -90,6 +102,7 @@
           <input type="hidden" name="zip_code" value="{{ current_user.zip_code or '' }}">
           <input type="hidden" name="gender" value="{{ current_user.gender or '' }}">
           <input type="hidden" name="bio" value="{{ current_user.bio or '' }}">
+          <input type="hidden" name="strava_profile_url" value="{{ current_user.strava_profile_url or '' }}">
           <input type="hidden" name="language" value="{{ current_user.language or '' }}">
           <input type="hidden" name="emergency_contact_name" value="{{ current_user.emergency_contact_name or '' }}">
           <input type="hidden" name="emergency_contact_phone" value="{{ current_user.emergency_contact_phone or '' }}">

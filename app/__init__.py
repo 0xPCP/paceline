@@ -56,6 +56,13 @@ def _is_auth_timeout_exempt(endpoint):
     }
 
 
+def _is_username_setup_exempt(endpoint):
+    return endpoint == 'static' or endpoint in {
+        'auth.username_setup',
+        'auth.logout',
+    }
+
+
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
@@ -134,6 +141,8 @@ def create_app(config_class=Config):
                 session.pop('_paceline_trusted_browser', None)
                 flash('Please sign in again to continue.', 'info')
                 return redirect(url_for('auth.login', next=request.full_path.rstrip('?')))
+            if not user.username_finalized and not _is_username_setup_exempt(request.endpoint):
+                return redirect(url_for('auth.username_setup'))
 
         if (
             not current_user.is_authenticated

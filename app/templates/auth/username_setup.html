@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Choose Username — Paceline{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-logo"><img src="{{ url_for('static', filename='img/logo.svg') }}?v={{ version }}" alt="Paceline" style="height:36px;width:auto"></div>
+    <h2 class="auth-title">Choose Your Username</h2>
+    <p class="text-muted small">Pick the username other riders will see. This can only be set once.</p>
+
+    <form method="post" novalidate>
+      {{ form.hidden_tag() }}
+      <div class="mb-3">
+        {{ form.username.label(class="form-label") }}
+        {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else ""), placeholder="coolrider42") }}
+        {% for e in form.username.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+      </div>
+      {{ form.submit(class="btn btn-paceline w-100") }}
+    </form>
+  </div>
+</div>
+{% endblock %}

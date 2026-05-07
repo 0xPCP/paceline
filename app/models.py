@@ -1,4 +1,5 @@
 import re
+import secrets
 from datetime import datetime, date, timedelta, timezone
 from flask_login import UserMixin
 from .extensions import db, login_manager
@@ -26,6 +27,7 @@ class User(db.Model, UserMixin):
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
+    username_finalized = db.Column(db.Boolean, default=True, nullable=False)
     email = db.Column(db.String(255), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     google_sub = db.Column(db.String(255), unique=True, nullable=True)
@@ -58,6 +60,7 @@ class User(db.Model, UserMixin):
 
     # Strava linking
     strava_id = db.Column(db.BigInteger, unique=True, nullable=True)
+    strava_profile_url = db.Column(db.String(500), nullable=True)
     strava_access_token = db.Column(db.Text, nullable=True)
     strava_refresh_token = db.Column(db.Text, nullable=True)
     strava_token_expires_at = db.Column(db.Integer, nullable=True)
@@ -76,6 +79,8 @@ class User(db.Model, UserMixin):
     def is_club_admin(self, club):
         """Full club admin: can manage settings, members, and rides."""
         if self.is_admin:
+            return True
+        if getattr(club, 'owner_id', None) == self.id:
             return True
         row = ClubAdmin.query.filter_by(user_id=self.id, club_id=club.id).first()
         return row is not None and row.role == 'admin'
@@ -167,6 +172,7 @@ class Club(db.Model):
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     sport_type = db.Column(db.String(20), default=DEFAULT_SPORT, nullable=False)
+    owner_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
 
     # Club theming
     theme_primary = db.Column(db.String(7), nullable=True)   # hex e.g. "#2d6a4f"
@@ -213,6 +219,7 @@ class Club(db.Model):
                               order_by='ClubLeader.display_order.asc()', cascade='all, delete-orphan')
     sponsors = db.relationship('ClubSponsor', backref='club', lazy=True,
                                order_by='ClubSponsor.display_order.asc()', cascade='all, delete-orphan')
+    owner = db.relationship('User', foreign_keys=[owner_id])
 
     @property
     def member_count(self):
@@ -229,6 +236,16 @@ class Club(db.Model):
                 .filter_by(club_id=self.id)
                 .order_by(ClubWaiver.created_at.desc())
                 .first())
+
+    @property
+    def effective_owner(self):
+        if self.owner:
+            return self.owner
+        admin_row = (ClubAdmin.query
+                     .filter_by(club_id=self.id, role='admin')
+                     .order_by(ClubAdmin.granted_at.asc(), ClubAdmin.id.asc())
+                     .first())
+        return admin_row.user if admin_row else None
 
 
 class ClubMembership(db.Model):
@@ -255,6 +272,36 @@ class ClubAdmin(db.Model):
     role = db.Column(db.String(20), default='admin', nullable=False)  # 'admin' | 'ride_manager'
 
     __table_args__ = (db.UniqueConstraint('user_id', 'club_id', name='uq_club_admin'),)
+
+
+class ClubOwnershipTransfer(db.Model):
+    """Pending club ownership transfer that must be accepted by the new owner."""
+    __tablename__ = 'club_ownership_transfers'
+
+    id = db.Column(db.Integer, primary_key=True)
+    club_id = db.Column(db.Integer, db.ForeignKey('clubs.id'), nullable=False)
+    from_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    to_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    token = db.Column(db.String(96), unique=True, nullable=False,
+                      default=lambda: secrets.token_urlsafe(48))
+    status = db.Column(db.String(20), default='pending', nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    expires_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc) + timedelta(days=7),
+        nullable=False,
+    )
+    accepted_at = db.Column(db.DateTime, nullable=True)
+    cancelled_at = db.Column(db.DateTime, nullable=True)
+
+    club = db.relationship('Club', foreign_keys=[club_id])
+    from_user = db.relationship('User', foreign_keys=[from_user_id])
+    to_user = db.relationship('User', foreign_keys=[to_user_id])
+
+    @property
+    def is_expired(self):
+        expires = self.expires_at.replace(tzinfo=None) if self.expires_at.tzinfo else self.expires_at
+        return expires < datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class ClubWaiver(db.Model):

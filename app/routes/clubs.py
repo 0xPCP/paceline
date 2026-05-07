@@ -198,6 +198,7 @@ def create():
             contact_email = form.contact_email.data or None,
             logo_url      = form.logo_url.data or None,
             banner_url    = form.banner_url.data or None,
+            owner_id      = current_user.id,
         )
         if club.zip_code:
             coords = geocode_zip(club.zip_code)

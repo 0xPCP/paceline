@@ -257,6 +257,20 @@ def send_password_reset_email(user, reset_url):
     logger.info('Password reset email sent to %s', user.email)
 
 
+def send_club_ownership_transfer_email(transfer, accept_url):
+    """Ask the proposed new club owner to confirm an ownership transfer."""
+    user = transfer.to_user
+    if not user or not user.email:
+        return
+    html = render_template('email/club_ownership_transfer.html',
+                           transfer=transfer, accept_url=accept_url)
+    text = render_template('email/club_ownership_transfer.txt',
+                           transfer=transfer, accept_url=accept_url)
+    _send(f'Confirm ownership transfer — {transfer.club.name}', [user.email], html, text)
+    logger.info('Club ownership transfer email sent to %s for club %d',
+                user.email, transfer.club_id)
+
+
 def send_weekly_digest(club, rides):
     """
     Send the Sunday weekly digest to all active club members.
