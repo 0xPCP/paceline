@@ -40,6 +40,13 @@ def test_donate_page_orders_about_donate_feedback(client, app):
     assert body.index('Stripe-hosted donations') < body.index('Feedback')
 
 
+def test_donate_page_shows_founder_photo(client):
+    resp = client.get('/donate')
+    assert resp.status_code == 200
+    assert b'img/image.jpg' in resp.data
+    assert b'Phil Porter after a cycling event' in resp.data
+
+
 def test_donate_page_uses_live_stripe_link(client, app):
     app.config['DONATE_URL'] = 'https://buy.stripe.com/dRm7sFgkK2yb8VwgrZ9AA00'
     resp = client.get('/donate')

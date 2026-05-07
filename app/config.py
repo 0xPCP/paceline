@@ -64,14 +64,6 @@ class Config:
     # Dormant multi-sport support. Keep false until running-club UI/filtering ships.
     MULTISPORT_UI_ENABLED = os.environ.get('MULTISPORT_UI_ENABLED', 'false').lower() == 'true'
 
-    # Public showcase deployment. Demo mode must use an isolated database/storage.
-    DEMO_MODE = (
-        os.environ.get('PACELINE_DEMO_MODE')
-        or os.environ.get('DEMO_MODE')
-        or 'false'
-    ).lower() == 'true'
-    DEMO_SITE_URL = os.environ.get('DEMO_SITE_URL', 'https://demo.paceline.club').strip()
-
     # Google OAuth sign-in / registration
     GOOGLE_OAUTH_CLIENT_ID = os.environ.get('GOOGLE_OAUTH_CLIENT_ID', '').strip()
     GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get('GOOGLE_OAUTH_CLIENT_SECRET', '').strip()

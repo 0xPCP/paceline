@@ -12,9 +12,6 @@
     <div class="hero-actions">
       <a href="{{ url_for('clubs.index') }}" class="btn btn-paceline btn-lg">{{ _('Find a Club') }}</a>
       <a href="{{ url_for('auth.register') }}" class="btn btn-paceline-outline btn-lg">{{ _('Create Account') }}</a>
-      {% if demo_site_url and not demo_mode %}
-      <a href="{{ demo_site_url }}" class="btn btn-paceline-outline btn-lg">View Demo</a>
-      {% endif %}
     </div>
   </div>
 </section>
