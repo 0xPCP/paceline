@@ -18,8 +18,17 @@ def test_help_index_links_to_guides(client):
     assert resp.status_code == 200
     assert b'Club Manager Guide' in resp.data
     assert b'Rider Guide' in resp.data
+    assert b'Open Demo' in resp.data
+    assert b'https://demo.paceline.club' in resp.data
     assert b'href="/help/club-managers"' in resp.data
     assert b'href="/help/riders"' in resp.data
+
+
+def test_homepage_links_to_demo_site(client):
+    resp = client.get('/')
+    assert resp.status_code == 200
+    assert b'View Demo' in resp.data
+    assert b'https://demo.paceline.club' in resp.data
 
 
 def test_club_manager_help_page(client):

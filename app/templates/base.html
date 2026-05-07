@@ -56,6 +56,12 @@
   </div>
 </nav>
 
+{% if demo_mode %}
+<div class="alert alert-info rounded-0 text-center mb-0 py-2 small">
+  Demo environment with fictional data. Changes may be reset at any time.
+</div>
+{% endif %}
+
 <!-- Flash messages -->
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}

@@ -27,6 +27,20 @@ with that model.
 - Add production smoke-test checklist.
 - Add billing alert in DigitalOcean.
 
+## Demo Site
+
+Status: scaffolded for isolated deployment.
+
+The demo deployment model is documented in `docs/demo_deployment.md`.
+Production should not be pre-populated with demo data. Use
+`demo.paceline.club` with a separate app container, database, and media storage
+for fictional sample clubs/rides.
+
+- Configure `demo.paceline.club` DNS and Traefik/DigitalOcean routing.
+- Add demo environment secrets.
+- Run `scripts/seed_demo.py --yes` only with `PACELINE_DEMO_MODE=true`.
+- Decide reset schedule for demo data.
+
 ### Future Design Constraint
 
 When designing new features, treat the app server as disposable. Store durable

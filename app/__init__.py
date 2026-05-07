@@ -111,6 +111,8 @@ def create_app(config_class=Config):
                 app.config.get('GOOGLE_OAUTH_CLIENT_ID')
                 and app.config.get('GOOGLE_OAUTH_CLIENT_SECRET')
             ),
+            'demo_mode': bool(app.config.get('DEMO_MODE')),
+            'demo_site_url': app.config.get('DEMO_SITE_URL', 'https://demo.paceline.club'),
         }
 
     @app.before_request

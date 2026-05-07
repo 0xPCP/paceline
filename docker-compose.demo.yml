@@ -1,0 +1,59 @@
+name: paceline-demo
+
+services:
+  demo-web:
+    build: .
+    environment:
+      - DATABASE_URL=postgresql://paceline:${DEMO_DB_PASSWORD}@demo-db:5432/paceline_demo
+      - SECRET_KEY=${DEMO_SECRET_KEY}
+      - COOKIE_SECURE=${COOKIE_SECURE:-true}
+      - PACELINE_DEMO_MODE=true
+      - DEMO_SITE_URL=https://demo.paceline.club
+      - DONATE_URL=${DONATE_URL:-}
+      - MULTISPORT_UI_ENABLED=${MULTISPORT_UI_ENABLED:-false}
+      - GOOGLE_OAUTH_CLIENT_ID=${DEMO_GOOGLE_OAUTH_CLIENT_ID:-}
+      - GOOGLE_OAUTH_CLIENT_SECRET=${DEMO_GOOGLE_OAUTH_CLIENT_SECRET:-}
+      - EMAIL_PROVIDER=
+      - RESEND_API_KEY=
+      - EMAIL_RECIPIENT_OVERRIDE=
+      - MAIL_DEFAULT_SENDER=Paceline Demo <noreply@paceline.club>
+      - SUPERADMIN_EMAILS=${SUPERADMIN_EMAILS:-phil@pcp.dev}
+      - UPLOAD_FOLDER=/app/demo_uploads
+    depends_on:
+      demo-db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.paceline-demo.rule=Host(`demo.paceline.club`)"
+      - "traefik.http.routers.paceline-demo.entrypoints=websecure"
+      - "traefik.http.services.paceline-demo.loadbalancer.server.port=8000"
+      - "com.centurylinklabs.watchtower.enable=false"
+
+  demo-db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=paceline_demo
+      - POSTGRES_USER=paceline
+      - POSTGRES_PASSWORD=${DEMO_DB_PASSWORD}
+    volumes:
+      - demo_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paceline -d paceline_demo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - internal
+
+networks:
+  internal:
+    external: true
+    name: internal
+
+volumes:
+  demo_postgres_data:
+    name: paceline_demo_postgres_data
