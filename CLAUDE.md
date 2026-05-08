@@ -29,7 +29,7 @@ The current codebase started as a single-club app (Reston Bike Club). It is bein
 2. Write/update test harness for the feature (see `tests/`)
 3. Run tests: `pytest` inside the container or locally
 4. Commit to GitHub with a message naming the feature
-5. `rsync` project to TrueNAS: `rsync -av --exclude='.git' --exclude='__pycache__' --exclude='*.pyc' --exclude='.venv' --exclude='instance/' --exclude='*.db' /home/nullbnx/Projects/paceline/ nullbnx@192.168.50.189:/mnt/fast/docker/projects/paceline/`
+5. `rsync` project to TrueNAS: `rsync -av --exclude='.git' --exclude='__pycache__' --exclude='*.pyc' --exclude='.venv' --exclude='instance/' --exclude='*.db' --exclude='.env' /home/nullbnx/Projects/paceline/ nullbnx@192.168.50.189:/mnt/fast/docker/projects/paceline/`
 6. SSH to TrueNAS: `cd /mnt/fast/docker/projects/paceline && sg docker -c 'docker compose up -d --build'`
 7. If schema changed: `docker compose exec web python seed.py` (wipe + re-seed dev DB)
 

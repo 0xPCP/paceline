@@ -24,6 +24,8 @@ services:
       - STRAVA_CLIENT_SECRET=${STRAVA_CLIENT_SECRET:-}
       - STRAVA_CLUB_ID=${STRAVA_CLUB_ID:-}
       - STRAVA_CLUB_REFRESH_TOKEN=${STRAVA_CLUB_REFRESH_TOKEN:-}
+      - BETA_PASSWORD=${BETA_PASSWORD:-}
+      - MAX_UPLOAD_MB=${MAX_UPLOAD_MB:-25}
     depends_on:
       db:
         condition: service_healthy
