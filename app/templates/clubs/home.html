@@ -544,7 +544,7 @@
           {% if board_posts %}
           <div class="board-post-list">
             {% for post in board_posts %}
-            {{ post_card(post, club, board_is_admin) }}
+            {{ post_card(post, club, board_is_admin, compact=True) }}
             {% endfor %}
           </div>
           {% if board_has_more %}
@@ -579,6 +579,33 @@ function switchToTab(btnId) {
     document.getElementById('clubTabBar').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 }
+
+// Board reaction AJAX
+(function () {
+  var meta = document.querySelector('meta[name="csrf-token"]');
+  if (!meta) return;
+  var csrf = meta.content;
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.board-react-btn');
+    if (!btn) return;
+    e.preventDefault();
+    fetch(btn.dataset.url, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+      body: JSON.stringify({reaction: btn.dataset.reaction}),
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      var card = btn.closest('.board-post-card');
+      if (!card) return;
+      card.querySelectorAll('.board-react-btn').forEach(function (b) {
+        b.classList.toggle('board-react-active', b.dataset.reaction === data.user_reaction);
+        var c = b.querySelector('.react-count');
+        if (c) c.textContent = data[b.dataset.reaction + '_count'];
+      });
+    });
+  });
+})();
 
 // Board photo count indicator
 (function () {

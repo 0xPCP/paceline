@@ -434,9 +434,13 @@ class ClubBoardPost(db.Model):
 
     club   = db.relationship('Club', foreign_keys=[club_id])
     author = db.relationship('User', foreign_keys=[author_id])
-    media  = db.relationship('ClubBoardMedia', back_populates='post',
-                             cascade='all, delete-orphan',
-                             order_by='ClubBoardMedia.id')
+    media     = db.relationship('ClubBoardMedia', back_populates='post',
+                               cascade='all, delete-orphan', order_by='ClubBoardMedia.id')
+    reactions = db.relationship('ClubBoardReaction', back_populates='post',
+                                cascade='all, delete-orphan', order_by='ClubBoardReaction.id')
+    replies   = db.relationship('ClubBoardReply', back_populates='post',
+                                cascade='all, delete-orphan',
+                                order_by='ClubBoardReply.created_at')
 
     @property
     def expires_at(self):
@@ -468,6 +472,35 @@ class ClubBoardSubscription(db.Model):
 
     club = db.relationship('Club', foreign_keys=[club_id])
     user = db.relationship('User', foreign_keys=[user_id])
+
+
+class ClubBoardReaction(db.Model):
+    """Like or dislike on a board post."""
+    __tablename__ = 'club_board_reactions'
+    __table_args__ = (db.UniqueConstraint('post_id', 'user_id'),)
+
+    id         = db.Column(db.Integer, primary_key=True)
+    post_id    = db.Column(db.Integer, db.ForeignKey('club_board_posts.id'), nullable=False)
+    user_id    = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    reaction   = db.Column(db.String(10), nullable=False)  # 'like' | 'dislike'
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    post = db.relationship('ClubBoardPost', back_populates='reactions')
+    user = db.relationship('User', foreign_keys=[user_id])
+
+
+class ClubBoardReply(db.Model):
+    """Flat reply to a board post."""
+    __tablename__ = 'club_board_replies'
+
+    id         = db.Column(db.Integer, primary_key=True)
+    post_id    = db.Column(db.Integer, db.ForeignKey('club_board_posts.id'), nullable=False)
+    author_id  = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    body       = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    post   = db.relationship('ClubBoardPost', back_populates='replies')
+    author = db.relationship('User', foreign_keys=[author_id])
 
 
 class ClubInvite(db.Model):

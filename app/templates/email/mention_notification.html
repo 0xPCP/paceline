@@ -1,0 +1,11 @@
+{% extends "email/_base.html" %}
+{% block body %}
+<div class="club-tag">{{ post.club.name }}</div>
+<h1>{{ author.username }} mentioned you</h1>
+
+<div style="background:#f9fafb;border-radius:8px;padding:14px 16px;margin-bottom:20px;border:1px solid #e5e7eb">
+  <p style="margin:0;font-size:.95rem;color:#374151;white-space:pre-line">{{ body }}</p>
+</div>
+
+<a href="https://paceline.club/clubs/{{ post.club.slug }}/board/" class="cta">View on Board</a>
+{% endblock %}

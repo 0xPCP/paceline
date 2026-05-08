@@ -1,0 +1,7 @@
+MENTION — {{ post.club.name }}
+{{ author.username }} mentioned you on the board
+
+{{ body }}
+
+View on the board:
+https://paceline.club/clubs/{{ post.club.slug }}/board/

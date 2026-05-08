@@ -75,12 +75,39 @@
 {% block scripts %}
 <script nonce="{{ g.csp_nonce }}">
 (function () {
+  // Photo count indicator
   var input = document.getElementById('boardPhotoInput');
-  if (!input) return;
-  input.addEventListener('change', function () {
-    var n = Math.min(this.files.length, 3);
-    document.getElementById('boardPhotoCount').textContent =
-      n > 0 ? n + ' photo' + (n !== 1 ? 's' : '') + ' selected' : '';
+  if (input) {
+    input.addEventListener('change', function () {
+      var n = Math.min(this.files.length, 3);
+      document.getElementById('boardPhotoCount').textContent =
+        n > 0 ? n + ' photo' + (n !== 1 ? 's' : '') + ' selected' : '';
+    });
+  }
+
+  // Reaction AJAX
+  var meta = document.querySelector('meta[name="csrf-token"]');
+  if (!meta) return;
+  var csrf = meta.content;
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.board-react-btn');
+    if (!btn) return;
+    e.preventDefault();
+    fetch(btn.dataset.url, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+      body: JSON.stringify({reaction: btn.dataset.reaction}),
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      var card = btn.closest('.board-post-card');
+      if (!card) return;
+      card.querySelectorAll('.board-react-btn').forEach(function (b) {
+        b.classList.toggle('board-react-active', b.dataset.reaction === data.user_reaction);
+        var c = b.querySelector('.react-count');
+        if (c) c.textContent = data[b.dataset.reaction + '_count'];
+      });
+    });
   });
 })();
 </script>

@@ -1,6 +1,6 @@
 """Tests for the club board feature."""
 import pytest
-from app.models import ClubBoardPost, ClubBoardSubscription
+from app.models import ClubBoardPost, ClubBoardReaction, ClubBoardReply, ClubBoardSubscription
 from app.extensions import db as _db
 
 
@@ -219,3 +219,220 @@ def test_home_shows_board_posts_for_member(client, db, regular_user, sample_club
     r = client.get(f'/clubs/{sample_club.slug}/')
     assert r.status_code == 200
     assert b'A test announcement' in r.data
+
+
+# ── V2: Reactions ─────────────────────────────────────────────────────────────
+
+def test_react_like(client, db, regular_user, sample_club):
+    _make_member(db, regular_user, sample_club)
+    post = _make_post(db, regular_user, sample_club)
+    _login(client, regular_user.email)
+    r = client.post(
+        f'/clubs/{sample_club.slug}/board/{post.id}/react',
+        json={'reaction': 'like'},
+        content_type='application/json',
+    )
+    assert r.status_code == 200
+    data = r.get_json()
+    assert data['like_count'] == 1
+    assert data['user_reaction'] == 'like'
+
+
+def test_react_toggle_removes_reaction(client, db, regular_user, sample_club):
+    _make_member(db, regular_user, sample_club)
+    post = _make_post(db, regular_user, sample_club)
+    _login(client, regular_user.email)
+    url = f'/clubs/{sample_club.slug}/board/{post.id}/react'
+    client.post(url, json={'reaction': 'like'}, content_type='application/json')
+    r = client.post(url, json={'reaction': 'like'}, content_type='application/json')
+    data = r.get_json()
+    assert data['like_count'] == 0
+    assert data['user_reaction'] is None
+
+
+def test_react_switch_changes_type(client, db, regular_user, sample_club):
+    _make_member(db, regular_user, sample_club)
+    post = _make_post(db, regular_user, sample_club)
+    _login(client, regular_user.email)
+    url = f'/clubs/{sample_club.slug}/board/{post.id}/react'
+    client.post(url, json={'reaction': 'like'}, content_type='application/json')
+    r = client.post(url, json={'reaction': 'dislike'}, content_type='application/json')
+    data = r.get_json()
+    assert data['like_count'] == 0
+    assert data['dislike_count'] == 1
+    assert data['user_reaction'] == 'dislike'
+
+
+def test_react_invalid_reaction(client, db, regular_user, sample_club):
+    _make_member(db, regular_user, sample_club)
+    post = _make_post(db, regular_user, sample_club)
+    _login(client, regular_user.email)
+    r = client.post(
+        f'/clubs/{sample_club.slug}/board/{post.id}/react',
+        json={'reaction': 'heart'},
+        content_type='application/json',
+    )
+    assert r.status_code == 400
+
+
+def test_react_non_member_forbidden(client, db, regular_user, sample_club):
+    _make_member(db, regular_user, sample_club)
+    post = _make_post(db, regular_user, sample_club)
+    # second_user not a member — log in as them
+    from app.extensions import bcrypt
+    from app.models import User
+    outsider = User(username='outsider', email='out@test.com',
+                    password_hash=bcrypt.generate_password_hash('password123').decode())
+    db.session.add(outsider)
+    db.session.commit()
+    _login(client, 'out@test.com')
+    r = client.post(
+        f'/clubs/{sample_club.slug}/board/{post.id}/react',
+        json={'reaction': 'like'},
+        content_type='application/json',
+    )
+    assert r.status_code == 403
+
+
+# ── V2: Replies ───────────────────────────────────────────────────────────────
+
+def test_create_reply(client, db, regular_user, second_user, sample_club):
+    _make_member(db, regular_user, sample_club)
+    _make_member(db, second_user, sample_club)
+    post = _make_post(db, regular_user, sample_club)
+    _login(client, second_user.email)
+    r = client.post(
+        f'/clubs/{sample_club.slug}/board/{post.id}/reply',
+        data={'body': 'Great post!'},
+        follow_redirects=True,
+    )
+    assert r.status_code == 200
+    reply = ClubBoardReply.query.filter_by(post_id=post.id).first()
+    assert reply is not None
+    assert reply.body == 'Great post!'
+    assert reply.author_id == second_user.id
+
+
+def test_reply_empty_body_rejected(client, db, regular_user, sample_club):
+    _make_member(db, regular_user, sample_club)
+    post = _make_post(db, regular_user, sample_club)
+    _login(client, regular_user.email)
+    client.post(
+        f'/clubs/{sample_club.slug}/board/{post.id}/reply',
+        data={'body': '   '},
+        follow_redirects=True,
+    )
+    assert ClubBoardReply.query.filter_by(post_id=post.id).count() == 0
+
+
+def test_reply_non_member_forbidden(client, db, regular_user, sample_club):
+    _make_member(db, regular_user, sample_club)
+    post = _make_post(db, regular_user, sample_club)
+    from app.extensions import bcrypt
+    from app.models import User
+    outsider = User(username='out2', email='out2@test.com',
+                    password_hash=bcrypt.generate_password_hash('password123').decode())
+    db.session.add(outsider)
+    db.session.commit()
+    _login(client, 'out2@test.com')
+    r = client.post(
+        f'/clubs/{sample_club.slug}/board/{post.id}/reply',
+        data={'body': 'Hello!'},
+        follow_redirects=True,
+    )
+    assert r.status_code == 403
+
+
+def test_delete_own_reply(client, db, regular_user, second_user, sample_club):
+    _make_member(db, regular_user, sample_club)
+    _make_member(db, second_user, sample_club)
+    post = _make_post(db, regular_user, sample_club)
+    reply = ClubBoardReply(post_id=post.id, author_id=second_user.id, body='Test reply')
+    db.session.add(reply)
+    db.session.commit()
+    reply_id = reply.id
+    _login(client, second_user.email)
+    r = client.post(
+        f'/clubs/{sample_club.slug}/board/{post.id}/reply/{reply_id}/delete',
+        follow_redirects=True,
+    )
+    assert r.status_code == 200
+    assert db.session.get(ClubBoardReply, reply_id) is None
+
+
+def test_delete_reply_forbidden_for_other_member(client, db, regular_user, second_user, sample_club):
+    _make_member(db, regular_user, sample_club)
+    _make_member(db, second_user, sample_club)
+    post = _make_post(db, regular_user, sample_club)
+    reply = ClubBoardReply(post_id=post.id, author_id=regular_user.id, body='Test reply')
+    db.session.add(reply)
+    db.session.commit()
+    reply_id = reply.id
+    _login(client, second_user.email)
+    r = client.post(
+        f'/clubs/{sample_club.slug}/board/{post.id}/reply/{reply_id}/delete',
+        follow_redirects=True,
+    )
+    assert r.status_code == 403
+    assert db.session.get(ClubBoardReply, reply_id) is not None
+
+
+def test_admin_can_delete_any_reply(client, db, club_admin_user, regular_user, sample_club):
+    _make_member(db, club_admin_user, sample_club)
+    _make_member(db, regular_user, sample_club)
+    post = _make_post(db, regular_user, sample_club)
+    reply = ClubBoardReply(post_id=post.id, author_id=regular_user.id, body='Test reply')
+    db.session.add(reply)
+    db.session.commit()
+    reply_id = reply.id
+    _login(client, club_admin_user.email)
+    r = client.post(
+        f'/clubs/{sample_club.slug}/board/{post.id}/reply/{reply_id}/delete',
+        follow_redirects=True,
+    )
+    assert r.status_code == 200
+    assert db.session.get(ClubBoardReply, reply_id) is None
+
+
+def test_replies_visible_on_board_page(client, db, regular_user, sample_club):
+    _make_member(db, regular_user, sample_club)
+    post = _make_post(db, regular_user, sample_club)
+    reply = ClubBoardReply(post_id=post.id, author_id=regular_user.id, body='A visible reply')
+    db.session.add(reply)
+    db.session.commit()
+    _login(client, regular_user.email)
+    r = client.get(f'/clubs/{sample_club.slug}/board/')
+    assert b'A visible reply' in r.data
+
+
+def test_post_cascade_deletes_replies_and_reactions(client, db, regular_user, sample_club):
+    _make_member(db, regular_user, sample_club)
+    post = _make_post(db, regular_user, sample_club)
+    reply = ClubBoardReply(post_id=post.id, author_id=regular_user.id, body='Reply')
+    reaction = ClubBoardReaction(post_id=post.id, user_id=regular_user.id, reaction='like')
+    db.session.add_all([reply, reaction])
+    db.session.commit()
+    post_id = post.id
+    _login(client, regular_user.email)
+    client.post(f'/clubs/{sample_club.slug}/board/{post_id}/delete', follow_redirects=True)
+    assert ClubBoardReply.query.filter_by(post_id=post_id).count() == 0
+    assert ClubBoardReaction.query.filter_by(post_id=post_id).count() == 0
+
+
+# ── V2: Username links and @mention rendering ────────────────────────────────
+
+def test_board_renders_author_profile_link(client, db, regular_user, sample_club):
+    _make_member(db, regular_user, sample_club)
+    _make_post(db, regular_user, sample_club)
+    _login(client, regular_user.email)
+    r = client.get(f'/clubs/{sample_club.slug}/board/')
+    assert f'/users/{regular_user.username}'.encode() in r.data
+
+
+def test_mentionify_renders_link(client, db, regular_user, second_user, sample_club):
+    _make_member(db, regular_user, sample_club)
+    _make_post(db, regular_user, sample_club, body=f'Hey @{second_user.username} check this out')
+    _login(client, regular_user.email)
+    r = client.get(f'/clubs/{sample_club.slug}/board/')
+    assert f'/users/{second_user.username}'.encode() in r.data
+    assert b'board-mention' in r.data

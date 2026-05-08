@@ -96,10 +96,11 @@ def create_app(config_class=Config):
     app.register_blueprint(board_bp)
 
     from .version import __version__
-    from .utils import club_theme_vars
+    from .utils import club_theme_vars, mentionify
 
     app.jinja_env.globals['club_theme_vars'] = club_theme_vars
     app.jinja_env.filters['strftime'] = _strftime_filter
+    app.jinja_env.filters['mentionify'] = mentionify
 
     @app.context_processor
     def inject_globals():

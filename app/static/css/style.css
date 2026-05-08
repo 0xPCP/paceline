@@ -1277,3 +1277,78 @@ a:hover { color: var(--paceline-green-dark); }
   transition: transform .15s;
 }
 .board-media-item:hover img { transform: scale(1.02); }
+
+/* Reactions */
+.board-react-btn {
+  background: none;
+  border: 1px solid var(--paceline-border);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: .82rem;
+  color: var(--paceline-gray);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background .1s, border-color .1s, color .1s;
+  line-height: 1.4;
+}
+.board-react-btn:hover { background: #f3f4f6; border-color: #d1d5db; color: #374151; }
+.board-react-active {
+  background: var(--paceline-green-pale, #f0fdfa);
+  border-color: var(--paceline-green, #0d9488);
+  color: var(--paceline-green, #0d9488);
+  font-weight: 600;
+}
+.board-react-active:hover { background: var(--paceline-green-pale, #f0fdfa); }
+.react-count { font-variant-numeric: tabular-nums; }
+
+.board-reply-count { font-size: .8rem; color: var(--paceline-gray); }
+.board-reply-count-link {
+  font-size: .8rem;
+  color: var(--paceline-gray);
+  text-decoration: none;
+}
+.board-reply-count-link:hover { color: var(--paceline-green); text-decoration: underline; }
+
+/* Author name link */
+.board-author-link:hover { color: var(--paceline-green) !important; }
+
+/* Replies */
+.board-reply-section { border-top: 1px solid var(--paceline-border); padding-top: .75rem; }
+.board-reply {
+  padding: .5rem 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+.board-reply:last-of-type { border-bottom: none; }
+
+.board-reply-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--paceline-green-light, #2dd4bf);
+  color: #fff;
+  font-size: .75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.board-reply-body {
+  font-size: .88rem;
+  color: #374151;
+  white-space: pre-line;
+  line-height: 1.5;
+}
+
+.board-reply-form { padding-top: .5rem; }
+.board-reply-input { font-size: .88rem; border-radius: 20px; padding: .3rem .85rem; }
+
+/* @mention links */
+.board-mention {
+  color: var(--paceline-green);
+  text-decoration: none;
+  font-weight: 500;
+}
+.board-mention:hover { text-decoration: underline; }

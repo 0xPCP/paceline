@@ -1,12 +1,20 @@
-{% macro post_card(post, club, is_admin) %}
-<div class="board-post-card">
+{% macro post_card(post, club, is_admin, compact=False) %}
+{% set user_rxns = post.reactions | selectattr('user_id', 'equalto', current_user.id) | list %}
+{% set user_reaction = user_rxns[0].reaction if user_rxns else None %}
+{% set like_count = post.reactions | selectattr('reaction', 'equalto', 'like') | list | length %}
+{% set dislike_count = post.reactions | selectattr('reaction', 'equalto', 'dislike') | list | length %}
+{% set reply_count = post.replies | length %}
+
+<div class="board-post-card" id="post-{{ post.id }}">
   <div class="d-flex gap-3">
     <div class="board-avatar flex-shrink-0">{{ post.author.username[0].upper() }}</div>
     <div class="flex-grow-1 min-w-0">
 
+      {# Header: author, timestamp, admin actions #}
       <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
         <div class="min-w-0">
-          <span class="fw-semibold small">{{ post.author.username }}</span>
+          <a href="{{ url_for('main.public_profile', username=post.author.username) }}"
+             class="fw-semibold small text-decoration-none text-dark board-author-link">{{ post.author.username }}</a>
           {% if post.is_pinned %}
           <span class="badge bg-warning text-dark ms-1" style="font-size:.65rem">📌 Pinned</span>
           {% endif %}
@@ -31,8 +39,10 @@
         </div>
       </div>
 
-      <p class="mb-2 board-post-body">{{ post.body }}</p>
+      {# Body #}
+      <p class="mb-2 board-post-body">{{ post.body | mentionify }}</p>
 
+      {# Media #}
       {% if post.media %}
       <div class="board-media-grid board-media-count-{{ post.media|length }}">
         {% for m in post.media %}
@@ -43,6 +53,77 @@
                alt="Post photo" loading="lazy">
         </a>
         {% endfor %}
+      </div>
+      {% endif %}
+
+      {# Reactions + reply count #}
+      <div class="d-flex align-items-center gap-3 mt-2 board-reactions">
+        <button type="button"
+                class="board-react-btn {{ 'board-react-active' if user_reaction == 'like' else '' }}"
+                data-url="{{ url_for('board.board_react', slug=club.slug, post_id=post.id) }}"
+                data-reaction="like">
+          👍 <span class="react-count">{{ like_count }}</span>
+        </button>
+        <button type="button"
+                class="board-react-btn {{ 'board-react-active' if user_reaction == 'dislike' else '' }}"
+                data-url="{{ url_for('board.board_react', slug=club.slug, post_id=post.id) }}"
+                data-reaction="dislike">
+          👎 <span class="react-count">{{ dislike_count }}</span>
+        </button>
+        {% if compact %}
+          {% if reply_count %}
+          <a href="{{ url_for('board.board', slug=club.slug) }}#post-{{ post.id }}"
+             class="board-reply-count-link ms-auto">
+            {{ reply_count }} repl{{ 'ies' if reply_count != 1 else 'y' }} →
+          </a>
+          {% endif %}
+        {% else %}
+        <span class="board-reply-count ms-auto">
+          {{ reply_count }} repl{{ 'ies' if reply_count != 1 else 'y' }}
+        </span>
+        {% endif %}
+      </div>
+
+      {# Replies (full mode only) #}
+      {% if not compact %}
+      <div class="board-reply-section mt-3">
+        {% for reply in post.replies %}
+        <div class="board-reply d-flex gap-2">
+          <div class="board-reply-avatar flex-shrink-0">{{ reply.author.username[0].upper() }}</div>
+          <div class="flex-grow-1 min-w-0">
+            <div class="d-flex justify-content-between align-items-start gap-1 mb-1">
+              <div>
+                <a href="{{ url_for('main.public_profile', username=reply.author.username) }}"
+                   class="fw-semibold small text-decoration-none text-dark board-author-link">{{ reply.author.username }}</a>
+                <span class="text-muted" style="font-size:.78rem">
+                  &bull; {{ reply.created_at.strftime('%b') }} {{ reply.created_at.day }}
+                </span>
+              </div>
+              {% if is_admin or reply.author_id == current_user.id %}
+              <form method="post"
+                    action="{{ url_for('board.board_reply_delete', slug=club.slug, post_id=post.id, reply_id=reply.id) }}"
+                    class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button type="submit" class="board-action-btn board-action-delete"
+                        onclick="return confirm('Delete reply?')" title="Delete">✕</button>
+              </form>
+              {% endif %}
+            </div>
+            <p class="mb-0 board-reply-body">{{ reply.body | mentionify }}</p>
+          </div>
+        </div>
+        {% endfor %}
+
+        {# Reply compose #}
+        <form method="post"
+              action="{{ url_for('board.board_reply', slug=club.slug, post_id=post.id) }}"
+              class="d-flex gap-2 align-items-center mt-2 board-reply-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <div class="board-reply-avatar flex-shrink-0">{{ current_user.username[0].upper() }}</div>
+          <input type="text" name="body" class="form-control form-control-sm board-reply-input"
+                 placeholder="Reply… use @username to mention someone">
+          <button type="submit" class="btn btn-paceline-sm flex-shrink-0">Reply</button>
+        </form>
       </div>
       {% endif %}
 

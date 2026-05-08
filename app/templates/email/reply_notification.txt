@@ -1,0 +1,11 @@
+REPLY TO YOUR POST — {{ post.club.name }}
+{{ reply.author.username }} replied to your post
+
+Your post:
+{{ post.body[:200] }}{% if post.body|length > 200 %}…{% endif %}
+
+{{ reply.author.username }} replied:
+{{ reply.body }}
+
+View on the board:
+https://paceline.club/clubs/{{ post.club.slug }}/board/

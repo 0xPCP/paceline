@@ -288,6 +288,32 @@ def send_weekly_digest(club, rides):
     logger.info('Weekly digest sent for club %d (%s) to %d recipient(s)', club.id, club.name, len(recipients))
 
 
+def send_reply_notification(reply):
+    """Notify the post author that someone replied to their post."""
+    post = reply.post
+    user = post.author
+    if not user.email:
+        return
+    html = render_template('email/reply_notification.html', reply=reply, post=post)
+    text = render_template('email/reply_notification.txt', reply=reply, post=post)
+    subject = f'[{post.club.name}] {reply.author.username} replied to your post'
+    _send(subject, [user.email], html, text)
+    logger.info('Reply notification sent to %s for post %d', user.email, post.id)
+
+
+def send_mention_notification(user, author, post, body):
+    """Notify a user they were @mentioned in a board post or reply."""
+    if not user.email:
+        return
+    html = render_template('email/mention_notification.html',
+                           user=user, author=author, post=post, body=body)
+    text = render_template('email/mention_notification.txt',
+                           user=user, author=author, post=post, body=body)
+    subject = f'[{post.club.name}] {author.username} mentioned you on the board'
+    _send(subject, [user.email], html, text)
+    logger.info('Mention notification sent to %s for post %d', user.email, post.id)
+
+
 def send_board_post_notification(post, user):
     """Notify a board subscriber that a new post was made."""
     if not user.email:

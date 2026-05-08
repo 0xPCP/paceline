@@ -3,6 +3,18 @@ import re
 from urllib.parse import urlparse, urljoin
 from flask import request as flask_request
 
+_MENTION_RE = re.compile(r'@([A-Za-z0-9_]{2,50})')
+
+
+def mentionify(text):
+    """Jinja2 filter: linkify @username mentions while keeping body HTML-escaped."""
+    from markupsafe import escape, Markup
+    escaped = str(escape(text))
+    def _replace(m):
+        uname = m.group(1)
+        return f'<a href="/users/{uname}" class="board-mention">@{uname}</a>'
+    return Markup(_MENTION_RE.sub(_replace, escaped))
+
 
 def is_safe_url(target):
     """Return True if *target* is a same-host relative URL, False otherwise.
