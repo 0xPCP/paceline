@@ -194,6 +194,9 @@ def create_app(config_class=Config):
         )
         return response
 
+    from .routes.beta_gate import register_beta_gate
+    register_beta_gate(app)
+
     # Start weather auto-cancel scheduler (skipped in testing)
     if not app.config.get('TESTING'):
         from .scheduler import init_scheduler
