@@ -45,13 +45,15 @@ def _can_view_media(club):
 
 
 def _save_photo(file, ride_id):
-    """Resize uploaded image to max width and save as JPEG. Returns relative path."""
+    """Resize uploaded image to max width, compress to ≤2 MB, save as JPEG."""
     try:
         from PIL import Image
     except ImportError:
         abort(500, 'Pillow not installed — photo uploads unavailable')
+    import io
 
     max_width = current_app.config.get('MEDIA_MAX_WIDTH_PX', 1200)
+    max_bytes = 2 * 1024 * 1024
     upload_root = current_app.config['UPLOAD_FOLDER']
     ride_dir = os.path.join(upload_root, 'ride_media', str(ride_id))
     os.makedirs(ride_dir, exist_ok=True)
@@ -65,7 +67,15 @@ def _save_photo(file, ride_id):
     if img.width > max_width:
         ratio = max_width / img.width
         img = img.resize((max_width, int(img.height * ratio)), Image.LANCZOS)
-    img.save(dest, 'JPEG', quality=85, optimize=True)
+
+    for quality in (85, 75, 65, 55):
+        buf = io.BytesIO()
+        img.save(buf, 'JPEG', quality=quality, optimize=True, progressive=True)
+        if buf.tell() <= max_bytes:
+            break
+
+    with open(dest, 'wb') as fh:
+        fh.write(buf.getvalue())
 
     return os.path.join('ride_media', str(ride_id), filename)
 

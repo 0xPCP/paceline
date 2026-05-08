@@ -86,7 +86,7 @@ class Config:
         'UPLOAD_FOLDER',
         os.path.join(os.path.dirname(__file__), '..', 'uploads'),
     )
-    MAX_CONTENT_LENGTH = 5 * 1024 * 1024          # 5 MB hard Flask limit (pre-Pillow)
+    MAX_CONTENT_LENGTH = int(os.environ.get('MAX_UPLOAD_MB', 25)) * 1024 * 1024
     MEDIA_EXPIRY_DAYS = int(os.environ.get('MEDIA_EXPIRY_DAYS', 90))
     MEDIA_MAX_PHOTOS_PER_USER_RIDE = int(os.environ.get('MEDIA_MAX_PHOTOS_PER_USER_RIDE', 5))
     MEDIA_MAX_PHOTOS_PER_RIDE = int(os.environ.get('MEDIA_MAX_PHOTOS_PER_RIDE', 30))

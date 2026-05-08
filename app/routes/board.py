@@ -44,13 +44,15 @@ def _require_member(club):
 
 
 def _save_board_photo(file, post_id):
-    """Resize and save a board photo. Returns relative path for ClubBoardMedia.file_path."""
+    """Resize uploaded image to max width, compress to ≤2 MB, save as JPEG."""
     try:
         from PIL import Image
     except ImportError:
         abort(500, 'Pillow not installed — photo uploads unavailable')
+    import io
 
     max_width = current_app.config.get('MEDIA_MAX_WIDTH_PX', 1200)
+    max_bytes = 2 * 1024 * 1024
     upload_root = current_app.config['UPLOAD_FOLDER']
     post_dir = os.path.join(upload_root, 'board_media', str(post_id))
     os.makedirs(post_dir, exist_ok=True)
@@ -64,7 +66,15 @@ def _save_board_photo(file, post_id):
     if img.width > max_width:
         ratio = max_width / img.width
         img = img.resize((max_width, int(img.height * ratio)), Image.LANCZOS)
-    img.save(dest, 'JPEG', quality=85, optimize=True)
+
+    for quality in (85, 75, 65, 55):
+        buf = io.BytesIO()
+        img.save(buf, 'JPEG', quality=quality, optimize=True, progressive=True)
+        if buf.tell() <= max_bytes:
+            break
+
+    with open(dest, 'wb') as fh:
+        fh.write(buf.getvalue())
 
     return os.path.join('board_media', str(post_id), filename)
 
