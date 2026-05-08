@@ -85,6 +85,23 @@
                 {{ ride.time.strftime('%I:%M %p').lstrip('0') }} &bull;
                 {{ ride.distance_miles }} mi
               </p>
+              {% if not ride.owner_id %}
+                {% set elig = signup_eligible.get(ride.club_id, {}) %}
+                {% set dues_ok = elig.get('dues_ok', True) %}
+                {% set waiver_ok = elig.get('waiver_ok', True) %}
+                {% if dues_ok and waiver_ok and not ride.is_full %}
+                <form method="post" action="{{ url_for('clubs.ride_signup', slug=ride.club.slug, ride_id=ride.id) }}" class="mt-2">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <button type="submit" class="btn btn-paceline-sm w-100">Sign Up</button>
+                </form>
+                {% elif ride.is_full %}
+                <span class="badge bg-secondary mt-2 d-block text-center">Full</span>
+                {% elif not waiver_ok %}
+                <a href="{{ url_for('clubs.waiver', slug=ride.club.slug) }}" class="btn btn-warning btn-sm w-100 mt-2">Sign Waiver First →</a>
+                {% elif not dues_ok %}
+                <span class="badge bg-warning text-dark mt-2 d-block text-center">Dues expired</span>
+                {% endif %}
+              {% endif %}
             </div>
           </div>
         </div>

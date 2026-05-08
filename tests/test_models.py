@@ -159,10 +159,20 @@ class TestHasSignedWaiver:
         db.session.commit()
         assert regular_user.has_signed_waiver(sample_club) is True
 
-    def test_false_for_wrong_year(self, app, db, sample_club, regular_user, club_waiver):
+    def test_false_after_waiver_updated(self, app, db, sample_club, regular_user, club_waiver):
+        # User signed the old waiver; club then publishes a new waiver version
+        yr = date.today().year
         db.session.add(WaiverSignature(
             user_id=regular_user.id, club_id=sample_club.id,
-            waiver_id=club_waiver.id, year=2020,
+            waiver_id=club_waiver.id, year=yr,
         ))
         db.session.commit()
-        assert regular_user.has_signed_waiver(sample_club, year=2021) is False
+        # Simulate admin publishing an updated waiver (new DB row = new id)
+        new_waiver = ClubWaiver(
+            club_id=sample_club.id, year=yr,
+            title='Updated Waiver', body='Updated terms.',
+        )
+        db.session.add(new_waiver)
+        db.session.commit()
+        # current_waiver is the newest one; user has not signed it yet
+        assert regular_user.has_signed_waiver(sample_club) is False

@@ -71,6 +71,18 @@ def _user_dashboard(today):
                        .order_by(Club.name.asc())
                        .limit(4).all()) if True else []
 
+    # Pre-compute signup eligibility per club (avoids N+1 queries in the template)
+    signup_eligible = {}
+    seen_club_ids = set()
+    for ride in upcoming_club_rides:
+        if ride.club_id and ride.club_id not in seen_club_ids:
+            seen_club_ids.add(ride.club_id)
+            club = ride.club
+            signup_eligible[ride.club_id] = {
+                'dues_ok': current_user.is_active_member_of(club),
+                'waiver_ok': current_user.has_signed_waiver(club),
+            }
+
     return render_template('dashboard.html',
                            my_rides=my_rides,
                            upcoming_club_rides=upcoming_club_rides,
@@ -78,7 +90,8 @@ def _user_dashboard(today):
                            today=today,
                            my_clubs=my_clubs,
                            suggested_clubs=suggested_clubs,
-                           signed_up_ride_ids=signed_up_ride_ids)
+                           signed_up_ride_ids=signed_up_ride_ids,
+                           signup_eligible=signup_eligible)
 
 
 @main_bp.route('/set-language/<lang>')

@@ -134,11 +134,12 @@ class User(db.Model, UserMixin):
     def can_view_members(self, club):
         return self.is_club_admin(club) or self.is_treasurer(club)
 
-    def has_signed_waiver(self, club, year=None):
-        if year is None:
-            year = datetime.now(timezone.utc).year
+    def has_signed_waiver(self, club, year=None):  # year param kept for call-site compat
+        waiver = club.current_waiver
+        if waiver is None:
+            return True  # club has no waiver, nothing to sign
         return WaiverSignature.query.filter_by(
-            user_id=self.id, club_id=club.id, year=year
+            user_id=self.id, waiver_id=waiver.id
         ).first() is not None
 
     @property
@@ -328,7 +329,7 @@ class ClubOwnershipTransfer(db.Model):
 
 
 class ClubWaiver(db.Model):
-    """Waiver/rules text for a club. A new version can be added each year."""
+    """Waiver/rules text for a club. Multiple versions per year are allowed."""
     __tablename__ = 'club_waivers'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -339,8 +340,6 @@ class ClubWaiver(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     signatures = db.relationship('WaiverSignature', backref='waiver', lazy=True)
-
-    __table_args__ = (db.UniqueConstraint('club_id', 'year', name='uq_club_waiver_year'),)
 
 
 class ClubPost(db.Model):
@@ -588,7 +587,7 @@ class WaiverSignature(db.Model):
     year = db.Column(db.Integer, nullable=False)
     signed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
-    __table_args__ = (db.UniqueConstraint('user_id', 'club_id', 'year', name='uq_signature_year'),)
+    __table_args__ = (db.UniqueConstraint('user_id', 'waiver_id', name='uq_signature_waiver'),)
 
 
 class Ride(db.Model):
