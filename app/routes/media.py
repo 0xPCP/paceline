@@ -10,7 +10,9 @@ Strategy summary — see docs/media_strategy.md for full details.
 - Visibility: Only shown after ride.date has passed. Private club content
               requires active membership to serve.
 """
+import io
 import os
+import threading
 import uuid
 import logging
 from datetime import date
@@ -22,6 +24,7 @@ from flask_login import login_required, current_user
 from ..extensions import db
 from ..models import Club, Ride, RideMedia
 from ..security import is_allowed_video_link
+from ..utils import process_photo_bg
 
 logger = logging.getLogger(__name__)
 
@@ -44,40 +47,19 @@ def _can_view_media(club):
     return current_user.is_authenticated and current_user.is_active_member_of(club)
 
 
-def _save_photo(file, ride_id):
-    """Resize uploaded image to max width, compress to ≤2 MB, save as JPEG."""
+def _read_and_validate_image(file):
+    """Read file stream into bytes and verify Pillow can open it. Returns bytes or None."""
     try:
         from PIL import Image
     except ImportError:
         abort(500, 'Pillow not installed — photo uploads unavailable')
-    import io
-
-    max_width = current_app.config.get('MEDIA_MAX_WIDTH_PX', 1200)
-    max_bytes = 2 * 1024 * 1024
-    upload_root = current_app.config['UPLOAD_FOLDER']
-    ride_dir = os.path.join(upload_root, 'ride_media', str(ride_id))
-    os.makedirs(ride_dir, exist_ok=True)
-
-    filename = f'{uuid.uuid4().hex}.jpg'
-    dest = os.path.join(ride_dir, filename)
-
     file.stream.seek(0)
-    img = Image.open(file.stream)
-    img = img.convert('RGB')
-    if img.width > max_width:
-        ratio = max_width / img.width
-        img = img.resize((max_width, int(img.height * ratio)), Image.LANCZOS)
-
-    for quality in (85, 75, 65, 55):
-        buf = io.BytesIO()
-        img.save(buf, 'JPEG', quality=quality, optimize=True, progressive=True)
-        if buf.tell() <= max_bytes:
-            break
-
-    with open(dest, 'wb') as fh:
-        fh.write(buf.getvalue())
-
-    return os.path.join('ride_media', str(ride_id), filename)
+    img_bytes = file.stream.read()
+    try:
+        Image.open(io.BytesIO(img_bytes)).verify()
+    except Exception:
+        return None
+    return img_bytes
 
 
 # ── File serve ─────────────────────────────────────────────────────────────────
@@ -136,12 +118,17 @@ def upload_photo(slug, ride_id):
 
     caption = request.form.get('caption', '').strip()[:300] or None
 
-    try:
-        rel_path = _save_photo(file, ride.id)
-    except Exception as exc:
-        logger.error('Photo upload failed for ride %d: %s', ride.id, exc)
-        flash('Upload failed — please try again.', 'danger')
+    # Read the stream on the request thread (WSGI environ is not thread-safe)
+    img_bytes = _read_and_validate_image(file)
+    if img_bytes is None:
+        flash('That file could not be read as an image.', 'danger')
         return redirect(url_for('clubs.ride_detail', slug=slug, ride_id=ride_id) + '#media')
+
+    max_width = current_app.config.get('MEDIA_MAX_WIDTH_PX', 1200)
+    upload_root = current_app.config['UPLOAD_FOLDER']
+    filename = f'{uuid.uuid4().hex}.jpg'
+    rel_path = os.path.join('ride_media', str(ride.id), filename)
+    dest = os.path.join(upload_root, rel_path)
 
     db.session.add(RideMedia(
         ride_id=ride.id,
@@ -151,6 +138,13 @@ def upload_photo(slug, ride_id):
         caption=caption,
     ))
     db.session.commit()
+
+    threading.Thread(
+        target=process_photo_bg,
+        args=(img_bytes, dest, max_width, 2 * 1024 * 1024),
+        daemon=True,
+    ).start()
+
     flash('Photo shared!', 'success')
     return redirect(url_for('clubs.ride_detail', slug=slug, ride_id=ride_id) + '#media')
 

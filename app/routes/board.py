@@ -21,6 +21,7 @@ from flask_login import current_user, login_required
 from ..extensions import db
 from ..models import (Club, ClubBoardMedia, ClubBoardPost, ClubBoardReaction,
                       ClubBoardReply, ClubBoardSubscription)
+from ..utils import process_photo_bg
 
 logger = logging.getLogger(__name__)
 
@@ -43,40 +44,20 @@ def _require_member(club):
         abort(403)
 
 
-def _save_board_photo(file, post_id):
-    """Resize uploaded image to max width, compress to ≤2 MB, save as JPEG."""
+def _read_image_bytes(file):
+    """Read file stream into bytes on the request thread. Returns bytes or None."""
     try:
         from PIL import Image
     except ImportError:
-        abort(500, 'Pillow not installed — photo uploads unavailable')
-    import io
-
-    max_width = current_app.config.get('MEDIA_MAX_WIDTH_PX', 1200)
-    max_bytes = 2 * 1024 * 1024
-    upload_root = current_app.config['UPLOAD_FOLDER']
-    post_dir = os.path.join(upload_root, 'board_media', str(post_id))
-    os.makedirs(post_dir, exist_ok=True)
-
-    filename = f'{uuid.uuid4().hex}.jpg'
-    dest = os.path.join(post_dir, filename)
-
+        return None
+    import io as _io
     file.stream.seek(0)
-    img = Image.open(file.stream)
-    img = img.convert('RGB')
-    if img.width > max_width:
-        ratio = max_width / img.width
-        img = img.resize((max_width, int(img.height * ratio)), Image.LANCZOS)
-
-    for quality in (85, 75, 65, 55):
-        buf = io.BytesIO()
-        img.save(buf, 'JPEG', quality=quality, optimize=True, progressive=True)
-        if buf.tell() <= max_bytes:
-            break
-
-    with open(dest, 'wb') as fh:
-        fh.write(buf.getvalue())
-
-    return os.path.join('board_media', str(post_id), filename)
+    img_bytes = file.stream.read()
+    try:
+        Image.open(_io.BytesIO(img_bytes)).verify()
+    except Exception:
+        return None
+    return img_bytes
 
 
 def _board_query(club_id, before_post=None):
@@ -168,16 +149,22 @@ def board(slug):
 
         photos = request.files.getlist('photos')
         saved = 0
+        pending_threads = []
         for f in photos:
             if saved >= BOARD_MAX_PHOTOS:
                 break
             if f and f.filename:
-                try:
-                    rel = _save_board_photo(f, post.id)
-                    db.session.add(ClubBoardMedia(post_id=post.id, file_path=rel))
-                    saved += 1
-                except Exception as exc:
-                    logger.error('Board photo upload failed: %s', exc)
+                img_bytes = _read_image_bytes(f)
+                if img_bytes is None:
+                    continue
+                max_width = current_app.config.get('MEDIA_MAX_WIDTH_PX', 1200)
+                upload_root = current_app.config['UPLOAD_FOLDER']
+                filename = f'{uuid.uuid4().hex}.jpg'
+                rel = os.path.join('board_media', str(post.id), filename)
+                dest = os.path.join(upload_root, 'board_media', str(post.id), filename)
+                db.session.add(ClubBoardMedia(post_id=post.id, file_path=rel))
+                pending_threads.append((img_bytes, dest, max_width))
+                saved += 1
 
         db.session.commit()
         app = current_app._get_current_object()
@@ -185,6 +172,12 @@ def board(slug):
         threading.Thread(target=_notify_mentions,
                          args=(app, body, club.id, current_user.id, post.id),
                          daemon=True).start()
+        for img_bytes, dest, max_width in pending_threads:
+            threading.Thread(
+                target=process_photo_bg,
+                args=(img_bytes, dest, max_width, 2 * 1024 * 1024),
+                daemon=True,
+            ).start()
 
         flash('Post shared with the club.', 'success')
         return redirect(url_for('board.board', slug=slug) + '#board-top')

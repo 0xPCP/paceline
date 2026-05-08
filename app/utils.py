@@ -1,7 +1,40 @@
 """Shared utility helpers."""
+import io
+import logging
+import os
 import re
 from urllib.parse import urlparse, urljoin
 from flask import request as flask_request
+
+logger = logging.getLogger(__name__)
+
+
+def process_photo_bg(img_bytes, dest_path, max_width, max_bytes):
+    """
+    Background-thread worker: resize + quality-step compress img_bytes and
+    write the result to dest_path.  No Flask app context required.
+    """
+    try:
+        from PIL import Image
+    except ImportError:
+        logger.error('Pillow not installed — cannot process photo %s', dest_path)
+        return
+    try:
+        img = Image.open(io.BytesIO(img_bytes))
+        img = img.convert('RGB')
+        if img.width > max_width:
+            ratio = max_width / img.width
+            img = img.resize((max_width, int(img.height * ratio)), Image.LANCZOS)
+        for quality in (85, 75, 65, 55):
+            buf = io.BytesIO()
+            img.save(buf, 'JPEG', quality=quality, optimize=True, progressive=True)
+            if buf.tell() <= max_bytes:
+                break
+        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+        with open(dest_path, 'wb') as fh:
+            fh.write(buf.getvalue())
+    except Exception:
+        logger.exception('Background photo processing failed for %s', dest_path)
 
 _MENTION_RE = re.compile(r'@([A-Za-z0-9_]{2,50})')
 
