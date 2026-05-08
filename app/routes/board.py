@@ -1,0 +1,228 @@
+"""
+Club board routes — member-only post board on the club home page.
+
+Access: active members only.
+Media: up to 3 photos per post, stored under uploads/board_media/<post_id>/.
+       Same Pillow pipeline and 90-day expiry as ride media.
+Notifications: fire-and-forget email to subscribers on each new post.
+"""
+import logging
+import os
+import threading
+import uuid
+from datetime import datetime, timedelta, timezone
+
+from flask import (Blueprint, abort, current_app, flash, redirect,
+                   render_template, request, send_from_directory, url_for)
+from flask_login import current_user, login_required
+
+from ..extensions import db
+from ..models import Club, ClubBoardMedia, ClubBoardPost, ClubBoardSubscription
+
+logger = logging.getLogger(__name__)
+
+board_bp = Blueprint('board', __name__)
+
+BOARD_PAGE_SIZE = 15
+BOARD_MAX_PHOTOS = 3
+BOARD_MAX_AGE_DAYS = 365
+
+
+# ── Helpers ────────────────────────────────────────────────────────────────────
+
+def _get_club(slug):
+    return Club.query.filter_by(slug=slug).first_or_404()
+
+
+def _require_member(club):
+    if not current_user.is_authenticated or not current_user.is_active_member_of(club):
+        abort(403)
+
+
+def _save_board_photo(file, post_id):
+    """Resize and save a board photo. Returns relative path suitable for ClubBoardMedia.file_path."""
+    try:
+        from PIL import Image
+    except ImportError:
+        abort(500, 'Pillow not installed — photo uploads unavailable')
+
+    max_width = current_app.config.get('MEDIA_MAX_WIDTH_PX', 1200)
+    upload_root = current_app.config['UPLOAD_FOLDER']
+    post_dir = os.path.join(upload_root, 'board_media', str(post_id))
+    os.makedirs(post_dir, exist_ok=True)
+
+    filename = f'{uuid.uuid4().hex}.jpg'
+    dest = os.path.join(post_dir, filename)
+
+    file.stream.seek(0)
+    img = Image.open(file.stream)
+    img = img.convert('RGB')
+    if img.width > max_width:
+        ratio = max_width / img.width
+        img = img.resize((max_width, int(img.height * ratio)), Image.LANCZOS)
+    img.save(dest, 'JPEG', quality=85, optimize=True)
+
+    return os.path.join('board_media', str(post_id), filename)
+
+
+def _board_query(club_id, before_post=None):
+    """Return a query for board posts, newest first, capped at BOARD_MAX_AGE_DAYS."""
+    cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=BOARD_MAX_AGE_DAYS)
+    q = (ClubBoardPost.query
+         .filter_by(club_id=club_id)
+         .filter(ClubBoardPost.created_at >= cutoff)
+         .order_by(ClubBoardPost.is_pinned.desc(),
+                   ClubBoardPost.created_at.desc()))
+    if before_post:
+        q = q.filter(ClubBoardPost.created_at < before_post.created_at)
+    return q
+
+
+def _notify_subscribers(app, post_id):
+    """Background thread: email all club subscribers except the author."""
+    with app.app_context():
+        from ..email import send_board_post_notification
+        post = db.session.get(ClubBoardPost, post_id)
+        if not post:
+            return
+        subs = (ClubBoardSubscription.query
+                .filter_by(club_id=post.club_id)
+                .filter(ClubBoardSubscription.user_id != post.author_id)
+                .all())
+        for sub in subs:
+            try:
+                send_board_post_notification(post, sub.user)
+            except Exception as exc:
+                logger.warning('Board notification failed for user %d: %s', sub.user_id, exc)
+
+
+# ── Routes ─────────────────────────────────────────────────────────────────────
+
+@board_bp.route('/clubs/<slug>/board/', methods=['GET', 'POST'])
+@login_required
+def board(slug):
+    club = _get_club(slug)
+    _require_member(club)
+
+    if request.method == 'POST':
+        body = request.form.get('body', '').strip()
+        if not body:
+            flash('Post cannot be empty.', 'warning')
+            return redirect(url_for('board.board', slug=slug))
+
+        post = ClubBoardPost(club_id=club.id, author_id=current_user.id, body=body)
+        db.session.add(post)
+        db.session.flush()  # get post.id before saving files
+
+        photos = request.files.getlist('photos')
+        saved = 0
+        for f in photos:
+            if saved >= BOARD_MAX_PHOTOS:
+                break
+            if f and f.filename:
+                try:
+                    rel = _save_board_photo(f, post.id)
+                    db.session.add(ClubBoardMedia(post_id=post.id, file_path=rel))
+                    saved += 1
+                except Exception as exc:
+                    logger.error('Board photo upload failed: %s', exc)
+
+        db.session.commit()
+
+        threading.Thread(
+            target=_notify_subscribers,
+            args=(current_app._get_current_object(), post.id),
+            daemon=True,
+        ).start()
+
+        flash('Post shared with the club.', 'success')
+        return redirect(url_for('board.board', slug=slug) + '#board-top')
+
+    before_id = request.args.get('before', type=int)
+    before_post = db.session.get(ClubBoardPost, before_id) if before_id else None
+
+    posts = _board_query(club.id, before_post).limit(BOARD_PAGE_SIZE + 1).all()
+    has_more = len(posts) > BOARD_PAGE_SIZE
+    posts = posts[:BOARD_PAGE_SIZE]
+
+    is_subscribed = ClubBoardSubscription.query.filter_by(
+        club_id=club.id, user_id=current_user.id).first() is not None
+    is_admin = current_user.can_manage_content(club)
+
+    return render_template(
+        'clubs/board.html',
+        club=club,
+        posts=posts,
+        has_more=has_more,
+        oldest_id=posts[-1].id if posts else None,
+        is_subscribed=is_subscribed,
+        is_admin=is_admin,
+        before_id=before_id,
+    )
+
+
+@board_bp.route('/clubs/<slug>/board/<int:post_id>/delete', methods=['POST'])
+@login_required
+def board_delete(slug, post_id):
+    club = _get_club(slug)
+    _require_member(club)
+    post = ClubBoardPost.query.filter_by(id=post_id, club_id=club.id).first_or_404()
+
+    if post.author_id != current_user.id and not current_user.can_manage_content(club):
+        abort(403)
+
+    upload_root = current_app.config.get('UPLOAD_FOLDER', '')
+    for m in post.media:
+        if m.file_path and upload_root:
+            try:
+                os.remove(os.path.join(upload_root, m.file_path))
+            except OSError:
+                pass
+
+    db.session.delete(post)
+    db.session.commit()
+    flash('Post deleted.', 'success')
+    return redirect(request.referrer or url_for('board.board', slug=slug))
+
+
+@board_bp.route('/clubs/<slug>/board/<int:post_id>/pin', methods=['POST'])
+@login_required
+def board_pin(slug, post_id):
+    club = _get_club(slug)
+    if not current_user.can_manage_content(club):
+        abort(403)
+    post = ClubBoardPost.query.filter_by(id=post_id, club_id=club.id).first_or_404()
+    post.is_pinned = not post.is_pinned
+    db.session.commit()
+    return redirect(request.referrer or url_for('board.board', slug=slug))
+
+
+@board_bp.route('/clubs/<slug>/board/subscribe', methods=['POST'])
+@login_required
+def board_subscribe(slug):
+    club = _get_club(slug)
+    _require_member(club)
+
+    existing = ClubBoardSubscription.query.filter_by(
+        club_id=club.id, user_id=current_user.id).first()
+    if existing:
+        db.session.delete(existing)
+        flash('You will no longer receive board notifications.', 'info')
+    else:
+        db.session.add(ClubBoardSubscription(club_id=club.id, user_id=current_user.id))
+        flash('You\'ll get an email when someone posts on the board.', 'success')
+    db.session.commit()
+    return redirect(request.referrer or url_for('board.board', slug=slug))
+
+
+@board_bp.route('/media/board/<int:post_id>/<filename>')
+@login_required
+def serve_board_media(post_id, filename):
+    post = db.session.get(ClubBoardPost, post_id)
+    if post is None:
+        abort(404)
+    if not current_user.is_active_member_of(post.club):
+        abort(403)
+    upload_root = current_app.config['UPLOAD_FOLDER']
+    post_dir = os.path.join(upload_root, 'board_media', str(post_id))
+    return send_from_directory(post_dir, filename)

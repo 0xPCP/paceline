@@ -249,11 +249,36 @@ def home(slug):
         'total_miles': round(total_miles),
     }
 
+    # Board preview: 15 most recent posts + subscription status (members only)
+    board_posts = []
+    board_is_subscribed = False
+    board_is_admin = False
+    board_has_more = False
+    if is_member:
+        from ..models import ClubBoardPost, ClubBoardSubscription
+        from datetime import timedelta, timezone as _tz
+        cutoff = datetime.now(_tz.utc).replace(tzinfo=None) - timedelta(days=365)
+        _bposts = (ClubBoardPost.query
+                   .filter_by(club_id=club.id)
+                   .filter(ClubBoardPost.created_at >= cutoff)
+                   .order_by(ClubBoardPost.is_pinned.desc(),
+                              ClubBoardPost.created_at.desc())
+                   .limit(16).all())
+        board_has_more = len(_bposts) > 15
+        board_posts = _bposts[:15]
+        board_is_subscribed = ClubBoardSubscription.query.filter_by(
+            club_id=club.id, user_id=current_user.id).first() is not None
+        board_is_admin = current_user.can_manage_content(club)
+
     return render_template('clubs/home.html', club=club, upcoming=upcoming,
                            weather=weather, is_member=is_member, is_pending=is_pending,
                            is_pending_payment=is_pending_payment,
                            today=today, strava_activities=strava_activities,
-                           club_stats=club_stats)
+                           club_stats=club_stats,
+                           board_posts=board_posts,
+                           board_is_subscribed=board_is_subscribed,
+                           board_is_admin=board_is_admin,
+                           board_has_more=board_has_more)
 
 
 @clubs_bp.route('/<slug>/leaders/')

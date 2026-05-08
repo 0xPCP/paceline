@@ -421,6 +421,55 @@ class RideComment(db.Model):
     user = db.relationship('User', foreign_keys=[user_id])
 
 
+class ClubBoardPost(db.Model):
+    """Member post on the club-wide board."""
+    __tablename__ = 'club_board_posts'
+
+    id         = db.Column(db.Integer, primary_key=True)
+    club_id    = db.Column(db.Integer, db.ForeignKey('clubs.id'), nullable=False)
+    author_id  = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    body       = db.Column(db.Text, nullable=False)
+    is_pinned  = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    club   = db.relationship('Club', foreign_keys=[club_id])
+    author = db.relationship('User', foreign_keys=[author_id])
+    media  = db.relationship('ClubBoardMedia', back_populates='post',
+                             cascade='all, delete-orphan',
+                             order_by='ClubBoardMedia.id')
+
+    @property
+    def expires_at(self):
+        from datetime import timedelta
+        return self.created_at + timedelta(days=90)
+
+
+class ClubBoardMedia(db.Model):
+    """Photo attached to a club board post (max 3 per post)."""
+    __tablename__ = 'club_board_media'
+
+    id         = db.Column(db.Integer, primary_key=True)
+    post_id    = db.Column(db.Integer, db.ForeignKey('club_board_posts.id'), nullable=False)
+    file_path  = db.Column(db.String(500), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    post = db.relationship('ClubBoardPost', back_populates='media')
+
+
+class ClubBoardSubscription(db.Model):
+    """A member's opt-in for board post email notifications."""
+    __tablename__ = 'club_board_subscriptions'
+    __table_args__ = (db.UniqueConstraint('club_id', 'user_id'),)
+
+    id         = db.Column(db.Integer, primary_key=True)
+    club_id    = db.Column(db.Integer, db.ForeignKey('clubs.id'), nullable=False)
+    user_id    = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    club = db.relationship('Club', foreign_keys=[club_id])
+    user = db.relationship('User', foreign_keys=[user_id])
+
+
 class ClubInvite(db.Model):
     """Time-limited invite token sent by an admin; grants immediate active membership on claim."""
     __tablename__ = 'club_invites'

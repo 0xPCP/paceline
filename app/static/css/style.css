@@ -1195,4 +1195,85 @@ a:hover { color: var(--paceline-green-dark); }
 
   /* Superadmin stats: already 2-col, just reduce font */
   .admin-stat-num { font-size: 1.8rem; }
+
+  /* Board: media grid goes single-column on mobile */
+  .board-media-grid { max-width: 100%; }
+  .board-media-count-3 { grid-template-columns: 1fr 1fr; grid-template-rows: auto; }
+  .board-media-count-3 .board-media-item:first-child { grid-row: auto; }
 }
+
+/* ── Club Board ──────────────────────────────────────────────────────────── */
+.board-post-card {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--paceline-border);
+}
+.board-post-card:last-child { border-bottom: none; }
+
+.board-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--paceline-green);
+  color: #fff;
+  font-size: .9rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.board-post-body {
+  white-space: pre-line;
+  font-size: .93rem;
+  color: #374151;
+  line-height: 1.6;
+}
+
+.board-compose-input {
+  resize: vertical;
+  min-height: 72px;
+  font-size: .93rem;
+}
+
+.board-action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 5px;
+  font-size: .8rem;
+  color: #9ca3af;
+  border-radius: 4px;
+  line-height: 1;
+}
+.board-action-btn:hover { background: #f3f4f6; color: #374151; }
+.board-action-delete:hover { background: #fee2e2; color: #dc2626; }
+
+/* Board media grid */
+.board-media-grid {
+  display: grid;
+  gap: 4px;
+  margin-top: .5rem;
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 480px;
+}
+.board-media-count-1 { grid-template-columns: 1fr; }
+.board-media-count-2 { grid-template-columns: 1fr 1fr; }
+.board-media-count-3 { grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; }
+.board-media-count-3 .board-media-item:first-child { grid-row: 1 / 3; }
+
+.board-media-item {
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+}
+.board-media-count-1 .board-media-item { aspect-ratio: 16 / 9; }
+.board-media-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform .15s;
+}
+.board-media-item:hover img { transform: scale(1.02); }

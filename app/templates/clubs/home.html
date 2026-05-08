@@ -165,6 +165,16 @@
                 type="button" role="tab">Safety</button>
       </li>
       {% endif %}
+      {% if is_member %}
+      <li class="nav-item" role="presentation">
+        <button class="club-tab" id="tab-board-btn"
+                data-bs-toggle="tab" data-bs-target="#tab-board"
+                type="button" role="tab">
+          Board
+          {% if board_posts %}<span class="club-tab-count">{{ board_posts|length }}</span>{% endif %}
+        </button>
+      </li>
+      {% endif %}
     </ul>
   </div>
 </div>
@@ -492,6 +502,70 @@
   </div>
   {% endif %}
 
+  {# ── Board ────────────────────────────────────────────────────────────────#}
+  {% if is_member %}
+  {% from 'clubs/_board_macros.html' import post_card with context %}
+  <div class="tab-pane fade" id="tab-board" role="tabpanel">
+    <div class="container py-4">
+      <div class="row justify-content-center">
+        <div class="col-lg-8">
+
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="club-section-title mb-0">Club Board</h4>
+            <form method="post" action="{{ url_for('board.board_subscribe', slug=club.slug) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button type="submit"
+                      class="btn btn-sm {{ 'btn-paceline' if board_is_subscribed else 'btn-outline-secondary' }}">
+                {{ '🔔 Subscribed' if board_is_subscribed else '🔕 Get Notified' }}
+              </button>
+            </form>
+          </div>
+
+          <div class="board-compose card border-0 shadow-sm mb-4">
+            <div class="card-body">
+              <form method="post" action="{{ url_for('board.board', slug=club.slug) }}"
+                    enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <textarea name="body" class="form-control board-compose-input mb-2"
+                          rows="3" placeholder="Share something with the club..."></textarea>
+                <div class="d-flex align-items-center gap-2">
+                  <label class="btn btn-sm btn-outline-secondary mb-0" style="cursor:pointer">
+                    📷 Photos
+                    <input type="file" name="photos" multiple accept="image/*"
+                           class="d-none" id="boardPhotoInputHome">
+                  </label>
+                  <small class="text-muted" id="boardPhotoCountHome"></small>
+                  <button type="submit" class="btn btn-paceline-sm ms-auto">Post</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          {% if board_posts %}
+          <div class="board-post-list">
+            {% for post in board_posts %}
+            {{ post_card(post, club, board_is_admin) }}
+            {% endfor %}
+          </div>
+          {% if board_has_more %}
+          <div class="text-center mt-3">
+            <a href="{{ url_for('board.board', slug=club.slug) }}"
+               class="btn btn-outline-secondary btn-sm">See all posts →</a>
+          </div>
+          {% endif %}
+          {% else %}
+          <div class="text-center py-4 text-muted">
+            <div style="font-size:1.8rem;margin-bottom:.4rem">💬</div>
+            <p class="mb-0">No posts yet — be the first to share something!</p>
+          </div>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
 </div>{# end tab-content #}
 
 {% endblock %}
@@ -505,6 +579,17 @@ function switchToTab(btnId) {
     document.getElementById('clubTabBar').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 }
+
+// Board photo count indicator
+(function () {
+  var input = document.getElementById('boardPhotoInputHome');
+  if (!input) return;
+  input.addEventListener('change', function () {
+    var n = Math.min(this.files.length, 3);
+    document.getElementById('boardPhotoCountHome').textContent =
+      n > 0 ? n + ' photo' + (n !== 1 ? 's' : '') + ' selected' : '';
+  });
+})();
 
 // Sticky sentinel: add shadow to tab bar once hero scrolls out
 (function () {

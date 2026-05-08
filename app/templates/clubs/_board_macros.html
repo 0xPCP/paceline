@@ -1,0 +1,52 @@
+{% macro post_card(post, club, is_admin) %}
+<div class="board-post-card">
+  <div class="d-flex gap-3">
+    <div class="board-avatar flex-shrink-0">{{ post.author.username[0].upper() }}</div>
+    <div class="flex-grow-1 min-w-0">
+
+      <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+        <div class="min-w-0">
+          <span class="fw-semibold small">{{ post.author.username }}</span>
+          {% if post.is_pinned %}
+          <span class="badge bg-warning text-dark ms-1" style="font-size:.65rem">📌 Pinned</span>
+          {% endif %}
+          <span class="text-muted" style="font-size:.8rem">
+            &bull; {{ post.created_at.strftime('%b') }} {{ post.created_at.day }}, {{ post.created_at.year }}
+          </span>
+        </div>
+        <div class="d-flex gap-1 flex-shrink-0">
+          {% if is_admin %}
+          <form method="post" action="{{ url_for('board.board_pin', slug=club.slug, post_id=post.id) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <button type="submit" class="board-action-btn" title="{{ 'Unpin' if post.is_pinned else 'Pin' }}">📌</button>
+          </form>
+          {% endif %}
+          {% if is_admin or post.author_id == current_user.id %}
+          <form method="post" action="{{ url_for('board.board_delete', slug=club.slug, post_id=post.id) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <button type="submit" class="board-action-btn board-action-delete"
+                    onclick="return confirm('Delete this post?')" title="Delete">✕</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+
+      <p class="mb-2 board-post-body">{{ post.body }}</p>
+
+      {% if post.media %}
+      <div class="board-media-grid board-media-count-{{ post.media|length }}">
+        {% for m in post.media %}
+        {% set fname = m.file_path.split('/')[-1] %}
+        <a href="{{ url_for('board.serve_board_media', post_id=post.id, filename=fname) }}"
+           target="_blank" rel="noopener" class="board-media-item">
+          <img src="{{ url_for('board.serve_board_media', post_id=post.id, filename=fname) }}"
+               alt="Post photo" loading="lazy">
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endmacro %}

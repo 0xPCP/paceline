@@ -112,35 +112,54 @@ def send_weekly_digests(app):
 
 def purge_expired_media(app):
     """
-    Delete ride media (photos + video links) for rides older than MEDIA_EXPIRY_DAYS.
+    Delete ride media and board media older than MEDIA_EXPIRY_DAYS (default 90).
     Runs nightly. Removes both DB records and files from disk.
     """
     import os
     from datetime import timedelta
     with app.app_context():
         from .extensions import db
-        from .models import RideMedia, Ride
+        from .models import ClubBoardMedia, ClubBoardPost, Ride, RideMedia
         expiry_days = app.config.get('MEDIA_EXPIRY_DAYS', 90)
         upload_folder = app.config.get('UPLOAD_FOLDER', '')
         cutoff = date.today() - timedelta(days=expiry_days)
-        expired = (RideMedia.query
-                   .join(Ride, RideMedia.ride_id == Ride.id)
-                   .filter(Ride.date < cutoff)
-                   .all())
+
+        # Ride media
+        expired_ride = (RideMedia.query
+                        .join(Ride, RideMedia.ride_id == Ride.id)
+                        .filter(Ride.date < cutoff)
+                        .all())
         deleted_files = 0
-        for item in expired:
+        for item in expired_ride:
             if item.file_path and upload_folder:
-                full = os.path.join(upload_folder, item.file_path)
                 try:
-                    os.remove(full)
+                    os.remove(os.path.join(upload_folder, item.file_path))
                     deleted_files += 1
                 except OSError:
                     pass
             db.session.delete(item)
+
+        # Board media — keyed on post.created_at
+        from datetime import datetime, timezone
+        board_cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=expiry_days)
+        expired_board = (ClubBoardMedia.query
+                         .join(ClubBoardPost, ClubBoardMedia.post_id == ClubBoardPost.id)
+                         .filter(ClubBoardPost.created_at < board_cutoff)
+                         .all())
+        for item in expired_board:
+            if item.file_path and upload_folder:
+                try:
+                    os.remove(os.path.join(upload_folder, item.file_path))
+                    deleted_files += 1
+                except OSError:
+                    pass
+            db.session.delete(item)
+
         db.session.commit()
-        if expired:
+        total = len(expired_ride) + len(expired_board)
+        if total:
             logger.info('Media purge: removed %d records (%d files) older than %d days',
-                        len(expired), deleted_files, expiry_days)
+                        total, deleted_files, expiry_days)
 
 
 def init_scheduler(app):

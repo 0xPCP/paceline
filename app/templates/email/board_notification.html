@@ -1,0 +1,16 @@
+{% extends "email/_base.html" %}
+{% block body %}
+<div class="club-tag">{{ post.club.name }}</div>
+<h1>New post from {{ post.author.username }}</h1>
+
+<div style="background:#f9fafb;border-radius:8px;padding:16px 20px;margin-bottom:20px;border:1px solid #e5e7eb">
+  <p style="margin:0;font-size:.95rem;color:#374151;white-space:pre-line">{{ post.body }}</p>
+</div>
+
+<a href="https://paceline.club/clubs/{{ post.club.slug }}/board/" class="cta">View Club Board</a>
+
+<p style="font-size:.82rem;color:#9ca3af;margin-top:20px">
+  You're receiving this because you subscribed to board notifications for {{ post.club.name }}.
+  <a href="https://paceline.club/clubs/{{ post.club.slug }}/board/subscribe" style="color:#9ca3af">Manage notifications</a>.
+</p>
+{% endblock %}

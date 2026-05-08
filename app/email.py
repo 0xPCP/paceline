@@ -288,6 +288,17 @@ def send_weekly_digest(club, rides):
     logger.info('Weekly digest sent for club %d (%s) to %d recipient(s)', club.id, club.name, len(recipients))
 
 
+def send_board_post_notification(post, user):
+    """Notify a board subscriber that a new post was made."""
+    if not user.email:
+        return
+    html = render_template('email/board_notification.html', post=post, user=user)
+    text = render_template('email/board_notification.txt', post=post, user=user)
+    subject = f'[{post.club.name}] New post from {post.author.username}'
+    _send(subject, [user.email], html, text)
+    logger.info('Board notification sent to %s for post %d', user.email, post.id)
+
+
 def send_feedback_notification(feedback):
     """Notify superadmins that new site feedback was submitted."""
     from .admin_stats import configured_superadmin_emails

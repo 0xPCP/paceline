@@ -1,0 +1,87 @@
+{% extends "base_club.html" %}
+{% block title %}Club Board — {{ club.name }}{% endblock %}
+{% block head %}{% include 'clubs/_theme.html' %}{% endblock %}
+{% from 'clubs/_board_macros.html' import post_card with context %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <a href="{{ url_for('clubs.home', slug=club.slug) }}"
+             class="text-muted small text-decoration-none">← {{ club.name }}</a>
+          <h4 class="mb-0 mt-1">Club Board</h4>
+        </div>
+        <form method="post" action="{{ url_for('board.board_subscribe', slug=club.slug) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <button type="submit"
+                  class="btn btn-sm {{ 'btn-paceline' if is_subscribed else 'btn-outline-secondary' }}">
+            {{ '🔔 Subscribed' if is_subscribed else '🔕 Get Notified' }}
+          </button>
+        </form>
+      </div>
+
+      {# Compose #}
+      <div class="board-compose card border-0 shadow-sm mb-4" id="board-top">
+        <div class="card-body">
+          <form method="post" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <textarea name="body" class="form-control board-compose-input mb-2"
+                      rows="3" placeholder="Share something with the club..."></textarea>
+            <div class="d-flex align-items-center gap-2">
+              <label class="btn btn-sm btn-outline-secondary mb-0" style="cursor:pointer">
+                📷 Photos
+                <input type="file" name="photos" multiple accept="image/*"
+                       class="d-none" id="boardPhotoInput">
+              </label>
+              <small class="text-muted" id="boardPhotoCount"></small>
+              <button type="submit" class="btn btn-paceline-sm ms-auto">Post</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {# Posts #}
+      {% if posts %}
+      <div class="board-post-list">
+        {% for post in posts %}
+        {{ post_card(post, club, is_admin) }}
+        {% endfor %}
+      </div>
+
+      {% if has_more %}
+      <div class="text-center mt-4">
+        <a href="{{ url_for('board.board', slug=club.slug) }}?before={{ oldest_id }}"
+           class="btn btn-outline-secondary btn-sm">
+          Load older posts
+        </a>
+      </div>
+      {% endif %}
+
+      {% else %}
+      <div class="text-center py-5 text-muted">
+        <div style="font-size:2rem;margin-bottom:.5rem">💬</div>
+        <p class="mb-0">No posts yet — be the first to share something!</p>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ g.csp_nonce }}">
+(function () {
+  var input = document.getElementById('boardPhotoInput');
+  if (!input) return;
+  input.addEventListener('change', function () {
+    var n = Math.min(this.files.length, 3);
+    document.getElementById('boardPhotoCount').textContent =
+      n > 0 ? n + ' photo' + (n !== 1 ? 's' : '') + ' selected' : '';
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,11 @@
+NEW BOARD POST — {{ post.club.name }}
+From: {{ post.author.username }}
+
+{{ post.body }}
+
+View the club board:
+https://paceline.club/clubs/{{ post.club.slug }}/board/
+
+---
+You're receiving this because you subscribed to board notifications for {{ post.club.name }}.
+To manage notifications, visit: https://paceline.club/clubs/{{ post.club.slug }}/board/subscribe
