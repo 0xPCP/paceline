@@ -111,7 +111,7 @@ def _notify_mentions(app, body, club_id, author_id, post_id):
     with app.app_context():
         from ..models import User, ClubMembership
         from ..email import send_mention_notification
-        usernames = set(_MENTION_RE.findall(body))
+        usernames = set(_MENTION_RE.findall(body or ''))
         if not usernames:
             return
         post = db.session.get(ClubBoardPost, post_id)
@@ -138,9 +138,12 @@ def board(slug):
     _require_member(club)
 
     if request.method == 'POST':
-        body = request.form.get('body', '').strip()
-        if not body:
-            flash('Post cannot be empty.', 'warning')
+        body = request.form.get('body', '').strip() or None
+        has_photos = any(
+            f and f.filename for f in request.files.getlist('photos')
+        )
+        if not body and not has_photos:
+            flash('Add some text or at least one photo.', 'warning')
             return redirect(url_for('board.board', slug=slug))
 
         post = ClubBoardPost(club_id=club.id, author_id=current_user.id, body=body)

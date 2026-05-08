@@ -1,7 +1,18 @@
 """Tests for the club board feature."""
+import io
+import time
 import pytest
-from app.models import ClubBoardPost, ClubBoardReaction, ClubBoardReply, ClubBoardSubscription
+from app.models import (ClubBoardPost, ClubBoardMedia,
+                        ClubBoardReaction, ClubBoardReply, ClubBoardSubscription)
 from app.extensions import db as _db
+
+
+def _minimal_jpeg():
+    """Minimal valid JPEG (1×1 red pixel) for upload tests."""
+    from PIL import Image
+    buf = io.BytesIO()
+    Image.new('RGB', (1, 1), color=(255, 0, 0)).save(buf, format='JPEG')
+    return buf.getvalue()
 
 
 def _login(client, email, password='password123'):
@@ -68,6 +79,53 @@ def test_create_post(client, db, regular_user, sample_club):
 
 
 def test_create_post_empty_body(client, db, regular_user, sample_club):
+    _make_member(db, regular_user, sample_club)
+    _login(client, regular_user.email)
+    r = client.post(f'/clubs/{sample_club.slug}/board/',
+                    data={'body': '   '},
+                    follow_redirects=True)
+    assert r.status_code == 200
+    assert ClubBoardPost.query.filter_by(club_id=sample_club.id).count() == 0
+
+
+def test_create_post_photo_only(client, db, regular_user, sample_club, app, tmp_path):
+    """Posting a photo with no text body should succeed."""
+    app.config['UPLOAD_FOLDER'] = str(tmp_path)
+    _make_member(db, regular_user, sample_club)
+    _login(client, regular_user.email)
+    r = client.post(
+        f'/clubs/{sample_club.slug}/board/',
+        data={'body': '  ', 'photos': (io.BytesIO(_minimal_jpeg()), 'photo.jpg')},
+        content_type='multipart/form-data',
+        follow_redirects=True,
+    )
+    assert r.status_code == 200
+    post = ClubBoardPost.query.filter_by(club_id=sample_club.id).first()
+    assert post is not None
+    assert post.body is None
+    assert ClubBoardMedia.query.filter_by(post_id=post.id).count() == 1
+
+
+def test_create_post_photo_and_text(client, db, regular_user, sample_club, app, tmp_path):
+    """Photo + text together should create a post with both."""
+    app.config['UPLOAD_FOLDER'] = str(tmp_path)
+    _make_member(db, regular_user, sample_club)
+    _login(client, regular_user.email)
+    r = client.post(
+        f'/clubs/{sample_club.slug}/board/',
+        data={'body': 'Great ride!', 'photos': (io.BytesIO(_minimal_jpeg()), 'photo.jpg')},
+        content_type='multipart/form-data',
+        follow_redirects=True,
+    )
+    assert r.status_code == 200
+    post = ClubBoardPost.query.filter_by(club_id=sample_club.id).first()
+    assert post is not None
+    assert post.body == 'Great ride!'
+    assert ClubBoardMedia.query.filter_by(post_id=post.id).count() == 1
+
+
+def test_create_post_empty_body_and_no_photo_rejected(client, db, regular_user, sample_club):
+    """Empty body with no photos should still be rejected."""
     _make_member(db, regular_user, sample_club)
     _login(client, regular_user.email)
     r = client.post(f'/clubs/{sample_club.slug}/board/',

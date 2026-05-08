@@ -427,7 +427,7 @@ class ClubBoardPost(db.Model):
     id         = db.Column(db.Integer, primary_key=True)
     club_id    = db.Column(db.Integer, db.ForeignKey('clubs.id'), nullable=False)
     author_id  = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    body       = db.Column(db.Text, nullable=False)
+    body       = db.Column(db.Text, nullable=True)
     is_pinned  = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 

@@ -40,7 +40,9 @@
       </div>
 
       {# Body #}
+      {% if post.body %}
       <p class="mb-2 board-post-body">{{ post.body | mentionify }}</p>
+      {% endif %}
 
       {# Media #}
       {% if post.media %}
