@@ -5,7 +5,7 @@ from flask import Flask, request, session, redirect, url_for, flash, g
 from flask_login import current_user, logout_user, login_fresh
 from werkzeug.middleware.proxy_fix import ProxyFix
 from .config import Config
-from .extensions import db, migrate, login_manager, bcrypt, csrf, mail, babel
+from .extensions import db, migrate, login_manager, bcrypt, csrf, mail, babel, limiter
 
 
 SUPPORTED_LANGUAGES = ['en', 'fr', 'es', 'it', 'nl', 'de', 'pt']
@@ -68,6 +68,14 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
+    # Refuse to start with the dev fallback key when cookies are in secure
+    # mode — that combination means we're running in a production-like env.
+    if app.config.get('SESSION_COOKIE_SECURE') and 'dev' in app.config['SECRET_KEY'].lower():
+        raise RuntimeError(
+            'SECRET_KEY is set to the development default but SESSION_COOKIE_SECURE '
+            'is True. Set a strong SECRET_KEY environment variable before deploying.'
+        )
+
     db.init_app(app)
     migrate.init_app(app, db)
     bcrypt.init_app(app)
@@ -75,6 +83,7 @@ def create_app(config_class=Config):
     csrf.init_app(app)
     mail.init_app(app)
     babel.init_app(app, locale_selector=get_locale)
+    limiter.init_app(app)
 
     from .routes.main import main_bp
     from .routes.auth import auth_bp
@@ -184,6 +193,7 @@ def create_app(config_class=Config):
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
         response.headers['Permissions-Policy'] = 'geolocation=(self), microphone=(), camera=()'
         # CSP: allow same-origin + Bootstrap/Google Fonts CDNs already in use
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
         response.headers['Content-Security-Policy'] = (
             "default-src 'self'; "
             f"script-src 'self' 'nonce-{g.get('csp_nonce', '')}' https://cdn.jsdelivr.net; "

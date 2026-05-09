@@ -9,7 +9,7 @@ from flask_login import (
 from flask_babel import gettext as _, refresh as refresh_locale
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 import requests
-from ..extensions import db, bcrypt
+from ..extensions import db, bcrypt, limiter
 from ..models import User, Ride, RideSignup, ClubInvite
 from ..forms import (
     DisableMfaForm, MfaCodeForm, PasswordResetRequestForm, RegisterForm,
@@ -181,6 +181,7 @@ def _user_from_google_profile(profile):
 
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
+@limiter.limit('5 per minute; 20 per hour')
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('main.index'))
@@ -229,6 +230,7 @@ def register():
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit('20 per minute; 100 per hour')
 def login():
     if current_user.is_authenticated and login_fresh():
         return redirect(url_for('main.index'))
@@ -260,6 +262,7 @@ def login():
 
 
 @auth_bp.route('/password-reset', methods=['GET', 'POST'])
+@limiter.limit('5 per minute; 10 per hour')
 def password_reset_request():
     if current_user.is_authenticated and login_fresh():
         return redirect(url_for('auth.profile'))
