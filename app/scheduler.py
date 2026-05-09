@@ -10,6 +10,7 @@ from datetime import date
 
 from .weather import get_weather_for_rides
 from .email import send_cancellation_emails, send_ride_reminder, send_weekly_digest
+from .storage import get_storage
 
 logger = logging.getLogger(__name__)
 
@@ -113,15 +114,16 @@ def send_weekly_digests(app):
 def purge_expired_media(app):
     """
     Delete ride media and board media older than MEDIA_EXPIRY_DAYS (default 90).
-    Runs nightly. Removes both DB records and files from disk.
+    Runs nightly. Removes both DB records and files from the active storage backend
+    (local filesystem or DigitalOcean Spaces).
     """
-    import os
     from datetime import timedelta
     with app.app_context():
         from .extensions import db
         from .models import ClubBoardMedia, ClubBoardPost, Ride, RideMedia
         expiry_days = app.config.get('MEDIA_EXPIRY_DAYS', 90)
         upload_folder = app.config.get('UPLOAD_FOLDER', '')
+        storage = get_storage(app)
         cutoff = date.today() - timedelta(days=expiry_days)
 
         # Ride media
@@ -131,12 +133,9 @@ def purge_expired_media(app):
                         .all())
         deleted_files = 0
         for item in expired_ride:
-            if item.file_path and upload_folder:
-                try:
-                    os.remove(os.path.join(upload_folder, item.file_path))
-                    deleted_files += 1
-                except OSError:
-                    pass
+            if item.file_path:
+                storage.delete(item.file_path, upload_folder=upload_folder)
+                deleted_files += 1
             db.session.delete(item)
 
         # Board media — keyed on post.created_at
@@ -147,12 +146,9 @@ def purge_expired_media(app):
                          .filter(ClubBoardPost.created_at < board_cutoff)
                          .all())
         for item in expired_board:
-            if item.file_path and upload_folder:
-                try:
-                    os.remove(os.path.join(upload_folder, item.file_path))
-                    deleted_files += 1
-                except OSError:
-                    pass
+            if item.file_path:
+                storage.delete(item.file_path, upload_folder=upload_folder)
+                deleted_files += 1
             db.session.delete(item)
 
         db.session.commit()

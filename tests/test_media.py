@@ -2,11 +2,13 @@
 Tests for post-ride media sharing.
 
 Covers: photo upload (limits, wrong type, after-ride gate), video link posting,
-delete permissions, serve route access control, and scheduler purge logic.
+delete permissions, serve route access control, scheduler purge logic,
+and the Spaces storage backend path.
 """
 import io
 import os
 from datetime import date, timedelta
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -454,3 +456,118 @@ class TestRideDetailMediaSection:
         resp = client.get(f'/clubs/{sample_club.slug}/rides/{ride.id}')
         assert b'Upload Photo' in resp.data
         assert b'Share Video' in resp.data
+
+
+# ── Spaces storage backend ─────────────────────────────────────────────────────
+
+@pytest.fixture
+def spaces_app(app):
+    """App configured to use Spaces storage (moto-mocked)."""
+    app.config['SPACES_BUCKET'] = 'test-media-bucket'
+    app.config['SPACES_REGION'] = 'us-east-1'
+    app.config['SPACES_ENDPOINT'] = ''
+    app.config['SPACES_ACCESS_KEY'] = 'test'
+    app.config['SPACES_SECRET_KEY'] = 'test'
+    return app
+
+
+class TestSpacesBackend:
+    """
+    Tests that verify the Spaces code path is invoked and behaves correctly.
+    Uses moto to mock the S3/Spaces API.
+    """
+
+    def _make_spaces_storage(self, bucket):
+        """Build a SpacesStorage backed by a moto-mocked client."""
+        import boto3
+        from app.storage import SpacesStorage
+        client = boto3.client(
+            's3',
+            region_name='us-east-1',
+            endpoint_url=None,
+            aws_access_key_id='test',
+            aws_secret_access_key='test',
+        )
+        client.create_bucket(Bucket=bucket)
+        storage = SpacesStorage(bucket=bucket, region='us-east-1',
+                                endpoint=None, access_key='test', secret_key='test')
+        storage._client = client
+        return storage, client
+
+    def test_serve_photo_redirects_when_spaces_configured(
+        self, client, db, spaces_app, regular_user, sample_club, tmp_path
+    ):
+        """serve_photo returns a 302 redirect when Spaces backend is active."""
+        from moto import mock_aws
+        with mock_aws():
+            storage, s3_client = self._make_spaces_storage('test-media-bucket')
+            ride = _make_past_ride(db, sample_club)
+            key = f'ride_media/{ride.id}/test.jpg'
+            s3_client.put_object(Bucket='test-media-bucket', Key=key, Body=b'data')
+
+            with patch('app.routes.media.get_storage', return_value=storage):
+                resp = client.get(f'/media/ride/{ride.id}/test.jpg')
+            assert resp.status_code == 302
+
+    def test_delete_media_calls_spaces_delete(
+        self, client, db, spaces_app, regular_user, sample_club, tmp_path
+    ):
+        """Deleting a photo record calls storage.delete() — verified via mock."""
+        spaces_app.config['UPLOAD_FOLDER'] = str(tmp_path)
+        ride = _make_past_ride(db, sample_club)
+        key = f'ride_media/{ride.id}/photo.jpg'
+        with spaces_app.app_context():
+            item = RideMedia(ride_id=ride.id, user_id=regular_user.id,
+                             media_type='photo', file_path=key)
+            db.session.add(item)
+            db.session.commit()
+            mid = item.id
+
+        mock_storage = MagicMock()
+        with patch('app.routes.media.get_storage', return_value=mock_storage):
+            _login(client, regular_user)
+            resp = client.post(
+                f'/clubs/{sample_club.slug}/rides/{ride.id}/media/{mid}/delete',
+                follow_redirects=True,
+            )
+        assert resp.status_code == 200
+        mock_storage.delete.assert_called_once_with(key, upload_folder=str(tmp_path))
+
+    def test_purge_calls_spaces_delete_for_expired(
+        self, db, spaces_app, regular_user, sample_club, tmp_path
+    ):
+        """purge_expired_media calls storage.delete() for expired ride media."""
+        spaces_app.config['UPLOAD_FOLDER'] = str(tmp_path)
+        spaces_app.config['MEDIA_EXPIRY_DAYS'] = 30
+
+        from datetime import time as dtime
+        from app.models import Ride
+        old_ride = Ride(
+            club_id=sample_club.id,
+            title='Old Ride',
+            date=date.today() - timedelta(days=60),
+            time=dtime(7, 0),
+            meeting_location='Trailhead',
+            distance_miles=20.0,
+            pace_category='C',
+        )
+        db.session.add(old_ride)
+        db.session.commit()
+
+        key = f'ride_media/{old_ride.id}/old.jpg'
+        item = RideMedia(
+            ride_id=old_ride.id, user_id=regular_user.id,
+            media_type='photo', file_path=key,
+        )
+        db.session.add(item)
+        db.session.commit()
+        mid = item.id
+
+        mock_storage = MagicMock()
+        with patch('app.scheduler.get_storage', return_value=mock_storage):
+            from app.scheduler import purge_expired_media
+            purge_expired_media(spaces_app)
+
+        mock_storage.delete.assert_any_call(key, upload_folder=str(tmp_path))
+        with spaces_app.app_context():
+            assert RideMedia.query.get(mid) is None

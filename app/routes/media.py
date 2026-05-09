@@ -9,6 +9,11 @@ Strategy summary — see docs/media_strategy.md for full details.
 - Expiry: Files auto-deleted MEDIA_EXPIRY_DAYS days after ride date (scheduler job).
 - Visibility: Only shown after ride.date has passed. Private club content
               requires active membership to serve.
+
+Storage backend (app/storage.py):
+- Local filesystem (default, dev/TrueNAS): photos saved under UPLOAD_FOLDER.
+- DigitalOcean Spaces (when SPACES_BUCKET is set): photos PUT to object storage;
+  serve_photo redirects to a short-lived pre-signed URL.
 """
 import io
 import os
@@ -18,12 +23,13 @@ import logging
 from datetime import date
 
 from flask import (Blueprint, render_template, redirect, url_for, flash,
-                   request, abort, current_app, send_from_directory)
+                   request, abort, current_app)
 from flask_login import login_required, current_user
 
 from ..extensions import db
 from ..models import Club, Ride, RideMedia
 from ..security import is_allowed_video_link
+from ..storage import get_storage
 from ..utils import process_photo_bg
 
 logger = logging.getLogger(__name__)
@@ -66,14 +72,20 @@ def _read_and_validate_image(file):
 
 @media_bp.route('/media/ride/<int:ride_id>/<filename>')
 def serve_photo(ride_id, filename):
-    """Serve a ride photo. Enforces private-club access control."""
+    """
+    Serve a ride photo. Enforces private-club access control.
+
+    Local backend: streams file from UPLOAD_FOLDER.
+    Spaces backend: redirects to a short-lived pre-signed URL.
+    """
     ride = Ride.query.get_or_404(ride_id)
     club = Club.query.get_or_404(ride.club_id)
     if not _can_view_media(club):
         abort(403)
-    upload_root = current_app.config['UPLOAD_FOLDER']
-    ride_dir = os.path.join(upload_root, 'ride_media', str(ride_id))
-    return send_from_directory(ride_dir, filename)
+    key = os.path.join('ride_media', str(ride_id), filename)
+    storage = get_storage()
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    return storage.serve(key, upload_folder=upload_folder)
 
 
 # ── Photo upload ───────────────────────────────────────────────────────────────
@@ -125,28 +137,60 @@ def upload_photo(slug, ride_id):
         return redirect(url_for('clubs.ride_detail', slug=slug, ride_id=ride_id) + '#media')
 
     max_width = current_app.config.get('MEDIA_MAX_WIDTH_PX', 1200)
-    upload_root = current_app.config['UPLOAD_FOLDER']
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    storage = get_storage()
     filename = f'{uuid.uuid4().hex}.jpg'
-    rel_path = os.path.join('ride_media', str(ride.id), filename)
-    dest = os.path.join(upload_root, rel_path)
+    key = os.path.join('ride_media', str(ride.id), filename)
 
     db.session.add(RideMedia(
         ride_id=ride.id,
         user_id=current_user.id,
         media_type='photo',
-        file_path=rel_path,
+        file_path=key,
         caption=caption,
     ))
     db.session.commit()
 
-    threading.Thread(
-        target=process_photo_bg,
-        args=(img_bytes, dest, max_width, 2 * 1024 * 1024),
-        daemon=True,
-    ).start()
+    # Resize + save in a background thread so the response returns immediately.
+    # For Spaces, process_photo_bg writes to a temp path then storage.save() uploads.
+    if current_app.config.get('SPACES_BUCKET'):
+        threading.Thread(
+            target=_process_and_upload,
+            args=(img_bytes, key, max_width, storage),
+            daemon=True,
+        ).start()
+    else:
+        dest = os.path.join(upload_folder, key)
+        threading.Thread(
+            target=process_photo_bg,
+            args=(img_bytes, dest, max_width, 2 * 1024 * 1024),
+            daemon=True,
+        ).start()
 
     flash('Photo shared!', 'success')
     return redirect(url_for('clubs.ride_detail', slug=slug, ride_id=ride_id) + '#media')
+
+
+def _process_and_upload(img_bytes: bytes, key: str, max_width: int, storage: 'SpacesStorage'):
+    """Resize the image then upload the result to Spaces. Runs in a background thread."""
+    import tempfile
+    from ..utils import process_photo_bg
+
+    with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
+        tmp_path = tmp.name
+
+    try:
+        process_photo_bg(img_bytes, tmp_path, max_width, 2 * 1024 * 1024)
+        if os.path.exists(tmp_path):
+            with open(tmp_path, 'rb') as fh:
+                storage.save(key, fh.read())
+    except Exception as exc:
+        logger.error('Failed to process/upload photo %s: %s', key, exc)
+    finally:
+        try:
+            os.remove(tmp_path)
+        except OSError:
+            pass
 
 
 # ── Video link ─────────────────────────────────────────────────────────────────
@@ -199,11 +243,9 @@ def delete_media(slug, ride_id, media_id):
         abort(403)
 
     if item.file_path:
-        full = os.path.join(current_app.config['UPLOAD_FOLDER'], item.file_path)
-        try:
-            os.remove(full)
-        except OSError:
-            pass
+        storage = get_storage()
+        upload_folder = current_app.config['UPLOAD_FOLDER']
+        storage.delete(item.file_path, upload_folder=upload_folder)
 
     db.session.delete(item)
     db.session.commit()

@@ -95,3 +95,15 @@ class Config:
     STORAGE_CRITICAL_PERCENT = int(os.environ.get('STORAGE_CRITICAL_PERCENT', 90))
     MEDIA_STORAGE_WARNING_MB = int(os.environ.get('MEDIA_STORAGE_WARNING_MB', 1024))
     ADMIN_DASHBOARD_SLOW_MS = int(os.environ.get('ADMIN_DASHBOARD_SLOW_MS', 1500))
+
+    # DigitalOcean Spaces (S3-compatible object storage for production media)
+    # When SPACES_BUCKET is set, media is stored in Spaces instead of local disk.
+    # Leave unset for local dev and TrueNAS deployments.
+    SPACES_BUCKET = os.environ.get('SPACES_BUCKET', '').strip()
+    SPACES_REGION = os.environ.get('SPACES_REGION', 'nyc3').strip()
+    SPACES_ENDPOINT = os.environ.get('SPACES_ENDPOINT', '').strip()
+    SPACES_ACCESS_KEY = os.environ.get('SPACES_ACCESS_KEY', '').strip()
+    SPACES_SECRET_KEY = os.environ.get('SPACES_SECRET_KEY', '').strip()
+    # Optional CDN/public base URL (e.g. https://cdn.example.com) for public clubs.
+    # When set, public media is served directly from CDN instead of pre-signed URLs.
+    SPACES_PUBLIC_BASE_URL = os.environ.get('SPACES_PUBLIC_BASE_URL', '').strip()

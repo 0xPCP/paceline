@@ -33,6 +33,8 @@ class TestConfig:
     STRAVA_CLIENT_SECRET = None
     STRAVA_CLUB_ID = None
     STRAVA_CLUB_REFRESH_TOKEN = None
+    UPLOAD_FOLDER = '/tmp/paceline_test_uploads'
+    SPACES_BUCKET = ''
 
 
 # ── Core fixtures ─────────────────────────────────────────────────────────────

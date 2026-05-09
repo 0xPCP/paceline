@@ -5,7 +5,7 @@ from flask import Flask, request, session, redirect, url_for, flash, g
 from flask_login import current_user, logout_user, login_fresh
 from werkzeug.middleware.proxy_fix import ProxyFix
 from .config import Config
-from .extensions import db, login_manager, bcrypt, csrf, mail, babel
+from .extensions import db, migrate, login_manager, bcrypt, csrf, mail, babel
 
 
 SUPPORTED_LANGUAGES = ['en', 'fr', 'es', 'it', 'nl', 'de', 'pt']
@@ -69,6 +69,7 @@ def create_app(config_class=Config):
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     db.init_app(app)
+    migrate.init_app(app, db)
     bcrypt.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
