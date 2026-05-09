@@ -52,10 +52,11 @@ doctl databases connection dcd73714-40ce-4dc2-acbf-242cf141033a
 
 | Name | Access Key | Scope | Purpose |
 |---|---|---|---|
-| `paceline-media-key` (fullaccess) | `DO00YGCVTZKFH4XUAW9J` | all buckets | Admin key — used to create the bucket. Rotate or delete after setup is stable. |
-| `paceline-app-key` (readwrite) | `DO8019NMZH4EX4Q8GMHK` | `paceline-media` only | Runtime key — used by the app to upload/serve/delete photos. Stored as `SPACES_ACCESS_KEY` secret in App Platform. |
+| `paceline-media-key` (fullaccess) | `DO00YGCVTZKFH4XUAW9J` | all buckets | Admin key — used to create the bucket. Delete when stable. |
+| ~~`paceline-app-key`~~ | ~~`DO8019NMZH4EX4Q8GMHK`~~ | — | Deleted 2026-05-09 (secret lost when spec update overwrote App Platform env vars). |
+| `paceline-app-key-2` (readwrite) | `DO801KGJ3CM77DJZB7JV` | `paceline-media` only | Current runtime key. Stored as `SPACES_ACCESS_KEY` secret in App Platform. |
 
-> **Security note:** The fullaccess key (`DO00YGCVTZKFH4XUAW9J`) should be rotated or deleted once the deployment is stable and you're confident the scoped app key works. Keep only the scoped `readwrite` key for day-to-day operations.
+> **Security note:** Delete the fullaccess key (`DO00YGCVTZKFH4XUAW9J`) once the deployment is stable. When updating the App Platform spec, never include secret env vars with placeholder values — DO will overwrite the live secrets.
 
 **`doctl` reference:**
 ```bash
