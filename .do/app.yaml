@@ -1,0 +1,79 @@
+name: paceline
+region: nyc
+
+services:
+  - name: web
+    dockerfile_path: Dockerfile
+    github:
+      repo: 0xPCP/paceline
+      branch: master
+      deploy_on_push: true
+    instance_count: 1
+    instance_size_slug: basic-xs
+    http_port: 8080
+    health_check:
+      http_path: /
+      initial_delay_seconds: 10
+      period_seconds: 30
+      failure_threshold: 3
+    envs:
+      # ── Non-sensitive runtime config ───────────────────────────────────────
+      - key: COOKIE_SECURE
+        value: "true"
+        scope: RUN_TIME
+      - key: SUPERADMIN_EMAILS
+        value: "phil@pcp.dev"
+        scope: RUN_TIME
+      - key: MAIL_DEFAULT_SENDER
+        value: "Paceline <noreply@paceline.club>"
+        scope: RUN_TIME
+      - key: EMAIL_PROVIDER
+        value: "resend"
+        scope: RUN_TIME
+      - key: SPACES_BUCKET
+        value: "paceline-media"
+        scope: RUN_TIME
+      - key: SPACES_REGION
+        value: "nyc3"
+        scope: RUN_TIME
+      - key: SPACES_ENDPOINT
+        value: "https://nyc3.digitaloceanspaces.com"
+        scope: RUN_TIME
+      - key: SPACES_PUBLIC_BASE_URL
+        value: ""
+        scope: RUN_TIME
+
+      # ── Secrets (set via DO console or doctl after first deploy) ───────────
+      # These are listed here for documentation. Values are managed as
+      # encrypted secrets in the DO App Platform and are NOT stored in this file.
+      # Set them with:
+      #   doctl apps update <app-id> --spec .do/app.yaml
+      # then add secret values in the DO console under the app's env vars tab.
+      - key: DATABASE_URL
+        value: "CHANGE_ME"
+        type: SECRET
+        scope: RUN_TIME
+      - key: SECRET_KEY
+        value: "CHANGE_ME"
+        type: SECRET
+        scope: RUN_TIME
+      - key: RESEND_API_KEY
+        value: "CHANGE_ME"
+        type: SECRET
+        scope: RUN_TIME
+      - key: SPACES_ACCESS_KEY
+        value: "CHANGE_ME"
+        type: SECRET
+        scope: RUN_TIME
+      - key: SPACES_SECRET_KEY
+        value: "CHANGE_ME"
+        type: SECRET
+        scope: RUN_TIME
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        value: "CHANGE_ME"
+        type: SECRET
+        scope: RUN_TIME
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
+        value: "CHANGE_ME"
+        type: SECRET
+        scope: RUN_TIME

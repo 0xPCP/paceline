@@ -1,17 +1,17 @@
 import time
 from app import create_app
-from app.extensions import db
-from app.schema import ensure_runtime_schema
 from sqlalchemy.exc import OperationalError
 
 app = create_app()
 
-# Wait for the database to be ready (relevant for Docker Compose cold starts)
+# Promote any SUPERADMIN_EMAILS accounts that already exist in the database.
+# Migrations run before gunicorn starts (entrypoint.sh), so the schema is
+# guaranteed to exist by the time this code runs.
 with app.app_context():
     for attempt in range(15):
         try:
-            db.create_all()
-            ensure_runtime_schema()
+            from app.schema import promote_superadmins
+            promote_superadmins()
             break
         except OperationalError:
             if attempt == 14:

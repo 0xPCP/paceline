@@ -15,4 +15,6 @@ COPY . .
 # local / TrueNAS Docker Compose deployments.
 EXPOSE ${PORT:-8000}
 
-CMD gunicorn -w 4 -b 0.0.0.0:${PORT:-8000} --timeout 60 --preload wsgi:app
+RUN chmod +x entrypoint.sh
+
+CMD ["/app/entrypoint.sh"]

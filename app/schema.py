@@ -144,3 +144,19 @@ def ensure_runtime_schema():
 
     if changed:
         db.session.commit()
+
+
+def promote_superadmins():
+    """Promote any SUPERADMIN_EMAILS accounts to is_admin=True."""
+    superadmin_emails = _configured_superadmin_emails()
+    if not superadmin_emails:
+        return
+    from .models import User
+    users = User.query.filter(User.email.in_(superadmin_emails)).all()
+    changed = False
+    for user in users:
+        if not user.is_admin:
+            user.is_admin = True
+            changed = True
+    if changed:
+        db.session.commit()
