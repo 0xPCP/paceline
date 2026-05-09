@@ -1,12 +1,21 @@
 """Shared utility helpers."""
+import atexit
 import io
 import logging
 import os
 import re
+from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlparse, urljoin
 from flask import request as flask_request
 
 logger = logging.getLogger(__name__)
+
+# Bounded thread pool for photo processing (resize + disk/Spaces upload).
+# Using a pool instead of bare daemon threads ensures in-flight work is not
+# abandoned when gunicorn gracefully shuts down a worker: the process will
+# drain pending futures before exiting.
+_photo_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix='photo')
+atexit.register(_photo_executor.shutdown, wait=True)
 
 
 def process_photo_bg(img_bytes, dest_path, max_width, max_bytes):

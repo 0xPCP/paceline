@@ -9,13 +9,17 @@ Two backends selected at app startup:
 
   SpacesStorage (when SPACES_BUCKET is set)
     Files are PUT to DigitalOcean Spaces (S3-compatible) under the bucket key.
-    serve() redirects the browser to a short-lived pre-signed URL so the app
-    never proxies large files and private-club access control still runs in Flask.
+
+    Serving strategy:
+      - Public clubs + SPACES_PUBLIC_BASE_URL set → 302 to CDN URL (permanent,
+        cacheable, no Flask round-trip after the first request).
+      - Private clubs OR no CDN URL configured → 302 to a short-lived pre-signed
+        URL (TTL: PRESIGN_TTL seconds). Access control runs in Flask first, so
+        the URL is only vended to authorised users.
 
 Call get_storage(app) inside a request or app context to get the active backend.
 All callers go through the same three methods: save(), delete(), serve().
 """
-import io
 import os
 import logging
 
@@ -29,20 +33,20 @@ _PRESIGN_TTL = 300  # seconds — pre-signed URL lifetime for Spaces
 class LocalStorage:
     """Store files on the host filesystem under UPLOAD_FOLDER."""
 
-    def save(self, key: str, data: bytes, upload_folder: str) -> None:
+    def save(self, key: str, data: bytes, upload_folder: str, **_) -> None:
         dest = os.path.join(upload_folder, key)
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         with open(dest, 'wb') as fh:
             fh.write(data)
 
-    def delete(self, key: str, upload_folder: str) -> None:
+    def delete(self, key: str, upload_folder: str, **_) -> None:
         path = os.path.join(upload_folder, key)
         try:
             os.remove(path)
         except OSError:
             pass
 
-    def serve(self, key: str, upload_folder: str):
+    def serve(self, key: str, upload_folder: str, **_):
         """Return a Flask response streaming the file from disk."""
         directory = os.path.join(upload_folder, os.path.dirname(key))
         filename = os.path.basename(key)
@@ -53,9 +57,10 @@ class SpacesStorage:
     """Store files in DigitalOcean Spaces (S3-compatible object storage)."""
 
     def __init__(self, bucket: str, region: str, endpoint: str,
-                 access_key: str, secret_key: str):
+                 access_key: str, secret_key: str, public_base_url: str = ''):
         import boto3
         self._bucket = bucket
+        self._public_base_url = public_base_url.rstrip('/')
         self._client = boto3.client(
             's3',
             region_name=region,
@@ -78,8 +83,15 @@ class SpacesStorage:
         except Exception as exc:
             logger.warning('Spaces delete failed for %s: %s', key, exc)
 
-    def serve(self, key: str, **_):
-        """Redirect to a short-lived pre-signed download URL."""
+    def serve(self, key: str, is_private: bool = True, **_):
+        """
+        Redirect the browser to the file.
+
+        Public club + CDN URL configured: permanent CDN redirect (cacheable).
+        Private club or no CDN URL: short-lived pre-signed URL (authorised only).
+        """
+        if not is_private and self._public_base_url:
+            return redirect(f'{self._public_base_url}/{key}', code=302)
         try:
             url = self._client.generate_presigned_url(
                 'get_object',
@@ -124,5 +136,6 @@ def get_storage(app=None):
             endpoint=cfg.get('SPACES_ENDPOINT', ''),
             access_key=cfg.get('SPACES_ACCESS_KEY', ''),
             secret_key=cfg.get('SPACES_SECRET_KEY', ''),
+            public_base_url=cfg.get('SPACES_PUBLIC_BASE_URL', ''),
         )
     return LocalStorage()

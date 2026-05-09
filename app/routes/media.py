@@ -17,7 +17,6 @@ Storage backend (app/storage.py):
 """
 import io
 import os
-import threading
 import uuid
 import logging
 from datetime import date
@@ -30,7 +29,7 @@ from ..extensions import db
 from ..models import Club, Ride, RideMedia
 from ..security import is_allowed_video_link
 from ..storage import get_storage
-from ..utils import process_photo_bg
+from ..utils import process_photo_bg, _photo_executor
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +84,7 @@ def serve_photo(ride_id, filename):
     key = os.path.join('ride_media', str(ride_id), filename)
     storage = get_storage()
     upload_folder = current_app.config['UPLOAD_FOLDER']
-    return storage.serve(key, upload_folder=upload_folder)
+    return storage.serve(key, is_private=club.is_private, upload_folder=upload_folder)
 
 
 # ── Photo upload ───────────────────────────────────────────────────────────────
@@ -151,21 +150,13 @@ def upload_photo(slug, ride_id):
     ))
     db.session.commit()
 
-    # Resize + save in a background thread so the response returns immediately.
-    # For Spaces, process_photo_bg writes to a temp path then storage.save() uploads.
+    # Resize + save via the shared thread pool so in-flight work is not abandoned
+    # if gunicorn gracefully shuts down this worker (pool drains on process exit).
     if current_app.config.get('SPACES_BUCKET'):
-        threading.Thread(
-            target=_process_and_upload,
-            args=(img_bytes, key, max_width, storage),
-            daemon=True,
-        ).start()
+        _photo_executor.submit(_process_and_upload, img_bytes, key, max_width, storage)
     else:
         dest = os.path.join(upload_folder, key)
-        threading.Thread(
-            target=process_photo_bg,
-            args=(img_bytes, dest, max_width, 2 * 1024 * 1024),
-            daemon=True,
-        ).start()
+        _photo_executor.submit(process_photo_bg, img_bytes, dest, max_width, 2 * 1024 * 1024)
 
     flash('Photo shared!', 'success')
     return redirect(url_for('clubs.ride_detail', slug=slug, ride_id=ride_id) + '#media')

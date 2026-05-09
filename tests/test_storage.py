@@ -120,14 +120,66 @@ class TestSpacesStorage:
         storage, _ = spaces_storage
         storage.delete('does/not/exist.jpg')  # should not raise
 
-    def test_serve_returns_redirect(self, app, spaces_storage):
+    def test_serve_private_returns_presigned_redirect(self, app, spaces_storage):
         storage, client = spaces_storage
         client.put_object(Bucket='test-bucket', Key='ride_media/1/photo.jpg', Body=b'data')
         with app.test_request_context('/'):
-            resp = storage.serve('ride_media/1/photo.jpg')
+            resp = storage.serve('ride_media/1/photo.jpg', is_private=True)
         assert resp.status_code == 302
         loc = resp.headers.get('Location', '')
         assert 'test-bucket' in loc or 'photo.jpg' in loc
+
+    def test_serve_public_no_cdn_returns_presigned(self, app, spaces_storage):
+        storage, client = spaces_storage
+        # No public_base_url set on this storage — still falls back to pre-signed
+        client.put_object(Bucket='test-bucket', Key='ride_media/1/photo.jpg', Body=b'data')
+        with app.test_request_context('/'):
+            resp = storage.serve('ride_media/1/photo.jpg', is_private=False)
+        assert resp.status_code == 302
+        loc = resp.headers.get('Location', '')
+        assert 'test-bucket' in loc or 'photo.jpg' in loc
+
+    def test_serve_public_with_cdn_returns_cdn_url(self, app):
+        """Public club + CDN configured → redirect to CDN URL, no pre-signed call."""
+        from moto import mock_aws
+        import boto3
+        with mock_aws():
+            client = boto3.client('s3', region_name='us-east-1',
+                                  aws_access_key_id='test', aws_secret_access_key='test')
+            client.create_bucket(Bucket='test-bucket')
+            from app.storage import SpacesStorage
+            storage = SpacesStorage(
+                bucket='test-bucket', region='us-east-1', endpoint=None,
+                access_key='test', secret_key='test',
+                public_base_url='https://cdn.example.com',
+            )
+            storage._client = client
+            with app.test_request_context('/'):
+                resp = storage.serve('ride_media/1/photo.jpg', is_private=False)
+            assert resp.status_code == 302
+            assert resp.headers['Location'] == 'https://cdn.example.com/ride_media/1/photo.jpg'
+
+    def test_serve_private_with_cdn_still_uses_presigned(self, app):
+        """Private club + CDN configured → must still use pre-signed, not CDN."""
+        from moto import mock_aws
+        import boto3
+        with mock_aws():
+            client = boto3.client('s3', region_name='us-east-1',
+                                  aws_access_key_id='test', aws_secret_access_key='test')
+            client.create_bucket(Bucket='test-bucket')
+            client.put_object(Bucket='test-bucket', Key='ride_media/2/secret.jpg', Body=b'x')
+            from app.storage import SpacesStorage
+            storage = SpacesStorage(
+                bucket='test-bucket', region='us-east-1', endpoint=None,
+                access_key='test', secret_key='test',
+                public_base_url='https://cdn.example.com',
+            )
+            storage._client = client
+            with app.test_request_context('/'):
+                resp = storage.serve('ride_media/2/secret.jpg', is_private=True)
+            assert resp.status_code == 302
+            loc = resp.headers['Location']
+            assert 'cdn.example.com' not in loc
 
     def test_delete_prefix_removes_all_matching(self, spaces_storage):
         storage, client = spaces_storage
