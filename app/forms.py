@@ -134,6 +134,9 @@ class ClubSettingsForm(FlaskForm):
         Regexp(r'^#[0-9a-fA-F]{6}$', message='Enter a valid hex color (e.g. #e76f51).'),
     ])
     banner_url    = StringField('Banner Image URL', validators=[Optional(), SafeURL(), Length(max=500)])
+    # Visibility
+    is_hidden = BooleanField('Hide club from public listings')
+
     # Membership settings
     is_private         = BooleanField('Private Club')
     require_membership = BooleanField('Require membership to sign up for rides')

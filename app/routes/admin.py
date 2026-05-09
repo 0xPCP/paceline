@@ -591,6 +591,7 @@ def club_settings(slug):
         club.cancel_temp_min_f   = form.cancel_temp_min_f.data if form.cancel_temp_min_f.data is not None else 28
         club.cancel_temp_max_f   = form.cancel_temp_max_f.data if form.cancel_temp_max_f.data is not None else 100
 
+        club.is_hidden           = form.is_hidden.data
         club.is_private         = form.is_private.data
         club.require_membership = form.require_membership.data
         club.join_approval      = form.join_approval.data if form.join_approval.data in ('auto', 'manual') else 'auto'

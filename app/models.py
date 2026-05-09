@@ -191,6 +191,9 @@ class Club(db.Model):
     theme_accent  = db.Column(db.String(7), nullable=True)   # hex e.g. "#e76f51"
     banner_url    = db.Column(db.String(500), nullable=True)  # header background image
 
+    # Visibility
+    is_hidden = db.Column(db.Boolean, default=True, nullable=False)
+
     # Privacy
     is_private = db.Column(db.Boolean, default=False, nullable=False)
 

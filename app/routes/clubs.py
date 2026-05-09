@@ -29,7 +29,7 @@ _PRESET_MAP = {p['id']: p for p in THEME_PRESETS}
 
 
 def _get_club_or_404(slug):
-    return Club.query.filter_by(slug=slug, is_active=True).first_or_404()
+    return Club.query.filter_by(slug=slug, is_active=True, is_hidden=False).first_or_404()
 
 
 # ── Club directory ────────────────────────────────────────────────────────────
@@ -46,7 +46,7 @@ def index():
     except ValueError:
         radius = 25
 
-    all_clubs = Club.query.filter_by(is_active=True).order_by(Club.name.asc()).all()
+    all_clubs = Club.query.filter_by(is_active=True, is_hidden=False).order_by(Club.name.asc()).all()
 
     # Zip-based proximity search takes priority over text search
     zip_results = None
@@ -76,7 +76,7 @@ def club_map():
     today = date.today()
     week_end = today + timedelta(days=7)
 
-    clubs_qs = Club.query.filter_by(is_active=True).order_by(Club.name.asc()).all()
+    clubs_qs = Club.query.filter_by(is_active=True, is_hidden=False).order_by(Club.name.asc()).all()
 
     # Build club feature list and an id→geo lookup for ride anchoring
     geocoded = {}
@@ -213,8 +213,8 @@ def create():
         db.session.add(ClubMembership(user_id=current_user.id, club_id=club.id))
         db.session.commit()
 
-        flash(f'"{club.name}" has been created! Set up your first ride to get started.', 'success')
-        return redirect(url_for('clubs.home', slug=club.slug))
+        flash(f'"{club.name}" has been created! Finish setting up your club, then unhide it when you\'re ready to go public.', 'success')
+        return redirect(url_for('admin.club_dashboard', slug=club.slug))
 
     return render_template('clubs/create.html', form=form, presets=THEME_PRESETS)
 

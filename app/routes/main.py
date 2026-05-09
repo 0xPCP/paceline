@@ -21,7 +21,7 @@ def index():
         return _user_dashboard(today)
 
     # Landing page for logged-out visitors: show club directory teaser
-    clubs = Club.query.filter_by(is_active=True).order_by(Club.name.asc()).all()
+    clubs = Club.query.filter_by(is_active=True, is_hidden=False).order_by(Club.name.asc()).all()
     return render_template('index.html', clubs=clubs, today=today)
 
 
@@ -66,7 +66,7 @@ def _user_dashboard(today):
     # Clubs user hasn't joined yet (for discovery)
     joined_ids = set(club_ids)
     suggested_clubs = (Club.query
-                       .filter_by(is_active=True)
+                       .filter_by(is_active=True, is_hidden=False)
                        .filter(~Club.id.in_(joined_ids))
                        .order_by(Club.name.asc())
                        .limit(4).all()) if True else []
@@ -200,7 +200,7 @@ def discover():
         end_date = today + timedelta(days=7)
 
     # Limit to active clubs
-    active_club_ids = [c.id for c in Club.query.filter_by(is_active=True).with_entities(Club.id).all()]
+    active_club_ids = [c.id for c in Club.query.filter_by(is_active=True, is_hidden=False).with_entities(Club.id).all()]
 
     query = (Ride.query
              .filter(

@@ -111,13 +111,14 @@ def second_user(db):
 
 @pytest.fixture
 def sample_club(db):
-    """A basic active club."""
+    """A basic active, visible club."""
     club = Club(
         slug='test-club',
         name='Test Cycling Club',
         description='A club for testing.',
         city='Reston', state='VA', zip_code='20191',
         lat=38.9376, lng=-77.3476,
+        is_hidden=False,
     )
     db.session.add(club)
     db.session.commit()
@@ -131,6 +132,7 @@ def second_club(db):
         slug='other-club',
         name='Other Cycling Club',
         city='McLean', state='VA', zip_code='22101',
+        is_hidden=False,
     )
     db.session.add(club)
     db.session.commit()

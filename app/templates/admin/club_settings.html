@@ -205,6 +205,25 @@
         </div>
 
         <hr class="my-4" />
+        <h5 class="mb-1">Visibility</h5>
+        <p class="text-muted small mb-3">
+          Control whether your club appears in public listings, the map, and search results.
+        </p>
+
+        <div class="mb-4">
+          <div class="form-check form-switch">
+            {{ form.is_hidden(class="form-check-input", role="switch", id="is_hidden") }}
+            {{ form.is_hidden.label(class="form-check-label", for="is_hidden") }}
+          </div>
+          <div class="form-text">When hidden, the club does not appear in the directory, map, or Discover page — and the club URL returns a 404. Unhide the club when you are ready to go public.</div>
+          {% if club.is_hidden %}
+          <div class="alert alert-warning mt-2 py-2 small mb-0">
+            <strong>This club is currently hidden.</strong> Only admins can access it via the admin panel.
+          </div>
+          {% endif %}
+        </div>
+
+        <hr class="my-4" />
         <h5 class="mb-1">Membership</h5>
         <p class="text-muted small mb-3">
           Control who can sign up for rides and how new members join the club.

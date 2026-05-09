@@ -37,7 +37,7 @@ def _make_club_admin(db, club, user):
 
 @pytest.fixture
 def club(db):
-    c = Club(slug='testclub', name='Test Club', is_active=True)
+    c = Club(slug='testclub', name='Test Club', is_active=True, is_hidden=False)
     db.session.add(c)
     db.session.commit()
     return c

@@ -19,7 +19,7 @@ def clubs_map_data():
     Returns all geocoded active clubs as GeoJSON-style JSON for the Leaflet map.
     """
     today = date.today()
-    clubs = Club.query.filter_by(is_active=True).order_by(Club.name.asc()).all()
+    clubs = Club.query.filter_by(is_active=True, is_hidden=False).order_by(Club.name.asc()).all()
     features = []
     for club in clubs:
         if club.lat is None or club.lng is None:
