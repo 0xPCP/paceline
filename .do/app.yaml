@@ -1,6 +1,12 @@
 name: paceline
 region: nyc
 
+domains:
+  - domain: paceline.club
+    type: PRIMARY
+  - domain: www.paceline.club
+    type: ALIAS
+
 services:
   - name: web
     dockerfile_path: Dockerfile
