@@ -48,6 +48,9 @@ services:
       - key: SPACES_PUBLIC_BASE_URL
         value: ""
         scope: RUN_TIME
+      - key: BETA_PASSWORD
+        value: "set-in-DO-console"
+        scope: RUN_TIME
 
       # ── Secrets ────────────────────────────────────────────────────────────
       # IMPORTANT: Secrets are NOT listed here. Including a secret in this file
