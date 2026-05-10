@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Error Log — Superadmin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Superadmin</a></li>
+        <li class="breadcrumb-item active">Error Log</li>
+      </ol>
+    </nav>
+    <h1>Error Log</h1>
+    <p class="mb-0">{{ pagination.total }} total entries</p>
+  </div>
+</div>
+
+<div class="container py-4">
+
+  <div class="btn-group btn-group-sm mb-4">
+    <a href="{{ url_for('admin.error_log', status='all') }}"
+       class="btn btn-outline-secondary {% if status == 'all' %}active{% endif %}">All</a>
+    <a href="{{ url_for('admin.error_log', status='5xx') }}"
+       class="btn btn-outline-danger {% if status == '5xx' %}active{% endif %}">5xx Server Errors</a>
+    <a href="{{ url_for('admin.error_log', status='4xx') }}"
+       class="btn btn-outline-secondary {% if status == '4xx' %}active{% endif %}">4xx Client Errors</a>
+  </div>
+
+  {% if pagination.items %}
+  <div class="table-responsive">
+    <table class="table paceline-table">
+      <thead>
+        <tr>
+          <th>When</th>
+          <th>Code</th>
+          <th>Method</th>
+          <th>Path</th>
+          <th>Error Type</th>
+          <th>Message</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in pagination.items %}
+        <tr>
+          <td class="text-nowrap small text-muted">{{ e.created_at | strftime('%b %-d %Y %-I:%M %p') }}</td>
+          <td>
+            <span class="badge {% if e.status_code >= 500 %}bg-danger{% else %}bg-secondary{% endif %}">
+              {{ e.status_code }}
+            </span>
+          </td>
+          <td class="small">{{ e.method or '—' }}</td>
+          <td class="small text-truncate" style="max-width:220px">{{ e.path or '—' }}</td>
+          <td class="small">
+            {% if e.traceback %}
+            <a href="{{ url_for('admin.error_detail', error_id=e.id) }}">{{ e.error_type or '—' }}</a>
+            {% else %}
+            {{ e.error_type or '—' }}
+            {% endif %}
+          </td>
+          <td class="small text-truncate" style="max-width:280px">{{ e.error_message or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# Pagination #}
+  {% if pagination.pages > 1 %}
+  <nav>
+    <ul class="pagination pagination-sm">
+      {% if pagination.has_prev %}
+      <li class="page-item">
+        <a class="page-link" href="{{ url_for('admin.error_log', status=status, page=pagination.prev_num) }}">Previous</a>
+      </li>
+      {% endif %}
+      {% for p in pagination.iter_pages() %}
+        {% if p %}
+        <li class="page-item {% if p == pagination.page %}active{% endif %}">
+          <a class="page-link" href="{{ url_for('admin.error_log', status=status, page=p) }}">{{ p }}</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+      {% endfor %}
+      {% if pagination.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="{{ url_for('admin.error_log', status=status, page=pagination.next_num) }}">Next</a>
+      </li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+
+  {% else %}
+  <div class="detail-card">
+    <p class="text-muted mb-0">No errors logged yet.</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

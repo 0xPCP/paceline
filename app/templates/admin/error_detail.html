@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Error #{{ entry.id }} — Superadmin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Superadmin</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.error_log') }}">Error Log</a></li>
+        <li class="breadcrumb-item active">Error #{{ entry.id }}</li>
+      </ol>
+    </nav>
+    <h1>
+      <span class="badge {% if entry.status_code >= 500 %}bg-danger{% else %}bg-secondary{% endif %} me-2">
+        {{ entry.status_code }}
+      </span>
+      {{ entry.error_type or 'Error' }}
+    </h1>
+    <p class="mb-0 text-muted">{{ entry.created_at | strftime('%A, %B %-d %Y at %-I:%M %p UTC') }}</p>
+  </div>
+</div>
+
+<div class="container py-4">
+  <div class="detail-card mb-4">
+    <h5 class="detail-card-title">Request</h5>
+    <dl class="detail-dl mb-0">
+      <dt>Method</dt><dd>{{ entry.method or '—' }}</dd>
+      <dt>Path</dt><dd><code>{{ entry.path or '—' }}</code></dd>
+      <dt>User</dt>
+      <dd>
+        {% if entry.user %}
+        <a href="{{ url_for('admin.user_detail', user_id=entry.user_id) }}">{{ entry.user.username }}</a>
+        {% else %}
+        Anonymous
+        {% endif %}
+      </dd>
+    </dl>
+  </div>
+
+  <div class="detail-card mb-4">
+    <h5 class="detail-card-title">Exception</h5>
+    <dl class="detail-dl mb-0">
+      <dt>Type</dt><dd>{{ entry.error_type or '—' }}</dd>
+      <dt>Message</dt><dd>{{ entry.error_message or '—' }}</dd>
+    </dl>
+  </div>
+
+  {% if entry.traceback %}
+  <div class="detail-card">
+    <h5 class="detail-card-title">Traceback</h5>
+    <pre class="mb-0 small" style="white-space:pre-wrap;word-break:break-all;background:#1e1e1e;color:#d4d4d4;padding:1rem;border-radius:6px">{{ entry.traceback }}</pre>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

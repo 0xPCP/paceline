@@ -8,7 +8,7 @@ from flask import current_app
 from sqlalchemy import func
 
 from .extensions import db
-from .models import Club, EmailDeliveryLog, Ride, RideMedia, RideSignup, User
+from .models import AppErrorLog, Club, EmailDeliveryLog, Ride, RideMedia, RideSignup, User
 
 
 def configured_superadmin_emails():
@@ -210,6 +210,29 @@ def email_report():
     }
 
 
+def error_report():
+    now = datetime.now(timezone.utc)
+    cutoff_24h = now - timedelta(hours=24)
+    cutoff_7d = now - timedelta(days=7)
+
+    errors_24h = AppErrorLog.query.filter(AppErrorLog.created_at >= cutoff_24h).count()
+    errors_24h_500 = (AppErrorLog.query
+                      .filter(AppErrorLog.created_at >= cutoff_24h, AppErrorLog.status_code >= 500)
+                      .count())
+    errors_7d = AppErrorLog.query.filter(AppErrorLog.created_at >= cutoff_7d).count()
+    recent = (AppErrorLog.query
+              .order_by(AppErrorLog.created_at.desc())
+              .limit(20)
+              .all())
+
+    return {
+        'errors_24h': errors_24h,
+        'errors_24h_500': errors_24h_500,
+        'errors_7d': errors_7d,
+        'recent': recent,
+    }
+
+
 def platform_report(started_at):
     today = date.today()
     thirty_days_ago = datetime.combine(today - timedelta(days=30), datetime.min.time())
@@ -255,6 +278,7 @@ def platform_report(started_at):
         'ride_growth': ride_growth,
         'storage': storage_report(),
         'email': email_report(),
+        'errors': error_report(),
         'dashboard_elapsed_ms': elapsed_ms,
         'dashboard_slow': elapsed_ms >= slow_threshold,
         'slow_threshold_ms': slow_threshold,

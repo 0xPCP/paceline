@@ -264,13 +264,44 @@ def create_app(config_class=Config):
 
     from flask import render_template as _render_template
     from werkzeug.exceptions import HTTPException
+    import traceback as _traceback
+
+    def _log_error(status_code, exc=None):
+        """Write an error record to app_error_logs. Never raises."""
+        try:
+            from .models import AppErrorLog
+            tb = _traceback.format_exc() if exc else None
+            if tb and tb.strip() == 'NoneType: None':
+                tb = None
+            user_id = None
+            try:
+                from flask_login import current_user as _cu
+                if _cu.is_authenticated:
+                    user_id = _cu.id
+            except Exception:
+                pass
+            entry = AppErrorLog(
+                status_code=status_code,
+                method=request.method if has_request_context() else None,
+                path=request.path if has_request_context() else None,
+                error_type=type(exc).__name__ if exc else None,
+                error_message=str(exc) if exc else None,
+                traceback=tb,
+                user_id=user_id,
+            )
+            db.session.add(entry)
+            db.session.commit()
+        except Exception:
+            pass
 
     @app.errorhandler(404)
     def not_found(e):
+        _log_error(404, e)
         return _render_template('404.html'), 404
 
     @app.errorhandler(500)
     def internal_error(e):
+        _log_error(500, e)
         try:
             return _render_template('500.html'), 500
         except Exception:
@@ -280,8 +311,8 @@ def create_app(config_class=Config):
     def unhandled_exception(e):
         if isinstance(e, HTTPException):
             return e
-        # Log full traceback so it appears in DO / gunicorn error logs
         app.logger.exception('Unhandled exception on %s %s', request.method, request.path)
+        _log_error(500, e)
         try:
             return _render_template('500.html'), 500
         except Exception:
