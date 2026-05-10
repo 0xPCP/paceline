@@ -224,7 +224,7 @@
           {% if club.description %}
           <div class="mb-5">
             <h4 class="club-section-title">About {{ club.name }}</h4>
-            <p class="club-about-text" style="white-space:pre-line">{{ club.description }}</p>
+            <div class="club-about-text">{{ club.description | markdown }}</div>
             {% if club.bylaws_url %}
             <a href="{{ club.bylaws_url }}" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm mt-1">
               📄 Club Bylaws &amp; Rules
@@ -486,8 +486,8 @@
           {% if club.safety_guidelines %}
           <h4 class="club-section-title">Safety Guidelines</h4>
           <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body" style="white-space:pre-line;line-height:1.85;font-size:.95rem;color:#374151">
-              {{ club.safety_guidelines }}
+            <div class="card-body" style="line-height:1.85;font-size:.95rem;color:#374151">
+              {{ club.safety_guidelines | markdown }}
             </div>
           </div>
           {% endif %}

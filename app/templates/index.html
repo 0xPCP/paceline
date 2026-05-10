@@ -47,7 +47,7 @@
               <span class="badge bg-secondary">{{ ngettext('%(num)s member', '%(num)s members', club.member_count) }}</span>
             </div>
             {% if club.city %}<p class="text-muted small mb-1">{{ club.city }}, {{ club.state }}</p>{% endif %}
-            {% if club.description %}<p class="text-muted small mb-0">{{ club.description[:120] }}{% if club.description|length > 120 %}…{% endif %}</p>{% endif %}
+            {% if club.description %}<p class="text-muted small mb-0">{% set preview = club.description | strip_markdown %}{{ preview[:120] }}{% if preview|length > 120 %}…{% endif %}</p>{% endif %}
           </div>
         </a>
       </div>

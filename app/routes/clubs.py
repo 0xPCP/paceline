@@ -653,10 +653,12 @@ def ride_unsignup(slug, ride_id):
 
 # ── Club membership ───────────────────────────────────────────────────────────
 
-@clubs_bp.route('/<slug>/join', methods=['POST'])
+@clubs_bp.route('/<slug>/join', methods=['GET', 'POST'])
 @login_required
 def join(slug):
     club = _get_club_or_404(slug)
+    if request.method == 'GET':
+        return redirect(url_for('clubs.home', slug=slug))
 
     existing = ClubMembership.query.filter_by(user_id=current_user.id, club_id=club.id).first()
     if existing:
