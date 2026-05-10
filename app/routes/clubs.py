@@ -6,13 +6,14 @@ from flask_login import login_required, current_user, fresh_login_required
 from sqlalchemy.exc import IntegrityError
 import requests as http_requests
 from ..extensions import db
-from ..models import Club, ClubAdmin, ClubMembership, Ride, RideComment, ClubInvite, RideSignup
+from ..models import Club, ClubAdmin, ClubMembership, Ride, RideComment, ClubInvite, RideSignup, ClubSponsor, ClubPost
 from ..weather import get_weather_for_rides
 from ..geocoding import clubs_near_zip
 from .strava import get_club_activities
 from ..forms import ClubCreateForm, RideCommentForm
 from ..geocoding import geocode_zip
 from ..utils import is_safe_url
+from ..storage import get_storage
 
 clubs_bp = Blueprint('clubs', __name__)
 
@@ -809,3 +810,27 @@ def invite_claim(token):
         flash(f"Welcome to {club.name}! Your membership is active.", 'success')
 
     return redirect(url_for('clubs.home', slug=club.slug))
+
+
+@clubs_bp.route('/<slug>/sponsors/<int:sponsor_id>/logo')
+def serve_sponsor_logo(slug, sponsor_id):
+    """Serve an uploaded sponsor logo (always public)."""
+    from flask import current_app
+    club = _get_club_or_404(slug)
+    sponsor = ClubSponsor.query.filter_by(id=sponsor_id, club_id=club.id).first_or_404()
+    if not sponsor.logo_key:
+        abort(404)
+    return get_storage().serve(sponsor.logo_key, is_private=False,
+                               upload_folder=current_app.config['UPLOAD_FOLDER'])
+
+
+@clubs_bp.route('/<slug>/posts/<int:post_id>/image')
+def serve_post_image(slug, post_id):
+    """Serve a news post header image (always public)."""
+    from flask import current_app
+    club = _get_club_or_404(slug)
+    post = ClubPost.query.filter_by(id=post_id, club_id=club.id).first_or_404()
+    if not post.image_key:
+        abort(404)
+    return get_storage().serve(post.image_key, is_private=False,
+                               upload_folder=current_app.config['UPLOAD_FOLDER'])

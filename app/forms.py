@@ -201,8 +201,12 @@ class ClubCreateForm(FlaskForm):
 
 
 class ClubPostForm(FlaskForm):
-    title = StringField('Title', validators=[DataRequired(), Length(max=200)])
-    body  = TextAreaField('Body', validators=[DataRequired()])
+    title      = StringField('Title', validators=[DataRequired(), Length(max=200)])
+    body       = TextAreaField('Body', validators=[DataRequired()])
+    image_file = FileField('Header Image (optional)', validators=[
+        Optional(),
+        FileAllowed(['jpg', 'jpeg', 'png', 'webp'], 'Images only (JPEG, PNG, WebP)'),
+    ])
     submit = SubmitField('Save Post')
 
 
@@ -216,7 +220,11 @@ class ClubLeaderForm(FlaskForm):
 
 class ClubSponsorForm(FlaskForm):
     name          = StringField('Sponsor Name', validators=[DataRequired(), Length(max=200)])
-    logo_url      = StringField('Logo URL', validators=[Optional(), SafeURL(), Length(max=500)])
+    logo_file     = FileField('Upload Logo', validators=[
+        Optional(),
+        FileAllowed(['jpg', 'jpeg', 'png', 'webp'], 'Images only (JPEG, PNG, WebP)'),
+    ])
+    logo_url      = StringField('Logo URL (or upload above)', validators=[Optional(), SafeURL(), Length(max=500)])
     website       = StringField('Website', validators=[Optional(), SafeURL(), Length(max=500)])
     display_order = IntegerField('Display Order', validators=[Optional(), NumberRange(min=0)], default=0)
     submit        = SubmitField('Save Sponsor')

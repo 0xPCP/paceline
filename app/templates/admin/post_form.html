@@ -19,7 +19,7 @@
 <div class="container py-4">
   <div class="row">
     <div class="col-lg-8">
-      <form method="post" novalidate>
+      <form method="post" enctype="multipart/form-data" novalidate>
         {{ form.hidden_tag() }}
 
         <div class="mb-3">
@@ -28,11 +28,33 @@
           {% for e in form.title.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
         </div>
 
+        <div class="mb-3">
+          {{ form.image_file.label(class="form-label") }}
+
+          {% if post and post.image_key %}
+          <div class="mb-2">
+            <img src="{{ url_for('clubs.serve_post_image', slug=club.slug, post_id=post.id) }}"
+                 alt="Current image" style="max-height:160px;border-radius:8px;object-fit:cover;width:100%">
+            <div class="form-text">Current header image — upload a new file to replace it.</div>
+          </div>
+          {% endif %}
+
+          {{ form.image_file(class="form-control" + (" is-invalid" if form.image_file.errors else ""), id="postImageInput", accept="image/*") }}
+          {% for e in form.image_file.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          <div class="form-text">Optional header image shown above the post body. JPEG, PNG, or WebP, up to 10 MB.</div>
+
+          <div id="postImagePreview" class="mt-2" style="display:none">
+            <img id="postImagePreviewImg" src="" alt="Preview"
+                 style="max-height:160px;border-radius:8px;object-fit:cover;width:100%">
+          </div>
+        </div>
+
         <div class="mb-4">
           {{ form.body.label(class="form-label") }}
           {{ form.body(class="form-control" + (" is-invalid" if form.body.errors else ""), rows=12,
-                       placeholder="Write your announcement or news update here…") }}
+                       placeholder="Write your announcement or news update here… (Markdown supported)") }}
           {% for e in form.body.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          <div class="form-text">Markdown is supported: **bold**, *italic*, ## Heading, - list item, etc.</div>
         </div>
 
         <div class="d-flex gap-2">
@@ -43,4 +65,27 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ g.csp_nonce }}">
+(function () {
+  var input = document.getElementById('postImageInput');
+  var preview = document.getElementById('postImagePreview');
+  var img = document.getElementById('postImagePreviewImg');
+  if (!input) return;
+  input.addEventListener('change', function () {
+    if (this.files && this.files[0]) {
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        img.src = e.target.result;
+        preview.style.display = 'block';
+      };
+      reader.readAsDataURL(this.files[0]);
+    } else {
+      preview.style.display = 'none';
+    }
+  });
+})();
+</script>
 {% endblock %}

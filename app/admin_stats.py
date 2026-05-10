@@ -98,35 +98,46 @@ def storage_report():
     disk = None
     disk_percent = None
     disk_warning = None
-    probe_path = upload_folder
-    while probe_path and not os.path.exists(probe_path):
-        parent = os.path.dirname(probe_path)
-        if parent == probe_path:
-            break
-        probe_path = parent
-    if probe_path and os.path.exists(probe_path):
-        try:
-            usage = shutil.disk_usage(probe_path)
-            disk_percent = round((usage.used / usage.total) * 100, 1) if usage.total else 0
-            disk = {
-                'total': usage.total,
-                'used': usage.used,
-                'free': usage.free,
-                'percent': disk_percent,
-                'total_label': _bytes_label(usage.total),
-                'used_label': _bytes_label(usage.used),
-                'free_label': _bytes_label(usage.free),
-            }
-        except OSError:
-            disk = None
+    using_spaces = bool(current_app.config.get('SPACES_BUCKET', '').strip())
 
-    warning_pct = current_app.config.get('STORAGE_WARNING_PERCENT', 80)
-    critical_pct = current_app.config.get('STORAGE_CRITICAL_PERCENT', 90)
-    if disk_percent is not None:
-        if disk_percent >= critical_pct:
-            disk_warning = 'critical'
-        elif disk_percent >= warning_pct:
-            disk_warning = 'warning'
+    if not using_spaces:
+        # Local storage: probe the upload folder's filesystem
+        probe_path = upload_folder
+        while probe_path and not os.path.exists(probe_path):
+            parent = os.path.dirname(probe_path)
+            if parent == probe_path:
+                break
+            probe_path = parent
+        if probe_path and os.path.exists(probe_path):
+            try:
+                usage = shutil.disk_usage(probe_path)
+                disk_percent = round((usage.used / usage.total) * 100, 1) if usage.total else 0
+                disk = {
+                    'total': usage.total,
+                    'used': usage.used,
+                    'free': usage.free,
+                    'percent': disk_percent,
+                    'total_label': _bytes_label(usage.total),
+                    'used_label': _bytes_label(usage.used),
+                    'free_label': _bytes_label(usage.free),
+                    'backend': 'local',
+                }
+            except OSError:
+                disk = None
+
+        warning_pct = current_app.config.get('STORAGE_WARNING_PERCENT', 80)
+        critical_pct = current_app.config.get('STORAGE_CRITICAL_PERCENT', 90)
+        if disk_percent is not None:
+            if disk_percent >= critical_pct:
+                disk_warning = 'critical'
+            elif disk_percent >= warning_pct:
+                disk_warning = 'warning'
+    else:
+        disk = {
+            'backend': 'spaces',
+            'bucket': current_app.config.get('SPACES_BUCKET', ''),
+            'region': current_app.config.get('SPACES_REGION', ''),
+        }
 
     media_warning_mb = current_app.config.get('MEDIA_STORAGE_WARNING_MB', 1024)
     media_warning = media_bytes >= media_warning_mb * 1024 * 1024

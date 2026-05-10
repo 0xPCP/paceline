@@ -1,7 +1,9 @@
 from functools import wraps
+import io
 import time
+import uuid
 from datetime import date, datetime, timedelta, timezone
-from flask import Blueprint, render_template, redirect, url_for, flash, abort, request
+from flask import Blueprint, render_template, redirect, url_for, flash, abort, request, current_app
 from flask_login import login_required, current_user, login_fresh
 import secrets
 import string
@@ -14,6 +16,8 @@ from ..models import (AdminAuditLog, Club, Ride, RideSignup, SiteFeedback, User,
 from ..forms import RideForm, ClubForm, ClubSettingsForm, ClubPostForm, ClubLeaderForm, ClubSponsorForm, ClubInviteForm, BulkImportForm
 from ..recurrence import generate_instances, delete_future_instances
 from ..geocoding import geocode_zip
+from ..storage import get_storage
+from ..utils import process_logo_image, process_post_image
 from ..admin_stats import (active_superadmin_count, configured_superadmin_emails,
                            platform_report)
 from ..email import (send_cancellation_emails, send_new_ride_notification,
@@ -1066,17 +1070,38 @@ def club_posts(slug):
     return render_template('admin/club_posts.html', club=club, posts=posts)
 
 
+def _save_post_image(file, club_id):
+    """Process and store a news post header image. Returns the storage key."""
+    data = process_post_image(file.stream.read())
+    key = f'post_images/{club_id}/{uuid.uuid4().hex}.jpg'
+    storage = get_storage()
+    storage.save(key, data, upload_folder=current_app.config['UPLOAD_FOLDER'])
+    return key
+
+
+def _delete_post_image(key):
+    if key:
+        try:
+            get_storage().delete(key, upload_folder=current_app.config['UPLOAD_FOLDER'])
+        except Exception:
+            pass
+
+
 @admin_bp.route('/clubs/<slug>/posts/new', methods=['GET', 'POST'])
 @club_content_required
 def post_new(slug):
     club = _get_club_or_404(slug)
     form = ClubPostForm()
     if form.validate_on_submit():
+        image_key = None
+        if form.image_file.data and form.image_file.data.filename:
+            image_key = _save_post_image(form.image_file.data, club.id)
         post = ClubPost(
             club_id=club.id,
             author_id=current_user.id,
             title=form.title.data,
             body=form.body.data,
+            image_key=image_key,
         )
         db.session.add(post)
         db.session.commit()
@@ -1094,6 +1119,9 @@ def post_edit(slug, post_id):
     if form.validate_on_submit():
         post.title = form.title.data
         post.body  = form.body.data
+        if form.image_file.data and form.image_file.data.filename:
+            _delete_post_image(post.image_key)
+            post.image_key = _save_post_image(form.image_file.data, club.id)
         db.session.commit()
         flash('Post updated.', 'success')
         return redirect(url_for('admin.club_posts', slug=slug))
@@ -1105,6 +1133,7 @@ def post_edit(slug, post_id):
 def post_delete(slug, post_id):
     club = _get_club_or_404(slug)
     post = ClubPost.query.filter_by(id=post_id, club_id=club.id).first_or_404()
+    _delete_post_image(post.image_key)
     db.session.delete(post)
     db.session.commit()
     flash('Post deleted.', 'info')
@@ -1176,23 +1205,46 @@ def club_sponsors(slug):
     return render_template('admin/club_sponsors.html', club=club, sponsors=club.sponsors)
 
 
+def _save_sponsor_logo(file, club_id):
+    """Process and store an uploaded sponsor logo. Returns the storage key."""
+    data = process_logo_image(file.stream.read())
+    key = f'sponsor_logos/{club_id}/{uuid.uuid4().hex}.jpg'
+    storage = get_storage()
+    storage.save(key, data, upload_folder=current_app.config['UPLOAD_FOLDER'])
+    return key
+
+
+def _delete_sponsor_logo(key):
+    if key:
+        try:
+            get_storage().delete(key, upload_folder=current_app.config['UPLOAD_FOLDER'])
+        except Exception:
+            pass
+
+
 @admin_bp.route('/clubs/<slug>/sponsors/new', methods=['GET', 'POST'])
 @club_admin_required
 def sponsor_new(slug):
     club = _get_club_or_404(slug)
     form = ClubSponsorForm()
     if form.validate_on_submit():
+        logo_key = None
+        logo_url = form.logo_url.data or None
+        if form.logo_file.data and form.logo_file.data.filename:
+            logo_key = _save_sponsor_logo(form.logo_file.data, club.id)
+            logo_url = None
         db.session.add(ClubSponsor(
             club_id=club.id,
             name=form.name.data,
-            logo_url=form.logo_url.data or None,
+            logo_url=logo_url,
+            logo_key=logo_key,
             website=form.website.data or None,
             display_order=form.display_order.data or 0,
         ))
         db.session.commit()
         flash('Sponsor added.', 'success')
         return redirect(url_for('admin.club_sponsors', slug=slug))
-    return render_template('admin/sponsor_form.html', form=form, club=club, title='Add Sponsor')
+    return render_template('admin/sponsor_form.html', form=form, club=club, title='Add Sponsor', sponsor=None)
 
 
 @admin_bp.route('/clubs/<slug>/sponsors/<int:sponsor_id>/edit', methods=['GET', 'POST'])
@@ -1203,13 +1255,20 @@ def sponsor_edit(slug, sponsor_id):
     form = ClubSponsorForm(obj=sponsor)
     if form.validate_on_submit():
         sponsor.name          = form.name.data
-        sponsor.logo_url      = form.logo_url.data or None
         sponsor.website       = form.website.data or None
         sponsor.display_order = form.display_order.data or 0
+        if form.logo_file.data and form.logo_file.data.filename:
+            _delete_sponsor_logo(sponsor.logo_key)
+            sponsor.logo_key = _save_sponsor_logo(form.logo_file.data, club.id)
+            sponsor.logo_url = None
+        elif form.logo_url.data:
+            _delete_sponsor_logo(sponsor.logo_key)
+            sponsor.logo_key = None
+            sponsor.logo_url = form.logo_url.data
         db.session.commit()
         flash('Sponsor updated.', 'success')
         return redirect(url_for('admin.club_sponsors', slug=slug))
-    return render_template('admin/sponsor_form.html', form=form, club=club, title='Edit Sponsor')
+    return render_template('admin/sponsor_form.html', form=form, club=club, title='Edit Sponsor', sponsor=sponsor)
 
 
 @admin_bp.route('/clubs/<slug>/sponsors/<int:sponsor_id>/delete', methods=['POST'])
@@ -1217,6 +1276,7 @@ def sponsor_edit(slug, sponsor_id):
 def sponsor_delete(slug, sponsor_id):
     club = _get_club_or_404(slug)
     sponsor = ClubSponsor.query.filter_by(id=sponsor_id, club_id=club.id).first_or_404()
+    _delete_sponsor_logo(sponsor.logo_key)
     db.session.delete(sponsor)
     db.session.commit()
     flash('Sponsor removed.', 'info')

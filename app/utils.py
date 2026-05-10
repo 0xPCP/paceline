@@ -45,6 +45,39 @@ def process_photo_bg(img_bytes, dest_path, max_width, max_bytes):
     except Exception:
         logger.exception('Background photo processing failed for %s', dest_path)
 
+def process_logo_image(img_bytes: bytes) -> bytes:
+    """Resize and compress a sponsor/post logo to fit sidebar display. Synchronous."""
+    from PIL import Image
+    img = Image.open(io.BytesIO(img_bytes)).convert('RGB')
+    MAX_W, MAX_H = 400, 160
+    w, h = img.size
+    if w > MAX_W or h > MAX_H:
+        scale = min(MAX_W / w, MAX_H / h)
+        img = img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
+    for quality in (85, 75, 65, 55):
+        buf = io.BytesIO()
+        img.save(buf, 'JPEG', quality=quality, optimize=True)
+        if buf.tell() <= 60_000:
+            break
+    return buf.getvalue()
+
+
+def process_post_image(img_bytes: bytes) -> bytes:
+    """Resize and compress a news post header image. Synchronous."""
+    from PIL import Image
+    img = Image.open(io.BytesIO(img_bytes)).convert('RGB')
+    MAX_W = 1200
+    if img.width > MAX_W:
+        ratio = MAX_W / img.width
+        img = img.resize((MAX_W, int(img.height * ratio)), Image.LANCZOS)
+    for quality in (85, 75, 65, 55):
+        buf = io.BytesIO()
+        img.save(buf, 'JPEG', quality=quality, optimize=True, progressive=True)
+        if buf.tell() <= 400_000:
+            break
+    return buf.getvalue()
+
+
 _MENTION_RE = re.compile(r'@([A-Za-z0-9_]{2,50})')
 
 

@@ -217,6 +217,12 @@
               <div class="col-lg-10">
                 {% for post in club.posts %}
                 <article class="news-post">
+                  {% if post.image_key %}
+                  <img src="{{ url_for('clubs.serve_post_image', slug=club.slug, post_id=post.id) }}"
+                       alt="{{ post.title }}"
+                       style="width:100%;max-height:320px;object-fit:cover;border-radius:8px;margin-bottom:1.25rem"
+                       loading="lazy">
+                  {% endif %}
                   <div class="news-post-date">{{ post.published_at.strftime('%B %d, %Y') }}</div>
                   <h3 class="news-post-title">{{ post.title }}</h3>
                   <div class="news-post-body">{{ post.body | markdown }}</div>
@@ -388,7 +394,11 @@
                 {% else %}
                 <span class="sponsor-logo-item d-block">
                 {% endif %}
-                  {% if sponsor.logo_url %}
+                  {% if sponsor.logo_key %}
+                  <img src="{{ url_for('clubs.serve_sponsor_logo', slug=club.slug, sponsor_id=sponsor.id) }}"
+                       alt="{{ sponsor.name }}" style="height:52px;max-width:100%;object-fit:contain"
+                       onerror="this.outerHTML='<span class=\'fw-semibold text-muted small\'>'+this.alt+'</span>'">
+                  {% elif sponsor.logo_url %}
                   <img src="{{ sponsor.logo_url }}" alt="{{ sponsor.name }}"
                        style="height:52px;max-width:100%;object-fit:contain"
                        onerror="this.outerHTML='<span class=\'fw-semibold text-muted small\'>'+this.alt+'</span>'">

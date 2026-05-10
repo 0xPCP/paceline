@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Superadmin Dashboard — Paceline{% endblock %}
+{% block title %}Super Admin Dashboard — Paceline{% endblock %}
 
 {% block content %}
 <div class="page-header">
   <div class="container">
-    <h1>Superadmin Dashboard</h1>
+    <h1>Super Admin Dashboard</h1>
     <p class="mb-0">Platform-wide overview.</p>
   </div>
 </div>
@@ -49,7 +49,7 @@
       This page took {{ report.dashboard_elapsed_ms }} ms to assemble. Review database size, query volume, and recent traffic if this persists.
     </div>
     {% endif %}
-    {% if report.storage.disk_warning %}
+    {% if report.storage.disk_warning and report.storage.disk and report.storage.disk.backend != 'spaces' %}
     <div class="alert {{ 'alert-danger' if report.storage.disk_warning == 'critical' else 'alert-warning' }} mb-2">
       <strong>Storage pressure is {{ report.storage.disk_warning }}.</strong>
       Disk usage is {{ report.storage.disk.percent }}% with {{ report.storage.disk.free_label }} free.
@@ -302,13 +302,18 @@
           <dt>Media Storage</dt>
           <dd>{{ report.storage.media_label }}</dd>
           {% if report.storage.disk %}
+            {% if report.storage.disk.backend == 'spaces' %}
+          <dt>Storage Backend</dt>
+          <dd>DigitalOcean Spaces ({{ report.storage.disk.bucket }}, {{ report.storage.disk.region }})</dd>
+            {% else %}
           <dt>Disk Used</dt>
           <dd>{{ report.storage.disk.percent }}% of {{ report.storage.disk.total_label }}</dd>
           <dt>Disk Free</dt>
           <dd>{{ report.storage.disk.free_label }}</dd>
+            {% endif %}
           {% endif %}
         </dl>
-        {% if report.storage.disk %}
+        {% if report.storage.disk and report.storage.disk.backend != 'spaces' %}
         <div class="progress" style="height:8px">
           <div class="progress-bar {{ 'bg-danger' if report.storage.disk_warning == 'critical' else 'bg-warning' if report.storage.disk_warning == 'warning' else 'bg-success' }}"
                style="width: {{ report.storage.disk.percent }}%"></div>
@@ -391,7 +396,7 @@
       </table>
     </div>
     {% else %}
-    <p class="text-muted mb-0 small">No superadmin actions recorded yet.</p>
+    <p class="text-muted mb-0 small">No Super Admin actions recorded yet.</p>
     {% endif %}
   </div>
 
@@ -446,7 +451,7 @@
           <td class="d-flex gap-1">
             <a href="{{ url_for('admin.club_dashboard', slug=club.slug) }}" class="btn btn-outline-secondary btn-xs">Manage</a>
             <a href="{{ url_for('admin.club_settings', slug=club.slug) }}" class="btn btn-outline-secondary btn-xs">Settings</a>
-            <a href="{{ url_for('admin.club_superadmin', slug=club.slug) }}" class="btn btn-outline-danger btn-xs">Superadmin</a>
+            <a href="{{ url_for('admin.club_superadmin', slug=club.slug) }}" class="btn btn-outline-danger btn-xs">Super Admin</a>
           </td>
         </tr>
         {% endfor %}
