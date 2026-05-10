@@ -56,7 +56,7 @@
             </div>
           </div>
           {% if club.city %}<p class="text-muted small mb-1">{{ club.city }}, {{ club.state }}{% if club.zip_code %} {{ club.zip_code }}{% endif %}</p>{% endif %}
-          {% if club.description %}<p class="text-muted small mb-2">{{ club.description[:140] }}{% if club.description|length > 140 %}…{% endif %}</p>{% endif %}
+          {% if club.description %}<p class="text-muted small mb-2">{% set preview = club.description | strip_markdown %}{{ preview[:140] }}{% if preview|length > 140 %}…{% endif %}</p>{% endif %}
           <span class="btn btn-paceline-sm">{{ _('View Club') }}</span>
         </div>
       </a>

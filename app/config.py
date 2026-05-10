@@ -8,6 +8,7 @@ class Config:
         'DATABASE_URL',
         'postgresql://paceline:paceline@db:5432/paceline'
     )
+    SQLALCHEMY_ENGINE_OPTIONS = {'pool_pre_ping': True}
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     WTF_CSRF_ENABLED = True
     AUTH_REAUTH_SECONDS = int(os.environ.get('AUTH_REAUTH_HOURS', 6)) * 60 * 60

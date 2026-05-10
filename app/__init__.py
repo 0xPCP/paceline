@@ -1,8 +1,10 @@
+import re
 import sys
 import secrets
 from datetime import datetime, timezone
-from flask import Flask, request, session, redirect, url_for, flash, g
+from flask import Flask, request, session, redirect, url_for, flash, g, has_request_context
 from flask_login import current_user, logout_user, login_fresh
+from markupsafe import Markup
 from werkzeug.middleware.proxy_fix import ProxyFix
 from .config import Config
 from .extensions import db, migrate, login_manager, bcrypt, csrf, mail, babel, limiter
@@ -22,6 +24,8 @@ LANGUAGE_NAMES = {
 
 
 def get_locale():
+    if not has_request_context():
+        return 'en'
     if current_user.is_authenticated and current_user.language:
         return current_user.language
     if current_user.is_authenticated:
@@ -34,6 +38,37 @@ def get_locale():
         if user and user.language in SUPPORTED_LANGUAGES:
             return user.language
     return request.accept_languages.best_match(SUPPORTED_LANGUAGES, default='en')
+
+
+def _markdown_filter(text):
+    """Render markdown text to safe HTML. HTML tags in the source are escaped."""
+    if not text:
+        return Markup('')
+    import mistune
+    md = mistune.create_markdown(escape=True)
+    return Markup(md(text))
+
+
+_STRIP_MD = re.compile(
+    r'#{1,6}\s*'        # ATX headings: ## Heading
+    r'|[*_]{1,3}'       # bold/italic: ** __ * _
+    r'|~~'              # strikethrough
+    r'|`{1,3}'          # inline/fenced code
+    r'|\[([^\]]*)\]\([^)]*\)'  # [link text](url) → link text
+    r'|!\[[^\]]*\]\([^)]*\)'   # images
+    r'|^[-*+]\s+'       # unordered list bullets
+    r'|^\d+\.\s+'       # ordered list bullets
+    r'|^>\s*',          # blockquotes
+    re.MULTILINE,
+)
+
+
+def _strip_markdown_filter(text):
+    """Strip common markdown syntax for use in plain-text previews."""
+    if not text:
+        return ''
+    cleaned = _STRIP_MD.sub(r'\1', text)
+    return re.sub(r'\n+', ' ', cleaned).strip()
 
 
 def _strftime_filter(value, fmt):
@@ -111,6 +146,8 @@ def create_app(config_class=Config):
     app.jinja_env.globals['club_theme_vars'] = club_theme_vars
     app.jinja_env.filters['strftime'] = _strftime_filter
     app.jinja_env.filters['mentionify'] = mentionify
+    app.jinja_env.filters['markdown'] = _markdown_filter
+    app.jinja_env.filters['strip_markdown'] = _strip_markdown_filter
 
     @app.context_processor
     def inject_globals():
