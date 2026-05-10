@@ -18,7 +18,7 @@ services:
     instance_size_slug: basic-xs
     http_port: 8080
     health_check:
-      http_path: /
+      http_path: /health
       initial_delay_seconds: 10
       period_seconds: 30
       failure_threshold: 3

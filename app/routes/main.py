@@ -1,8 +1,8 @@
 from datetime import date, timedelta
 from urllib.parse import urlparse
-from flask import Blueprint, render_template, request, redirect, url_for, current_app, flash
+from flask import Blueprint, render_template, request, redirect, url_for, current_app, flash, jsonify
 from flask_login import current_user, login_required
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, text
 from ..forms import FeedbackForm
 from ..models import Club, Ride, RideSignup, ClubMembership, SiteFeedback, User
 from ..extensions import db
@@ -11,6 +11,17 @@ from ..weather import get_weather_for_rides
 from ..geocoding import geocode_zip, haversine_miles
 
 main_bp = Blueprint('main', __name__)
+
+
+@main_bp.route('/health')
+def health():
+    """Liveness probe — bypasses beta gate, checks DB connectivity."""
+    try:
+        db.session.execute(text('SELECT 1'))
+        return jsonify(status='ok'), 200
+    except Exception as e:
+        current_app.logger.error('Health check DB failure: %s', e)
+        return jsonify(status='error', detail=str(e)), 503
 
 
 @main_bp.route('/')
