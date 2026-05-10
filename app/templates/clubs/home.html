@@ -170,7 +170,7 @@
         <button class="club-tab" id="tab-board-btn"
                 data-bs-toggle="tab" data-bs-target="#tab-board"
                 type="button" role="tab">
-          Board
+          Message Board
           {% if board_posts %}<span class="club-tab-count">{{ board_posts|length }}</span>{% endif %}
         </button>
       </li>
@@ -184,35 +184,6 @@
 
   {# ── Overview ──────────────────────────────────────────────────────────────#}
   <div class="tab-pane fade show active" id="tab-overview" role="tabpanel">
-
-    {# Stats band #}
-    <div class="club-stats-band">
-      <div class="container">
-        <div class="row g-0 club-stats-row">
-          <div class="col-6 col-md-3 club-stat-item">
-            <div class="csi-num">{{ club_stats.members }}</div>
-            <div class="csi-label">Members</div>
-          </div>
-          <div class="col-6 col-md-3 club-stat-item">
-            <div class="csi-num">{{ club_stats.total_rides }}</div>
-            <div class="csi-label">Rides Hosted</div>
-          </div>
-          <div class="col-6 col-md-3 club-stat-item">
-            <div class="csi-num">{{ '{:,}'.format(club_stats.total_miles) }}</div>
-            <div class="csi-label">Miles Hosted</div>
-          </div>
-          <div class="col-6 col-md-3 club-stat-item">
-            {% if club_stats.founded %}
-            <div class="csi-num">{{ club_stats.founded }}</div>
-            <div class="csi-label">Founded</div>
-            {% else %}
-            <div class="csi-num text-muted">—</div>
-            <div class="csi-label">&nbsp;</div>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-    </div>
 
     <div class="container py-4">
       <div class="row g-4">
@@ -236,27 +207,22 @@
           {# News & Announcements #}
           {% if club.posts %}
           <div class="mb-5">
-            <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
               <h4 class="club-section-title mb-0">News &amp; Announcements</h4>
               {% if current_user.is_authenticated and current_user.can_manage_content(club) %}
               <a href="{{ url_for('admin.club_posts', slug=club.slug) }}" class="btn btn-paceline-sm">Manage</a>
               {% endif %}
             </div>
-            <div class="row g-3">
-              {% set posts = club.posts[:3] %}
-              {% for post in posts %}
-              <div class="col-md-{% if posts|length == 1 %}12{% elif posts|length == 2 %}6{% else %}4{% endif %}">
-                <div class="card border-0 shadow-sm h-100">
-                  <div class="card-body">
-                    <p class="text-muted small mb-1">{{ post.published_at.strftime('%b %d, %Y') }}</p>
-                    <h6 class="card-title mb-2">{{ post.title }}</h6>
-                    <p class="mb-0 small" style="white-space:pre-line;color:#495057">
-                      {{ post.body[:200] }}{% if post.body|length > 200 %}…{% endif %}
-                    </p>
-                  </div>
-                </div>
+            <div class="row justify-content-center">
+              <div class="col-lg-10">
+                {% for post in club.posts %}
+                <article class="news-post">
+                  <div class="news-post-date">{{ post.published_at.strftime('%B %d, %Y') }}</div>
+                  <h3 class="news-post-title">{{ post.title }}</h3>
+                  <div class="news-post-body">{{ post.body | markdown }}</div>
+                </article>
+                {% endfor %}
               </div>
-              {% endfor %}
             </div>
           </div>
           {% endif %}
@@ -351,32 +317,34 @@
           </div>
           {% endif %}
 
-          {# Sponsors #}
-          {% if club.sponsors %}
+          {# Club Stats #}
           <div class="card border-0 shadow-sm mb-3">
-            <div class="card-body">
-              <h6 class="card-title mb-3">Partners &amp; Sponsors</h6>
-              <div class="d-flex flex-wrap gap-3 align-items-center">
-                {% for sponsor in club.sponsors %}
-                  {% if sponsor.website %}
-                  <a href="{{ sponsor.website }}" target="_blank" rel="noopener"
-                     title="{{ sponsor.name }}" class="d-flex align-items-center text-decoration-none text-dark">
+            <div class="card-body p-0">
+              <div class="club-stats-sidebar">
+                <div class="css-item">
+                  <div class="css-num">{{ club_stats.members }}</div>
+                  <div class="css-label">Members</div>
+                </div>
+                <div class="css-item">
+                  <div class="css-num">{{ club_stats.total_rides }}</div>
+                  <div class="css-label">Rides Hosted</div>
+                </div>
+                <div class="css-item">
+                  <div class="css-num">{{ '{:,}'.format(club_stats.total_miles) }}</div>
+                  <div class="css-label">Miles Hosted</div>
+                </div>
+                <div class="css-item">
+                  {% if club_stats.founded %}
+                  <div class="css-num">{{ club_stats.founded }}</div>
+                  <div class="css-label">Founded</div>
                   {% else %}
-                  <span class="d-flex align-items-center">
+                  <div class="css-num text-muted">—</div>
+                  <div class="css-label">&nbsp;</div>
                   {% endif %}
-                    {% if sponsor.logo_url %}
-                    <img src="{{ sponsor.logo_url }}" alt="{{ sponsor.name }}"
-                         style="height:44px;object-fit:contain;max-width:110px"
-                         onerror="this.outerHTML='<span class=\'text-muted small\'>'+this.alt+'</span>'">
-                    {% else %}
-                    <span class="badge bg-light text-dark border">{{ sponsor.name }}</span>
-                    {% endif %}
-                  {% if sponsor.website %}</a>{% else %}</span>{% endif %}
-                {% endfor %}
+                </div>
               </div>
             </div>
           </div>
-          {% endif %}
 
           {# Contact #}
           {% if club.contact_email %}
@@ -410,6 +378,33 @@
         </div>
       </div>
     </div>
+
+    {# Sponsor strip — full width, below main content #}
+    {% if club.sponsors %}
+    <div class="container">
+      <div class="sponsor-strip">
+        <div class="sponsor-strip-title">Partners &amp; Sponsors</div>
+        <div class="sponsor-logo-grid">
+          {% for sponsor in club.sponsors %}
+          {% if sponsor.website %}
+          <a href="{{ sponsor.website }}" target="_blank" rel="noopener"
+             class="sponsor-logo-item" title="{{ sponsor.name }}">
+          {% else %}
+          <span class="sponsor-logo-item">
+          {% endif %}
+            {% if sponsor.logo_url %}
+            <img src="{{ sponsor.logo_url }}" alt="{{ sponsor.name }}"
+                 onerror="this.outerHTML='<span class=\'fw-semibold text-muted\'>'+this.alt+'</span>'">
+            {% else %}
+            <span class="fw-semibold text-muted">{{ sponsor.name }}</span>
+            {% endif %}
+          {% if sponsor.website %}</a>{% else %}</span>{% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
   </div>
 
   {# ── Rides ────────────────────────────────────────────────────────────────#}
