@@ -1,5 +1,6 @@
 import re
 import sys
+import logging
 import secrets
 from datetime import datetime, timezone
 from flask import Flask, request, session, redirect, url_for, flash, g, has_request_context
@@ -102,6 +103,14 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+    # Route Python logging to stdout so gunicorn/DO captures it alongside access logs
+    if not app.debug:
+        logging.basicConfig(
+            stream=sys.stdout,
+            level=logging.INFO,
+            format='%(asctime)s %(levelname)s %(name)s: %(message)s',
+        )
 
     # Refuse to start with the dev fallback key when cookies are in secure
     # mode — that combination means we're running in a production-like env.
@@ -249,5 +258,23 @@ def create_app(config_class=Config):
     if not app.config.get('TESTING'):
         from .scheduler import init_scheduler
         init_scheduler(app)
+
+    from flask import render_template as _render_template
+    from werkzeug.exceptions import HTTPException
+
+    @app.errorhandler(404)
+    def not_found(e):
+        return _render_template('404.html'), 404
+
+    @app.errorhandler(Exception)
+    def unhandled_exception(e):
+        if isinstance(e, HTTPException):
+            return e
+        # Log full traceback so it appears in DO / gunicorn error logs
+        app.logger.exception('Unhandled exception on %s %s', request.method, request.path)
+        try:
+            return _render_template('500.html'), 500
+        except Exception:
+            return '<h1>500 Internal Server Error</h1>', 500
 
     return app
