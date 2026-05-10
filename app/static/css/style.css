@@ -317,10 +317,12 @@ body.club-page {
 
 /* ── News & Announcements feed ───────────────────────────────────────────── */
 .news-post {
-  padding: 1.5rem 0;
-  border-bottom: 1px solid var(--paceline-border);
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.07);
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 1rem;
 }
-.news-post:last-child { border-bottom: none; }
 .news-post-date {
   font-size: .78rem;
   color: var(--paceline-gray);

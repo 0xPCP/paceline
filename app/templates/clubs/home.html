@@ -373,37 +373,36 @@
               {% endif %}
             </div>
           </div>
+          {# Sponsors #}
+          {% if club.sponsors %}
+          <div class="card border-0 shadow-sm mb-3">
+            <div class="card-body">
+              <h6 class="card-title mb-3">Partners &amp; Sponsors</h6>
+              <div class="d-flex flex-column gap-3">
+                {% for sponsor in club.sponsors %}
+                {% if sponsor.website %}
+                <a href="{{ sponsor.website }}" target="_blank" rel="noopener"
+                   class="sponsor-logo-item d-block" title="{{ sponsor.name }}">
+                {% else %}
+                <span class="sponsor-logo-item d-block">
+                {% endif %}
+                  {% if sponsor.logo_url %}
+                  <img src="{{ sponsor.logo_url }}" alt="{{ sponsor.name }}"
+                       style="height:52px;max-width:100%;object-fit:contain"
+                       onerror="this.outerHTML='<span class=\'fw-semibold text-muted small\'>'+this.alt+'</span>'">
+                  {% else %}
+                  <span class="fw-semibold text-muted small">{{ sponsor.name }}</span>
+                  {% endif %}
+                {% if sponsor.website %}</a>{% else %}</span>{% endif %}
+                {% endfor %}
+              </div>
+            </div>
+          </div>
           {% endif %}
 
         </div>
       </div>
     </div>
-
-    {# Sponsor strip — full width, below main content #}
-    {% if club.sponsors %}
-    <div class="container">
-      <div class="sponsor-strip">
-        <div class="sponsor-strip-title">Partners &amp; Sponsors</div>
-        <div class="sponsor-logo-grid">
-          {% for sponsor in club.sponsors %}
-          {% if sponsor.website %}
-          <a href="{{ sponsor.website }}" target="_blank" rel="noopener"
-             class="sponsor-logo-item" title="{{ sponsor.name }}">
-          {% else %}
-          <span class="sponsor-logo-item">
-          {% endif %}
-            {% if sponsor.logo_url %}
-            <img src="{{ sponsor.logo_url }}" alt="{{ sponsor.name }}"
-                 onerror="this.outerHTML='<span class=\'fw-semibold text-muted\'>'+this.alt+'</span>'">
-            {% else %}
-            <span class="fw-semibold text-muted">{{ sponsor.name }}</span>
-            {% endif %}
-          {% if sponsor.website %}</a>{% else %}</span>{% endif %}
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-    {% endif %}
 
   </div>
 
