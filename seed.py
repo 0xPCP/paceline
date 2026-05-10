@@ -8,7 +8,8 @@ from datetime import date, time, datetime, timezone
 from app import create_app
 from app.extensions import db, bcrypt
 from app.models import (User, Club, ClubMembership, ClubAdmin, ClubWaiver,
-                         WaiverSignature, Ride, RideSignup, UserRideInvite)
+                         WaiverSignature, Ride, RideSignup, UserRideInvite,
+                         ClubSponsor, ClubPost)
 
 app = create_app()
 
@@ -191,6 +192,97 @@ with app.app_context():
                                    waiver_id=nvcc_waiver.id, year=yr))
     db.session.commit()
     print("Created waiver signatures")
+
+    # ── RBC Sponsors ──────────────────────────────────────────────────────────
+    db.session.add_all([
+        ClubSponsor(
+            club_id=rbc.id,
+            name='The Bike Lane',
+            logo_url='https://placehold.co/200x80/1a1a2e/ffffff?text=The+Bike+Lane',
+            website='https://thebikelane.com',
+            display_order=1,
+        ),
+        ClubSponsor(
+            club_id=rbc.id,
+            name="Conte's Bike Shop",
+            logo_url='https://placehold.co/200x80/c0392b/ffffff?text=Conte%27s+Bikes',
+            website='https://contesbike.com',
+            display_order=2,
+        ),
+        ClubSponsor(
+            club_id=rbc.id,
+            name='Reston Town Center',
+            logo_url='https://placehold.co/200x80/2c3e50/ffffff?text=Reston+Town+Center',
+            website='https://restontowncenter.com',
+            display_order=3,
+        ),
+        ClubSponsor(
+            club_id=rbc.id,
+            name='Spokes Etc.',
+            logo_url='https://placehold.co/200x80/27ae60/ffffff?text=Spokes+Etc.',
+            website='https://spokesetc.com',
+            display_order=4,
+        ),
+    ])
+    db.session.commit()
+    print("Created RBC sponsors")
+
+    # ── RBC News Posts ────────────────────────────────────────────────────────
+    db.session.add_all([
+        ClubPost(
+            club_id=rbc.id,
+            author_id=testadmin.id,
+            title='Welcome to the 2026 Season!',
+            body=(
+                'The 2026 ride season is officially underway! '
+                'We kicked off with a fantastic Season Opener on April 6th — '
+                'great weather, great legs, and great company.\n\n'
+                'A few reminders as we ramp up:\n\n'
+                '- **Waivers** must be signed before your first ride. '
+                'Check your profile to confirm yours is on file.\n'
+                '- **New ride leaders** are always welcome — '
+                'reach out to any admin if you\'re interested.\n'
+                '- Our **Tuesday Worlds** group is averaging 24+ mph this year. '
+                'The Wednesday Recovery ride is a no-drop option at 16 mph.'
+            ),
+            published_at=datetime(2026, 4, 7, 9, 0, tzinfo=timezone.utc),
+        ),
+        ClubPost(
+            club_id=rbc.id,
+            author_id=testadmin.id,
+            title='Ken Thompson Reston Century — Registration Open',
+            body=(
+                '### Save the Date: September 20, 2026\n\n'
+                'Registration is now open for the **Ken Thompson Reston Century**, '
+                'our flagship annual event. This year we\'re offering:\n\n'
+                '- 25-mile family route\n'
+                '- 50-mile metric century\n'
+                '- 100-mile full century with 5,200 ft of climbing\n\n'
+                'Early-bird pricing is available through June 30th. '
+                'Club members receive a $10 discount — use code **RBC2026** at checkout.\n\n'
+                'Volunteers are also needed for SAG support, rest stops, and finish-line crew. '
+                'Sign up at the front desk at any club ride.'
+            ),
+            published_at=datetime(2026, 5, 1, 10, 0, tzinfo=timezone.utc),
+        ),
+        ClubPost(
+            club_id=rbc.id,
+            author_id=dkeller.id,
+            title='New: Wednesday Evening Gravel Ride',
+            body=(
+                'Starting **May 14th**, we\'re launching a weekly Wednesday evening gravel ride '
+                'from the Reston Town Center parking garage at 6:00 PM.\n\n'
+                'The route is approximately 28 miles with 1,800 ft of climbing on '
+                'packed gravel and doubletrack trails through the Potomac Heritage Trail system. '
+                'B-pace, no-drop.\n\n'
+                'Recommended: gravel or CX bike, tubeless tires. '
+                'Helmets required. Lights required (it will be getting dark on the way back).'
+            ),
+            published_at=datetime(2026, 5, 8, 14, 0, tzinfo=timezone.utc),
+        ),
+    ])
+    db.session.commit()
+    print("Created RBC news posts")
 
     # ── RBC Rides ─────────────────────────────────────────────────────────────
     HUNTERWOODS  = 'Hunterwoods Shopping Center, 2324 Hunter Mill Rd, Reston, VA'

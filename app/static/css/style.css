@@ -180,9 +180,9 @@ body.club-page {
   border-bottom: 3px solid transparent;
   margin-bottom: -2px;
   cursor: pointer;
-  padding: .85rem 1.4rem;
+  padding: 1rem 2rem;
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 1.05rem;
+  font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: .02em;
   color: var(--paceline-gray);
@@ -245,6 +245,101 @@ body.club-page {
 .club-about-text {
   font-size: 1.02rem;
   line-height: 1.75;
+  color: #374151;
+}
+
+/* ── Sponsor strip ───────────────────────────────────────────────────────── */
+.sponsor-strip {
+  border-top: 1px solid var(--paceline-border);
+  padding: 2rem 0 1.5rem;
+}
+.sponsor-strip-title {
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--paceline-gray);
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+.sponsor-logo-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  align-items: center;
+  justify-content: center;
+}
+.sponsor-logo-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: .85;
+  transition: opacity .15s;
+}
+.sponsor-logo-item:hover { opacity: 1; }
+.sponsor-logo-item img {
+  height: 70px;
+  max-width: 180px;
+  object-fit: contain;
+  filter: grayscale(20%);
+  transition: filter .15s;
+}
+.sponsor-logo-item:hover img { filter: none; }
+
+/* ── Club stats sidebar card ─────────────────────────────────────────────── */
+.club-stats-sidebar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+.css-item {
+  padding: .75rem .5rem;
+  text-align: center;
+  border-right: 1px solid var(--paceline-border);
+  border-bottom: 1px solid var(--paceline-border);
+}
+.css-item:nth-child(even) { border-right: none; }
+.css-item:nth-child(3),
+.css-item:nth-child(4) { border-bottom: none; }
+.css-num {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--paceline-dark);
+  line-height: 1;
+}
+.css-label {
+  font-size: .7rem;
+  color: var(--paceline-gray);
+  font-weight: 500;
+  margin-top: .2rem;
+}
+
+/* ── News & Announcements feed ───────────────────────────────────────────── */
+.news-post {
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--paceline-border);
+}
+.news-post:last-child { border-bottom: none; }
+.news-post-date {
+  font-size: .78rem;
+  color: var(--paceline-gray);
+  font-weight: 600;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  margin-bottom: .35rem;
+}
+.news-post-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--paceline-dark);
+  margin-bottom: .75rem;
+  line-height: 1.2;
+}
+.news-post-body {
+  font-size: .97rem;
+  line-height: 1.8;
   color: #374151;
 }
 
@@ -1129,7 +1224,7 @@ a:hover { color: var(--paceline-green-dark); }
   .club-hero-tagline { font-size: .92rem; }
 
   /* Tab bar: tighter tabs */
-  .club-tab { padding: .7rem .9rem; font-size: .95rem; }
+  .club-tab { padding: .75rem 1rem; font-size: 1.05rem; }
   .club-tab-bar { top: 0; }
 
   /* Stats band: 2×2 grid, add border between rows */
