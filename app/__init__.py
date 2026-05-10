@@ -2,6 +2,7 @@ import re
 import sys
 import logging
 import secrets
+import warnings
 from datetime import datetime, timezone
 from flask import Flask, request, session, redirect, url_for, flash, g, has_request_context
 from flask_login import current_user, logout_user, login_fresh
@@ -127,7 +128,9 @@ def create_app(config_class=Config):
     csrf.init_app(app)
     mail.init_app(app)
     babel.init_app(app, locale_selector=get_locale)
-    limiter.init_app(app)
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', UserWarning)
+        limiter.init_app(app)
 
     from .routes.main import main_bp
     from .routes.auth import auth_bp
@@ -265,6 +268,13 @@ def create_app(config_class=Config):
     @app.errorhandler(404)
     def not_found(e):
         return _render_template('404.html'), 404
+
+    @app.errorhandler(500)
+    def internal_error(e):
+        try:
+            return _render_template('500.html'), 500
+        except Exception:
+            return '<h1>500 Internal Server Error</h1>', 500
 
     @app.errorhandler(Exception)
     def unhandled_exception(e):
