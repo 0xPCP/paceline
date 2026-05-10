@@ -51,7 +51,7 @@ def register_beta_gate(app):
 
     @app.before_request
     def _beta_gate():
-        if request.endpoint in (None, '_beta_login', 'static'):
+        if request.endpoint in (None, '_beta_login', 'static', 'main.health'):
             return
         if session.get('_beta_ok'):
             return
