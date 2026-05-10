@@ -171,6 +171,69 @@
     </div>
   </div>
 
+  {# Error monitoring #}
+  <div class="row g-4 mb-5">
+    <div class="col-lg-5">
+      <div class="detail-card h-100">
+        <h5 class="detail-card-title">
+          Application Errors
+          {% if error_report.errors_24h_500 %}
+          <span class="badge bg-danger ms-1">{{ error_report.errors_24h_500 }} 5xx today</span>
+          {% endif %}
+        </h5>
+        <div class="row g-3 mb-3">
+          <div class="col-4">
+            <div class="admin-stat-card {% if error_report.errors_24h_500 %}border-danger{% endif %}">
+              <div class="admin-stat-num {% if error_report.errors_24h_500 %}text-danger{% endif %}">{{ error_report.errors_24h_500 }}</div>
+              <div class="admin-stat-label">5xx (24h)</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="admin-stat-card">
+              <div class="admin-stat-num">{{ error_report.errors_24h }}</div>
+              <div class="admin-stat-label">All errors (24h)</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="admin-stat-card">
+              <div class="admin-stat-num">{{ error_report.errors_7d }}</div>
+              <div class="admin-stat-label">All errors (7d)</div>
+            </div>
+          </div>
+        </div>
+        <a href="{{ url_for('admin.error_log') }}" class="btn btn-sm btn-outline-secondary">View Error Log</a>
+      </div>
+    </div>
+    <div class="col-lg-7">
+      <div class="detail-card h-100">
+        <h5 class="detail-card-title">Recent Errors</h5>
+        {% if error_report.recent %}
+        <div class="table-responsive">
+          <table class="table paceline-table mb-0">
+            <thead>
+              <tr><th>When</th><th>Code</th><th>Path</th><th>Error</th></tr>
+            </thead>
+            <tbody>
+              {% for e in error_report.recent[:8] %}
+              <tr>
+                <td class="text-nowrap small text-muted">{{ e.created_at | strftime('%-d %b %-I:%M %p') }}</td>
+                <td><span class="badge {% if e.status_code >= 500 %}bg-danger{% else %}bg-secondary{% endif %}">{{ e.status_code }}</span></td>
+                <td class="small text-truncate" style="max-width:160px">{{ e.path or '—' }}</td>
+                <td class="small text-truncate" style="max-width:200px">
+                  <a href="{{ url_for('admin.error_detail', error_id=e.id) }}">{{ e.error_type or e.status_code }}</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-muted small mb-0">No errors logged yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
   {# Usage analytics #}
   <div class="row g-4 mb-5">
     <div class="col-lg-7">

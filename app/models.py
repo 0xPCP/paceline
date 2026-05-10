@@ -728,3 +728,20 @@ class UserRideInvite(db.Model):
     user = db.relationship('User', foreign_keys=[user_id])
 
     __table_args__ = (db.UniqueConstraint('ride_id', 'user_id', name='uq_user_ride_invite'),)
+
+
+class AppErrorLog(db.Model):
+    """HTTP 4xx/5xx and unhandled exceptions logged for the superadmin dashboard."""
+    __tablename__ = 'app_error_logs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
+    status_code = db.Column(db.Integer, nullable=False, index=True)
+    method = db.Column(db.String(10), nullable=True)
+    path = db.Column(db.String(500), nullable=True)
+    error_type = db.Column(db.String(120), nullable=True)
+    error_message = db.Column(db.Text, nullable=True)
+    traceback = db.Column(db.Text, nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+
+    user = db.relationship('User', foreign_keys=[user_id])

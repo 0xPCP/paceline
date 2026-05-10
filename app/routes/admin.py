@@ -228,7 +228,36 @@ def dashboard():
                            super_admins=super_admins, popular=popular,
                            ungeocodeable_count=ungeocodeable_count,
                            report=report, recent_audit=recent_audit,
-                           unread_feedback_count=unread_feedback_count)
+                           unread_feedback_count=unread_feedback_count,
+                           error_report=report.get('errors', {}))
+
+
+# ── Error log ─────────────────────────────────────────────────────────────────
+
+@admin_bp.route('/errors/')
+@superadmin_required
+def error_log():
+    from ..models import AppErrorLog
+    from datetime import datetime, timedelta, timezone
+    status = request.args.get('status', 'all')
+    page = request.args.get('page', 1, type=int)
+    q = AppErrorLog.query.order_by(AppErrorLog.created_at.desc())
+    if status == '5xx':
+        q = q.filter(AppErrorLog.status_code >= 500)
+    elif status == '4xx':
+        q = q.filter(AppErrorLog.status_code >= 400, AppErrorLog.status_code < 500)
+    pagination = q.paginate(page=page, per_page=50, error_out=False)
+    return render_template('admin/error_log.html', pagination=pagination, status=status)
+
+
+@admin_bp.route('/errors/<int:error_id>')
+@superadmin_required
+def error_detail(error_id):
+    from ..models import AppErrorLog
+    entry = db.session.get(AppErrorLog, error_id)
+    if entry is None:
+        abort(404)
+    return render_template('admin/error_detail.html', entry=entry)
 
 
 # ── User management ───────────────────────────────────────────────────────────

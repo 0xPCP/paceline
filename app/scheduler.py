@@ -158,6 +158,20 @@ def purge_expired_media(app):
                         total, deleted_files, expiry_days)
 
 
+def purge_old_error_logs(app):
+    """Delete app_error_logs entries older than ERROR_LOG_RETENTION_DAYS (default 30)."""
+    from datetime import timedelta, datetime, timezone
+    with app.app_context():
+        from .extensions import db
+        from .models import AppErrorLog
+        retention_days = app.config.get('ERROR_LOG_RETENTION_DAYS', 30)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
+        deleted = AppErrorLog.query.filter(AppErrorLog.created_at < cutoff).delete()
+        if deleted:
+            db.session.commit()
+            logger.info('Error log purge: removed %d entries older than %d days', deleted, retention_days)
+
+
 def init_scheduler(app):
     """Start the APScheduler background scheduler if AUTO_CANCEL_ENABLED config is set."""
     if not app.config.get('AUTO_CANCEL_ENABLED', True):
@@ -205,6 +219,15 @@ def init_scheduler(app):
         args=[app],
         id='media_purge',
         name='Purge expired ride media',
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
+    scheduler.add_job(
+        func=purge_old_error_logs,
+        trigger=CronTrigger(hour=3, minute=0),
+        args=[app],
+        id='error_log_purge',
+        name='Purge old error log entries',
         replace_existing=True,
         misfire_grace_time=3600,
     )
