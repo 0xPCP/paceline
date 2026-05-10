@@ -354,6 +354,7 @@ class ClubPost(db.Model):
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     title = db.Column(db.String(200), nullable=False)
     body = db.Column(db.Text, nullable=False)
+    image_key = db.Column(db.String(500), nullable=True)  # storage key for optional header image
     published_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
@@ -383,6 +384,7 @@ class ClubSponsor(db.Model):
     club_id = db.Column(db.Integer, db.ForeignKey('clubs.id'), nullable=False)
     name = db.Column(db.String(200), nullable=False)
     logo_url = db.Column(db.String(500), nullable=True)
+    logo_key = db.Column(db.String(500), nullable=True)   # storage key for uploaded logo
     website = db.Column(db.String(500), nullable=True)
     display_order = db.Column(db.Integer, default=0, nullable=False)
 

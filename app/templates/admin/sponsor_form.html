@@ -19,7 +19,7 @@
 <div class="container py-4">
   <div class="row">
     <div class="col-lg-6">
-      <form method="post" novalidate>
+      <form method="post" enctype="multipart/form-data" novalidate>
         {{ form.hidden_tag() }}
 
         <div class="mb-3">
@@ -29,9 +29,44 @@
         </div>
 
         <div class="mb-3">
-          {{ form.logo_url.label(class="form-label") }}
-          {{ form.logo_url(class="form-control" + (" is-invalid" if form.logo_url.errors else ""), placeholder="https://…") }}
-          {% for e in form.logo_url.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          <label class="form-label fw-semibold">Logo</label>
+
+          {# Show current logo if editing #}
+          {% if sponsor and sponsor.logo_key %}
+          <div class="mb-2">
+            <img src="{{ url_for('clubs.serve_sponsor_logo', slug=club.slug, sponsor_id=sponsor.id) }}"
+                 alt="{{ sponsor.name }}" style="height:64px;object-fit:contain;border:1px solid #dee2e6;border-radius:6px;padding:6px;background:#fff">
+            <div class="form-text">Current logo — upload a new file to replace it.</div>
+          </div>
+          {% elif sponsor and sponsor.logo_url %}
+          <div class="mb-2">
+            <img src="{{ sponsor.logo_url }}" alt="{{ sponsor.name }}"
+                 style="height:64px;object-fit:contain;border:1px solid #dee2e6;border-radius:6px;padding:6px;background:#fff"
+                 onerror="this.style.display='none'">
+            <div class="form-text">Current logo (external URL).</div>
+          </div>
+          {% endif %}
+
+          <div class="mb-2">
+            {{ form.logo_file.label(class="form-label") }}
+            {{ form.logo_file(class="form-control" + (" is-invalid" if form.logo_file.errors else ""), id="logoFileInput", accept="image/*") }}
+            {% for e in form.logo_file.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            <div class="form-text">JPEG, PNG, or WebP. Auto-resized to fit the sidebar display.</div>
+          </div>
+
+          {# Live preview #}
+          <div id="logoPreview" class="mb-2" style="display:none">
+            <img id="logoPreviewImg" src="" alt="Preview"
+                 style="height:64px;object-fit:contain;border:1px solid #dee2e6;border-radius:6px;padding:6px;background:#fff">
+            <div class="form-text">Preview of selected file.</div>
+          </div>
+
+          <div class="mt-2">
+            {{ form.logo_url.label(class="form-label text-muted") }}
+            {{ form.logo_url(class="form-control form-control-sm" + (" is-invalid" if form.logo_url.errors else ""), placeholder="https://…") }}
+            {% for e in form.logo_url.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            <div class="form-text">Only used if no file is uploaded above.</div>
+          </div>
         </div>
 
         <div class="mb-3">
@@ -55,4 +90,27 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ g.csp_nonce }}">
+(function () {
+  var input = document.getElementById('logoFileInput');
+  var preview = document.getElementById('logoPreview');
+  var img = document.getElementById('logoPreviewImg');
+  if (!input) return;
+  input.addEventListener('change', function () {
+    if (this.files && this.files[0]) {
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        img.src = e.target.result;
+        preview.style.display = 'block';
+      };
+      reader.readAsDataURL(this.files[0]);
+    } else {
+      preview.style.display = 'none';
+    }
+  });
+})();
+</script>
 {% endblock %}
