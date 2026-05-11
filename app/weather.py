@@ -71,11 +71,15 @@ def _fetch_hourly(lat, lng, forecast_days):
         return {}
     hourly = {}
     for i, t in enumerate(data['hourly']['time']):
+        temp   = data['hourly']['temperature_2m'][i]
+        wind   = data['hourly']['wind_speed_10m'][i]
+        if temp is None or wind is None:
+            continue
         hourly[t] = {
-            'temp_f':      round(data['hourly']['temperature_2m'][i]),
+            'temp_f':      round(temp),
             'precip_prob': data['hourly']['precipitation_probability'][i] or 0,
             'precip_mm':   data['hourly']['precipitation'][i] or 0,
-            'wind_mph':    round(data['hourly']['wind_speed_10m'][i]),
+            'wind_mph':    round(wind),
             'code':        data['hourly']['weather_code'][i],
         }
     _cache[cache_key] = {'hourly': hourly, '_ts': now}
