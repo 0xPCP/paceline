@@ -10,7 +10,8 @@ app = create_app()
 with app.app_context():
     for attempt in range(15):
         try:
-            from app.schema import promote_superadmins
+            from app.schema import ensure_runtime_schema, promote_superadmins
+            ensure_runtime_schema()
             promote_superadmins()
             break
         except OperationalError:
