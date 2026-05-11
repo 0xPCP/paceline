@@ -31,6 +31,14 @@
             <span class="badge bg-success">Public</span>
             {% endif %}
           </dd>
+          <dt>Verified</dt>
+          <dd>
+            {% if club.is_verified %}
+            <span class="badge bg-primary">✓ Verified</span>
+            {% else %}
+            <span class="badge bg-secondary">Not Verified</span>
+            {% endif %}
+          </dd>
           <dt>Active</dt>
           <dd>{{ 'Yes' if club.is_active else 'No' }}</dd>
           <dt>Owner</dt>
@@ -81,6 +89,12 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button class="btn btn-sm w-100 {{ 'btn-outline-success' if club.is_private else 'btn-outline-dark' }}">
               {{ 'Make Public' if club.is_private else 'Make Private' }}
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('admin.club_toggle_verified', slug=club.slug) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm w-100 {{ 'btn-outline-secondary' if club.is_verified else 'btn-outline-primary' }}">
+              {{ 'Revoke Verification' if club.is_verified else '✓ Verify Club' }}
             </button>
           </form>
         </div>

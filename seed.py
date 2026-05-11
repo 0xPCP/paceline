@@ -77,6 +77,8 @@ with app.app_context():
             'Carry ID, phone, emergency cash, and a basic repair kit.\n'
             'Ride predictably: no sudden moves, signal turns, and hold your line.'
         ),
+        is_verified=True,
+        is_hidden=False,
     )
     nvcc = Club(
         slug='nvcc',
@@ -98,6 +100,8 @@ with app.app_context():
         theme_preset='ocean',
         theme_primary='#1565c0',
         theme_accent='#f39c12',
+        is_verified=True,
+        is_hidden=False,
     )
     artemis = Club(
         slug='artemis',
