@@ -186,39 +186,57 @@ def public_profile(username):
 def discover():
     today = date.today()
 
-    pace      = request.args.get('pace', '')
-    ride_type = request.args.get('type', '')
+    # Source: which rides to show
+    # 'verified' = only verified clubs (default)
+    # 'clubs'    = all active clubs (verified + unverified)
+    # 'all'      = clubs + personal public rides
+    source = request.args.get('source', 'verified')
+    if source not in ('verified', 'clubs', 'all'):
+        source = 'verified'
+
+    pace       = request.args.get('pace', '')
+    ride_type  = request.args.get('type', '')
     date_range = request.args.get('range', 'week')
-    zip_q     = request.args.get('zip', '').strip()
-    club_only = request.args.get('club_only', '') == '1'
-    radius    = 50
+
+    # Location — either lat/lng (from geolocation) or zip code
+    lat_arg = request.args.get('lat', type=float)
+    lng_arg = request.args.get('lng', type=float)
+    zip_q   = request.args.get('zip', '').strip()
+    radius  = request.args.get('radius', 25, type=int)
+    if radius not in (10, 25, 50, 100):
+        radius = 25
 
     # Date window
     if date_range == 'weekend':
-        days_until_sat = (5 - today.weekday()) % 7
-        if days_until_sat == 0 and today.weekday() == 5:
-            days_until_sat = 0
-        sat = today + timedelta(days=days_until_sat if days_until_sat else 0)
-        if today.weekday() > 5:
-            sat = today + timedelta(days=(5 - today.weekday()) % 7)
         sat = today + timedelta(days=(5 - today.weekday()) % 7 or 7)
-        end_date = sat + timedelta(days=1)  # Sat + Sun
         start_date = sat
+        end_date   = sat + timedelta(days=1)
     elif date_range == 'two-weeks':
         start_date = today
-        end_date = today + timedelta(days=14)
+        end_date   = today + timedelta(days=14)
     else:  # 'week' default
         start_date = today
-        end_date = today + timedelta(days=7)
+        end_date   = today + timedelta(days=7)
 
-    # Limit to active clubs
-    active_club_ids = [c.id for c in Club.query.filter_by(is_active=True, is_hidden=False).with_entities(Club.id).all()]
+    # Build club sets based on source
+    verified_club_ids = [
+        c.id for c in Club.query
+        .filter_by(is_active=True, is_hidden=False, is_verified=True)
+        .with_entities(Club.id).all()
+    ]
+    all_club_ids = [
+        c.id for c in Club.query
+        .filter_by(is_active=True, is_hidden=False)
+        .with_entities(Club.id).all()
+    ]
 
-    if club_only:
-        ride_filter = Ride.club_id.in_(active_club_ids)
-    else:
+    if source == 'verified':
+        ride_filter = Ride.club_id.in_(verified_club_ids)
+    elif source == 'clubs':
+        ride_filter = Ride.club_id.in_(all_club_ids)
+    else:  # 'all'
         ride_filter = or_(
-            Ride.club_id.in_(active_club_ids),
+            Ride.club_id.in_(all_club_ids),
             and_(Ride.owner_id.isnot(None), Ride.is_private == False),
         )
 
@@ -236,37 +254,61 @@ def discover():
     if ride_type in ('road', 'gravel', 'social', 'training', 'event', 'night'):
         query = query.filter(Ride.ride_type == ride_type)
 
-    rides = query.limit(100).all()
+    rides = query.limit(200).all()
 
-    # Optionally filter by zip proximity
+    # Proximity filtering
     geo_error = None
-    if zip_q:
+    user_lat = user_lng = None
+    location_label = None
+
+    if lat_arg is not None and lng_arg is not None:
+        user_lat, user_lng = lat_arg, lng_arg
+        location_label = f'{lat_arg:.2f}, {lng_arg:.2f}'
+    elif zip_q:
         coords = geocode_zip(zip_q)
         if coords:
             user_lat, user_lng = coords
-            club_cache = {}
-            filtered = []
-            for r in rides:
-                if r.owner_id and not r.club_id:
-                    # User-owned rides have no location anchor — include without filtering
-                    filtered.append(r)
-                    continue
-                club = club_cache.get(r.club_id)
-                if club is None:
-                    club = Club.query.get(r.club_id)
-                    club_cache[r.club_id] = club
-                if club and club.lat and club.lng:
-                    dist = haversine_miles(user_lat, user_lng, club.lat, club.lng)
-                    if dist <= radius:
-                        filtered.append(r)
-            rides = filtered
+            location_label = zip_q
         else:
-            geo_error = 'Could not locate that zip code.'
+            geo_error = f'Could not locate zip code "{zip_q}".'
+
+    if user_lat is not None:
+        club_cache = {}
+        filtered = []
+        for r in rides:
+            if r.owner_id and not r.club_id:
+                # Personal rides have no location — include only when far filters removed
+                filtered.append(r)
+                continue
+            club = club_cache.get(r.club_id)
+            if club is None:
+                club = Club.query.get(r.club_id)
+                club_cache[r.club_id] = club
+            if club and club.lat and club.lng:
+                dist = haversine_miles(user_lat, user_lng, club.lat, club.lng)
+                if dist <= radius:
+                    filtered.append(r)
+            elif club and not (club.lat and club.lng):
+                # Club has no geocoded location — include it rather than hiding
+                filtered.append(r)
+        rides = filtered
 
     weather = get_weather_for_rides(rides)
     ride_types = ['road', 'gravel', 'social', 'training', 'event', 'night']
-    return render_template('discover.html', rides=rides, weather=weather,
-                           active_pace=pace, active_type=ride_type,
-                           active_range=date_range, zip_q=zip_q,
-                           club_only=club_only,
-                           geo_error=geo_error, ride_types=ride_types, today=today)
+    return render_template(
+        'discover.html',
+        rides=rides,
+        weather=weather,
+        active_pace=pace,
+        active_type=ride_type,
+        active_range=date_range,
+        source=source,
+        zip_q=zip_q,
+        lat_arg=lat_arg,
+        lng_arg=lng_arg,
+        radius=radius,
+        location_label=location_label,
+        geo_error=geo_error,
+        ride_types=ride_types,
+        today=today,
+    )

@@ -26,6 +26,7 @@
         {# Club name — shown exactly once #}
         <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
           <h1 class="club-hero-name mb-0">{{ club.name }}</h1>
+          {% if club.is_verified %}<span class="verified-badge">✓ Verified</span>{% endif %}
           {% if club.is_private %}<span class="badge bg-dark" style="font-size:.7rem">🔒 Private</span>{% endif %}
         </div>
 
@@ -388,24 +389,25 @@
               <h6 class="card-title mb-3">Partners &amp; Sponsors</h6>
               <div class="d-flex flex-column gap-3">
                 {% for sponsor in club.sponsors %}
-                {% if sponsor.website %}
-                <a href="{{ sponsor.website }}" target="_blank" rel="noopener"
-                   class="sponsor-logo-item d-block" title="{{ sponsor.name }}">
-                {% else %}
-                <span class="sponsor-logo-item d-block">
-                {% endif %}
-                  {% if sponsor.logo_key %}
-                  <img src="{{ url_for('clubs.serve_sponsor_logo', slug=club.slug, sponsor_id=sponsor.id) }}"
-                       alt="{{ sponsor.name }}" style="height:52px;max-width:100%;object-fit:contain"
-                       onerror="this.outerHTML='<span class=\'fw-semibold text-muted small\'>'+this.alt+'</span>'">
-                  {% elif sponsor.logo_url %}
-                  <img src="{{ sponsor.logo_url }}" alt="{{ sponsor.name }}"
-                       style="height:52px;max-width:100%;object-fit:contain"
-                       onerror="this.outerHTML='<span class=\'fw-semibold text-muted small\'>'+this.alt+'</span>'">
+                <div class="text-center">
+                  {% if sponsor.website %}
+                  <a href="{{ sponsor.website }}" target="_blank" rel="noopener"
+                     class="sponsor-logo-item d-flex flex-column align-items-center gap-1 text-decoration-none">
                   {% else %}
-                  <span class="fw-semibold text-muted small">{{ sponsor.name }}</span>
+                  <span class="sponsor-logo-item d-flex flex-column align-items-center gap-1">
                   {% endif %}
-                {% if sponsor.website %}</a>{% else %}</span>{% endif %}
+                    {% if sponsor.logo_key %}
+                    <img src="{{ url_for('clubs.serve_sponsor_logo', slug=club.slug, sponsor_id=sponsor.id) }}"
+                         alt="{{ sponsor.name }}" style="height:52px;max-width:100%;object-fit:contain"
+                         onerror="this.style.display='none'">
+                    {% elif sponsor.logo_url %}
+                    <img src="{{ sponsor.logo_url }}" alt="{{ sponsor.name }}"
+                         style="height:52px;max-width:100%;object-fit:contain"
+                         onerror="this.style.display='none'">
+                    {% endif %}
+                    <span class="fw-semibold small" style="color:var(--paceline-primary,#2d6a4f);font-size:.75rem">{{ sponsor.name }}</span>
+                  {% if sponsor.website %}</a>{% else %}</span>{% endif %}
+                </div>
                 {% endfor %}
               </div>
             </div>

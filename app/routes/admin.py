@@ -540,6 +540,18 @@ def club_toggle_private(slug):
     return redirect(url_for('admin.club_superadmin', slug=club.slug))
 
 
+@admin_bp.route('/clubs/<slug>/toggle-verified', methods=['POST'])
+@superadmin_required
+def club_toggle_verified(slug):
+    club = Club.query.filter_by(slug=slug).first_or_404()
+    club.is_verified = not club.is_verified
+    _audit('toggle_club_verified', details=f'club_id={club.id}; verified={club.is_verified}')
+    db.session.commit()
+    status = 'verified' if club.is_verified else 'unverified'
+    flash(f'{club.name} is now {status}.', 'success')
+    return redirect(url_for('admin.club_superadmin', slug=club.slug))
+
+
 @admin_bp.route('/clubs/<slug>/delete', methods=['POST'])
 @superadmin_required
 def club_delete(slug):

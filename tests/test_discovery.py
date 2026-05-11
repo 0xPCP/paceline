@@ -37,6 +37,9 @@ class TestDiscovery:
         assert b'Discover Rides' in r.data
 
     def test_discover_shows_upcoming_rides(self, client, db, sample_club, mock_weather):
+        """Verified club rides appear under source=clubs (sample_club is not verified by default)."""
+        sample_club.is_verified = True
+        db.session.commit()
         ride = Ride(
             club_id=sample_club.id, title='Discover Me',
             date=date.today() + timedelta(days=2), time=time(8, 0),
@@ -44,11 +47,12 @@ class TestDiscovery:
         )
         db.session.add(ride)
         db.session.commit()
-        r = client.get('/discover/?range=week')
+        r = client.get('/discover/?range=week&source=clubs')
         assert r.status_code == 200
         assert b'Discover Me' in r.data
 
     def test_discover_pace_filter(self, client, db, sample_club, mock_weather):
+        sample_club.is_verified = True
         for pace in ('A', 'C'):
             db.session.add(Ride(
                 club_id=sample_club.id, title=f'Pace {pace} Ride',
@@ -56,11 +60,12 @@ class TestDiscovery:
                 meeting_location='HQ', distance_miles=30.0, pace_category=pace,
             ))
         db.session.commit()
-        r = client.get('/discover/?range=week&pace=A')
+        r = client.get('/discover/?range=week&pace=A&source=clubs')
         assert b'Pace A Ride' in r.data
         assert b'Pace C Ride' not in r.data
 
     def test_discover_type_filter(self, client, db, sample_club, mock_weather):
+        sample_club.is_verified = True
         db.session.add(Ride(
             club_id=sample_club.id, title='Gravel Adventure',
             date=date.today() + timedelta(days=2), time=time(8, 0),
@@ -74,7 +79,7 @@ class TestDiscovery:
             ride_type='road',
         ))
         db.session.commit()
-        r = client.get('/discover/?range=week&type=gravel')
+        r = client.get('/discover/?range=week&type=gravel&source=clubs')
         assert b'Gravel Adventure' in r.data
         assert b'Road Sprint' not in r.data
 
@@ -103,9 +108,9 @@ class TestDiscovery:
         r = client.get('/')
         assert b'Discover Rides' in r.data
 
-    def test_discover_club_only_filter_hides_user_rides(self, client, db, sample_club, regular_user, mock_weather):
-        """club_only=1 should exclude personal user rides."""
-        from app.models import User as UserModel
+    def test_discover_verified_source_hides_user_rides(self, client, db, sample_club, regular_user, mock_weather):
+        """source=verified should exclude personal user rides."""
+        sample_club.is_verified = True
         club_ride = Ride(
             club_id=sample_club.id, title='Club Group Ride',
             date=date.today() + timedelta(days=2), time=time(8, 0),
@@ -120,12 +125,12 @@ class TestDiscovery:
         db.session.add_all([club_ride, personal_ride])
         db.session.commit()
 
-        r = client.get('/discover/?range=week&club_only=1')
+        r = client.get('/discover/?range=week&source=verified')
         assert b'Club Group Ride' in r.data
         assert b'My Personal Ride' not in r.data
 
-    def test_discover_without_club_only_shows_user_rides(self, client, db, sample_club, regular_user, mock_weather):
-        """Without club_only filter, personal public rides should appear."""
+    def test_discover_all_source_shows_user_rides(self, client, db, sample_club, regular_user, mock_weather):
+        """source=all should show personal public rides."""
         personal_ride = Ride(
             owner_id=regular_user.id, title='Public Personal Ride',
             date=date.today() + timedelta(days=2), time=time(9, 0),
@@ -135,12 +140,39 @@ class TestDiscovery:
         db.session.add(personal_ride)
         db.session.commit()
 
-        r = client.get('/discover/?range=week')
+        r = client.get('/discover/?range=week&source=all')
         assert b'Public Personal Ride' in r.data
+
+    def test_discover_default_source_excludes_unverified_clubs(self, client, db, sample_club, mock_weather):
+        """Default source=verified should exclude rides from non-verified clubs."""
+        sample_club.is_verified = False
+        db.session.commit()
+        db.session.add(Ride(
+            club_id=sample_club.id, title='Unverified Club Ride',
+            date=date.today() + timedelta(days=2), time=time(8, 0),
+            meeting_location='HQ', distance_miles=20.0, pace_category='B',
+        ))
+        db.session.commit()
+        r = client.get('/discover/?range=week')
+        assert b'Unverified Club Ride' not in r.data
+
+    def test_discover_verified_source_shows_verified_club(self, client, db, sample_club, mock_weather):
+        """source=verified shows rides from verified clubs."""
+        sample_club.is_verified = True
+        db.session.commit()
+        db.session.add(Ride(
+            club_id=sample_club.id, title='Verified Club Ride',
+            date=date.today() + timedelta(days=2), time=time(8, 0),
+            meeting_location='HQ', distance_miles=20.0, pace_category='B',
+        ))
+        db.session.commit()
+        r = client.get('/discover/?range=week&source=verified')
+        assert b'Verified Club Ride' in r.data
 
     def test_discover_club_logo_url_shown(self, client, db, sample_club, mock_weather):
         """Club logo URL should appear in ride card when club has a logo."""
         sample_club.logo_url = 'https://example.com/logo.png'
+        sample_club.is_verified = True
         db.session.commit()
 
         db.session.add(Ride(
@@ -150,7 +182,7 @@ class TestDiscovery:
         ))
         db.session.commit()
 
-        r = client.get('/discover/?range=week')
+        r = client.get('/discover/?range=week&source=clubs')
         assert b'Logo Test Ride' in r.data
         assert b'example.com/logo.png' in r.data
 
@@ -158,6 +190,7 @@ class TestDiscovery:
         """When club has no logo, its name should still be shown as text."""
         sample_club.logo_url = None
         sample_club.logo_key = None
+        sample_club.is_verified = True
         db.session.commit()
 
         db.session.add(Ride(
@@ -167,14 +200,16 @@ class TestDiscovery:
         ))
         db.session.commit()
 
-        r = client.get('/discover/?range=week')
+        r = client.get('/discover/?range=week&source=clubs')
         assert b'No Logo Ride' in r.data
         assert sample_club.name.encode() in r.data
 
-    def test_discover_club_only_button_shown(self, client, mock_weather):
-        """Club Rides Only filter button should be rendered on the page."""
+    def test_discover_source_selector_shown(self, client, mock_weather):
+        """Source selector buttons should be rendered on the discover page."""
         r = client.get('/discover/')
-        assert b'Club Rides Only' in r.data
+        assert b'Verified Clubs' in r.data
+        assert b'All Clubs' in r.data
+        assert b'All Rides' in r.data
 
     def test_discover_favicon_in_base(self, client, mock_weather):
         """Favicon .ico link should be present in discover page (extends base.html)."""

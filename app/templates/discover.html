@@ -11,18 +11,116 @@
 
 <div class="container py-4">
 
-  <!-- Filters -->
+  {# ── Source selector ──────────────────────────────────────────────────────── #}
+  <div class="d-flex gap-2 mb-4 flex-wrap align-items-center">
+    <span class="text-muted small me-1">Show:</span>
+    {% set src_params = dict(range=active_range, pace=active_pace, type=active_type, zip=zip_q, radius=radius) %}
+    {% if lat_arg is not none %}<a href="{{ url_for('main.discover', source='verified', lat=lat_arg, lng=lng_arg, **src_params) }}"
+       class="btn btn-sm {{ 'btn-paceline' if source == 'verified' else 'btn-outline-secondary' }}">
+      ✓ Verified Clubs
+    </a>{% else %}<a href="{{ url_for('main.discover', source='verified', **src_params) }}"
+       class="btn btn-sm {{ 'btn-paceline' if source == 'verified' else 'btn-outline-secondary' }}">
+      ✓ Verified Clubs
+    </a>{% endif %}
+    {% if lat_arg is not none %}<a href="{{ url_for('main.discover', source='clubs', lat=lat_arg, lng=lng_arg, **src_params) }}"
+       class="btn btn-sm {{ 'btn-paceline' if source == 'clubs' else 'btn-outline-secondary' }}">
+      All Clubs
+    </a>{% else %}<a href="{{ url_for('main.discover', source='clubs', **src_params) }}"
+       class="btn btn-sm {{ 'btn-paceline' if source == 'clubs' else 'btn-outline-secondary' }}">
+      All Clubs
+    </a>{% endif %}
+    {% if lat_arg is not none %}<a href="{{ url_for('main.discover', source='all', lat=lat_arg, lng=lng_arg, **src_params) }}"
+       class="btn btn-sm {{ 'btn-paceline' if source == 'all' else 'btn-outline-secondary' }}">
+      All Rides
+    </a>{% else %}<a href="{{ url_for('main.discover', source='all', **src_params) }}"
+       class="btn btn-sm {{ 'btn-paceline' if source == 'all' else 'btn-outline-secondary' }}">
+      All Rides
+    </a>{% endif %}
+    {% if source == 'verified' %}
+    <span class="text-muted small ms-2">Only rides from clubs verified by Paceline</span>
+    {% elif source == 'clubs' %}
+    <span class="text-muted small ms-2">All clubs, including unverified</span>
+    {% else %}
+    <span class="text-muted small ms-2">Club rides and personal public rides</span>
+    {% endif %}
+  </div>
+
+  {# ── Location banner ──────────────────────────────────────────────────────── #}
+  {% if location_label %}
+  <div class="alert alert-light border py-2 mb-3 d-flex align-items-center gap-2 flex-wrap">
+    <span class="text-muted small">📍 <strong>Within {{ radius }} miles of {{ location_label }}</strong></span>
+    <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
+      <span class="text-muted small">Radius:</span>
+      {% for r in [10, 25, 50, 100] %}
+        {% if lat_arg is not none %}
+        <a href="{{ url_for('main.discover', source=source, lat=lat_arg, lng=lng_arg, zip=zip_q, radius=r, range=active_range, pace=active_pace, type=active_type) }}"
+           class="btn btn-xs btn-sm py-0 px-2 {{ 'btn-paceline' if r == radius else 'btn-outline-secondary' }}" style="font-size:.75rem">{{ r }}mi</a>
+        {% else %}
+        <a href="{{ url_for('main.discover', source=source, zip=zip_q, radius=r, range=active_range, pace=active_pace, type=active_type) }}"
+           class="btn btn-xs btn-sm py-0 px-2 {{ 'btn-paceline' if r == radius else 'btn-outline-secondary' }}" style="font-size:.75rem">{{ r }}mi</a>
+        {% endif %}
+      {% endfor %}
+      <a href="{{ url_for('main.discover', source=source, range=active_range, pace=active_pace, type=active_type) }}"
+         class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.75rem">Clear location</a>
+    </div>
+  </div>
+  {% else %}
+  {# Location prompt — hidden by default, shown if geolocation fails #}
+  <div id="zip-prompt" class="alert alert-light border py-3 mb-3 d-none">
+    <p class="mb-2 small fw-semibold">📍 Enter your location to find rides near you</p>
+    <form method="get" class="d-flex gap-2 align-items-center flex-wrap">
+      <input type="hidden" name="source" value="{{ source }}">
+      <input type="hidden" name="range" value="{{ active_range }}">
+      <input type="hidden" name="pace" value="{{ active_pace }}">
+      <input type="hidden" name="type" value="{{ active_type }}">
+      <input type="hidden" name="radius" value="{{ radius }}">
+      <input type="text" name="zip" class="form-control form-control-sm" placeholder="Zip code (e.g. 20191)" style="max-width:140px">
+      <button class="btn btn-sm btn-outline-secondary">Search</button>
+    </form>
+  </div>
+  {# Hidden geolocation form — JS populates and submits this #}
+  <form id="geo-form" method="get" class="d-none">
+    <input type="hidden" name="source" value="{{ source }}">
+    <input type="hidden" name="range" value="{{ active_range }}">
+    <input type="hidden" name="pace" value="{{ active_pace }}">
+    <input type="hidden" name="type" value="{{ active_type }}">
+    <input type="hidden" name="radius" value="{{ radius }}">
+    <input type="hidden" name="lat" id="geo-lat">
+    <input type="hidden" name="lng" id="geo-lng">
+  </form>
+  {% endif %}
+
+  {% if geo_error %}
+  <div class="alert alert-warning py-2 small mb-3">{{ geo_error }}</div>
+  {% endif %}
+
+  {# ── Filters ──────────────────────────────────────────────────────────────── #}
   <form method="get" class="mb-4">
+    {% if lat_arg is not none %}
+    <input type="hidden" name="lat" value="{{ lat_arg }}">
+    <input type="hidden" name="lng" value="{{ lng_arg }}">
+    {% elif zip_q %}
+    <input type="hidden" name="zip" value="{{ zip_q }}">
+    {% endif %}
+    <input type="hidden" name="source" value="{{ source }}">
+    <input type="hidden" name="radius" value="{{ radius }}">
+
     <div class="d-flex flex-wrap gap-2 align-items-end">
 
       <div>
         <label class="form-label small mb-1">Date Range</label>
         <div class="btn-group" role="group">
-          <a href="{{ url_for('main.discover', range='weekend', pace=active_pace, type=active_type, zip=zip_q, club_only=club_only) }}"
+          {% set loc_params = {} %}
+          {% if lat_arg is not none %}
+            {% set loc_params = dict(lat=lat_arg, lng=lng_arg) %}
+          {% elif zip_q %}
+            {% set loc_params = dict(zip=zip_q) %}
+          {% endif %}
+          <a href="{{ url_for('main.discover', source=source, range='weekend', pace=active_pace, type=active_type, radius=radius, **loc_params) }}"
              class="btn btn-sm {{ 'btn-paceline' if active_range == 'weekend' else 'btn-outline-secondary' }}">This Weekend</a>
-          <a href="{{ url_for('main.discover', range='week', pace=active_pace, type=active_type, zip=zip_q, club_only=club_only) }}"
+          <a href="{{ url_for('main.discover', source=source, range='week', pace=active_pace, type=active_type, radius=radius, **loc_params) }}"
              class="btn btn-sm {{ 'btn-paceline' if active_range == 'week' else 'btn-outline-secondary' }}">Next 7 Days</a>
-          <a href="{{ url_for('main.discover', range='two-weeks', pace=active_pace, type=active_type, zip=zip_q, club_only=club_only) }}"
+          <a href="{{ url_for('main.discover', source=source, range='two-weeks', pace=active_pace, type=active_type, radius=radius, **loc_params) }}"
              class="btn btn-sm {{ 'btn-paceline' if active_range == 'two-weeks' else 'btn-outline-secondary' }}">Next 2 Weeks</a>
         </div>
       </div>
@@ -31,7 +129,7 @@
         <label class="form-label small mb-1">Pace</label>
         <div class="btn-group" role="group">
           {% for p in ['A','B','C','D'] %}
-          <a href="{{ url_for('main.discover', range=active_range, pace=('' if active_pace == p else p), type=active_type, zip=zip_q, club_only=club_only) }}"
+          <a href="{{ url_for('main.discover', source=source, range=active_range, pace=('' if active_pace == p else p), type=active_type, radius=radius, **loc_params) }}"
              class="btn btn-sm {{ 'pace-badge pace-' + p if active_pace == p else 'btn-outline-secondary' }}">{{ p }}</a>
           {% endfor %}
         </div>
@@ -45,39 +143,27 @@
           <option value="{{ t }}" {{ 'selected' if active_type == t else '' }}>{{ t.title() }}</option>
           {% endfor %}
         </select>
-        <input type="hidden" name="range" value="{{ active_range }}">
-        <input type="hidden" name="pace" value="{{ active_pace }}">
-        <input type="hidden" name="zip" value="{{ zip_q }}">
-        <input type="hidden" name="club_only" value="{{ '1' if club_only else '' }}">
       </div>
 
+      {% if not location_label %}
       <div>
         <label class="form-label small mb-1">Near Zip</label>
         <div class="input-group input-group-sm">
           <input type="text" name="zip" value="{{ zip_q }}" class="form-control" placeholder="e.g. 20191" style="max-width:100px">
-          <input type="hidden" name="range" value="{{ active_range }}">
-          <input type="hidden" name="pace" value="{{ active_pace }}">
-          <input type="hidden" name="type" value="{{ active_type }}">
-          <input type="hidden" name="club_only" value="{{ '1' if club_only else '' }}">
           <button class="btn btn-outline-secondary" type="submit">Go</button>
         </div>
       </div>
-
-      <div>
-        <label class="form-label small mb-1 d-block">&nbsp;</label>
-        <a href="{{ url_for('main.discover', range=active_range, pace=active_pace, type=active_type, zip=zip_q, club_only=('' if club_only else '1')) }}"
-           class="btn btn-sm {{ 'btn-paceline' if club_only else 'btn-outline-secondary' }}">Club Rides Only</a>
-      </div>
+      {% endif %}
 
     </div>
   </form>
 
-  {% if geo_error %}
-  <div class="alert alert-warning py-2 small">{{ geo_error }}</div>
-  {% endif %}
-
+  {# ── Results ───────────────────────────────────────────────────────────────── #}
   {% if rides %}
-  <p class="text-muted small mb-3">{{ rides | length }} ride{{ 's' if rides | length != 1 else '' }} found</p>
+  <p class="text-muted small mb-3">
+    {{ rides | length }} ride{{ 's' if rides | length != 1 else '' }} found
+    {% if location_label %} within {{ radius }} miles{% endif %}
+  </p>
   {% for ride in rides %}
   {% set w = weather.get(ride.id) %}
   <div class="ride-card mb-3 {{ 'ride-cancelled' if ride.is_cancelled else '' }}">
@@ -105,26 +191,22 @@
             &bull; <span class="text-muted">@{{ ride.owner.username }}</span>
           {% else %}
             &bull;
-            {% if ride.club.logo_key %}
-              <a href="{{ url_for('clubs.home', slug=ride.club.slug) }}" class="text-muted d-inline-flex align-items-center gap-1">
+            <a href="{{ url_for('clubs.home', slug=ride.club.slug) }}" class="text-muted d-inline-flex align-items-center gap-1">
+              {% if ride.club.logo_key %}
                 <img src="{{ url_for('clubs.serve_club_logo', slug=ride.club.slug) }}"
                      alt="{{ ride.club.name }}"
                      style="height:20px;max-width:60px;object-fit:contain;vertical-align:middle;border-radius:3px"
                      loading="lazy">
-                <span>{{ ride.club.name }}</span>
-              </a>
-            {% elif ride.club.logo_url %}
-              <a href="{{ url_for('clubs.home', slug=ride.club.slug) }}" class="text-muted d-inline-flex align-items-center gap-1">
+              {% elif ride.club.logo_url %}
                 <img src="{{ ride.club.logo_url }}"
                      alt="{{ ride.club.name }}"
                      style="height:20px;max-width:60px;object-fit:contain;vertical-align:middle;border-radius:3px"
                      loading="lazy"
                      onerror="this.style.display='none'">
-                <span>{{ ride.club.name }}</span>
-              </a>
-            {% else %}
-              <a href="{{ url_for('clubs.home', slug=ride.club.slug) }}" class="text-muted">{{ ride.club.name }}</a>
-            {% endif %}
+              {% endif %}
+              <span>{{ ride.club.name }}</span>
+              {% if ride.club.is_verified %}<span class="verified-badge">✓</span>{% endif %}
+            </a>
           {% endif %}
           &bull; <strong>{{ ride.signup_count }}</strong> signed up
         </p>
@@ -134,10 +216,47 @@
   {% endfor %}
   {% else %}
   <div class="text-center py-5 text-muted">
+    {% if source == 'verified' %}
+    <p class="mb-1">No verified club rides found for the selected filters.</p>
+    <p class="small">
+      <a href="{{ url_for('main.discover', source='clubs', range=active_range, pace=active_pace, type=active_type, zip=zip_q, radius=radius) }}">Show all clubs</a>
+      or <a href="{{ url_for('main.discover', source='all', range=active_range, pace=active_pace, type=active_type, zip=zip_q, radius=radius) }}">show all rides</a>.
+    </p>
+    {% else %}
     <p class="mb-1">No rides found for the selected filters.</p>
-    <p class="small">Try expanding the date range or removing a filter.</p>
+    <p class="small">Try expanding the date range or adjusting your location.</p>
+    {% endif %}
   </div>
   {% endif %}
 
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ g.csp_nonce }}">
+(function () {
+  // Only trigger geolocation if no location is already in the URL
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('lat') || params.get('zip')) return;
+
+  const prompt = document.getElementById('zip-prompt');
+  const geoForm = document.getElementById('geo-form');
+  if (!geoForm || !navigator.geolocation) {
+    if (prompt) prompt.classList.remove('d-none');
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    function (pos) {
+      document.getElementById('geo-lat').value = pos.coords.latitude.toFixed(5);
+      document.getElementById('geo-lng').value = pos.coords.longitude.toFixed(5);
+      geoForm.submit();
+    },
+    function () {
+      if (prompt) prompt.classList.remove('d-none');
+    },
+    { timeout: 6000, maximumAge: 300000 }
+  );
+})();
+</script>
 {% endblock %}

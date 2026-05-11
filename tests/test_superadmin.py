@@ -612,3 +612,46 @@ class TestSuperadminUserHostedRides:
         assert resp.status_code == 200
         assert b'Private Spin' in resp.data
         assert b'Public Spin' not in resp.data
+
+
+# ── Club verification ─────────────────────────────────────────────────────────
+
+class TestClubVerification:
+    def test_verify_club_sets_is_verified(self, client, db, admin_user, sample_club):
+        assert not sample_club.is_verified
+        login_as(client, admin_user)
+        r = client.post(f'/admin/clubs/{sample_club.slug}/toggle-verified',
+                        follow_redirects=True)
+        assert r.status_code == 200
+        db.session.refresh(sample_club)
+        assert sample_club.is_verified
+
+    def test_unverify_club_clears_is_verified(self, client, db, admin_user, sample_club):
+        sample_club.is_verified = True
+        db.session.commit()
+        login_as(client, admin_user)
+        r = client.post(f'/admin/clubs/{sample_club.slug}/toggle-verified',
+                        follow_redirects=True)
+        assert r.status_code == 200
+        db.session.refresh(sample_club)
+        assert not sample_club.is_verified
+
+    def test_regular_user_cannot_verify_club(self, client, db, regular_user, sample_club):
+        login_as(client, regular_user)
+        r = client.post(f'/admin/clubs/{sample_club.slug}/toggle-verified',
+                        follow_redirects=True)
+        assert r.status_code == 403
+
+    def test_verified_badge_shown_on_club_home(self, client, db, sample_club, mock_weather):
+        sample_club.is_verified = True
+        db.session.commit()
+        r = client.get(f'/clubs/{sample_club.slug}/')
+        assert r.status_code == 200
+        assert b'Verified' in r.data
+
+    def test_unverified_no_badge_on_club_home(self, client, db, sample_club, mock_weather):
+        sample_club.is_verified = False
+        db.session.commit()
+        r = client.get(f'/clubs/{sample_club.slug}/')
+        assert r.status_code == 200
+        assert b'verified-badge' not in r.data
