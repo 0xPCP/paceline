@@ -1191,6 +1191,40 @@ body.club-page {
 
 .ride-meta { font-size: .82rem; color: var(--paceline-gray); }
 
+/* ── Ride host attribution row ───────────────────────────────────────────── */
+.ride-host {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .25rem .6rem .25rem .4rem;
+  border-radius: 6px;
+  font-size: .82rem;
+  font-weight: 600;
+  text-decoration: none;
+  max-width: 100%;
+}
+.ride-host--club {
+  background: rgba(45,106,79,.07);
+  color: var(--paceline-dark);
+  border: 1px solid rgba(45,106,79,.15);
+}
+.ride-host--club:hover { background: rgba(45,106,79,.13); color: var(--paceline-dark); }
+.ride-host--personal {
+  background: #f3f4f6;
+  color: var(--paceline-gray);
+  border: 1px solid #e5e7eb;
+}
+.ride-host-logo {
+  height: 36px;
+  max-width: 80px;
+  object-fit: contain;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.ride-host-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+.ride-host-label { font-size: .72rem; font-weight: 400; color: var(--paceline-gray); white-space: nowrap; }
+.ride-host-icon { font-size: .9rem; flex-shrink: 0; }
+
 /* ── Ride comment thread ─────────────────────────────────────────────────── */
 .comment-thread { border-top: 1px solid var(--paceline-border); padding-top: 1rem; margin-top: 1rem; }
 .comment-item {
