@@ -2,7 +2,7 @@ import os
 import sys
 import threading
 import time as time_module
-from datetime import date, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 
 from playwright.sync_api import sync_playwright
 from werkzeug.serving import make_server
@@ -87,10 +87,7 @@ def seed_data(app):
             slug='nova-paceline',
             name='NOVA Paceline',
             tagline='Road and gravel rides in Northern Virginia',
-            description=(
-                'A friendly cycling club for riders who want structured road '
-                'rides, occasional gravel routes, and clear ride details.'
-            ),
+            description='',
             city='Reston',
             state='VA',
             zip_code='20191',
@@ -98,9 +95,18 @@ def seed_data(app):
             lng=-77.3570,
             contact_email='rides@example.com',
             website='https://example.com',
+            is_hidden=False,
             require_membership=False,
             join_approval='auto',
-            safety_guidelines='Helmets are required. Bring lights for evening rides.',
+            membership_dues_required=True,
+            membership_dues_mode='stripe_connect',
+            membership_dues_url='https://buy.stripe.com/example',
+            membership_dues_amount_cents=4500,
+            membership_dues_currency='usd',
+            membership_duration_months=12,
+            stripe_account_id='acct_demo_connected',
+            stripe_account_connected_at=datetime.now(timezone.utc),
+            safety_guidelines='',
         )
         db.session.add(club)
         db.session.flush()
@@ -108,7 +114,7 @@ def seed_data(app):
         db.session.add_all([
             ClubAdmin(user_id=admin.id, club_id=club.id, role='admin'),
             ClubMembership(user_id=admin.id, club_id=club.id, status='active'),
-            ClubMembership(user_id=rider.id, club_id=club.id, status='active'),
+            ClubMembership(user_id=rider.id, club_id=club.id, status='pending_payment'),
             ClubMembership(user_id=leader.id, club_id=club.id, status='active'),
         ])
 
@@ -174,9 +180,9 @@ def seed_data(app):
         return road_ride.id
 
 
-def login(page):
+def login(page, email='phil@example.com'):
     page.goto(f'{BASE_URL}/auth/login')
-    page.fill('input[name="email"]', 'phil@example.com')
+    page.fill('input[name="email"]', email)
     page.fill('input[name="password"]', 'TestPass1!')
     page.click('button[type="submit"], input[type="submit"]')
     page.wait_for_load_state('networkidle')
@@ -187,6 +193,13 @@ def shot(page, path, selector=None):
     if selector:
         page.locator(selector).first.wait_for(state='visible', timeout=5000)
     page.screenshot(path=os.path.join(OUTPUT_DIR, path), full_page=True)
+
+
+def shot_element(page, path, selector):
+    page.wait_for_load_state('networkidle')
+    locator = page.locator(selector).first
+    locator.wait_for(state='visible', timeout=5000)
+    locator.screenshot(path=os.path.join(OUTPUT_DIR, path))
 
 
 def main():
@@ -213,6 +226,7 @@ def main():
 
             page.goto(f'{BASE_URL}/admin/clubs/nova-paceline/settings')
             shot(page, 'club-settings.png', 'h1')
+            shot_element(page, 'club-dues-settings.png', '#membership-section')
 
             page.goto(f'{BASE_URL}/admin/clubs/nova-paceline/team')
             shot(page, 'club-team.png', 'h1')
@@ -228,6 +242,11 @@ def main():
 
             page.goto(f'{BASE_URL}/clubs/nova-paceline/rides/{road_ride_id}')
             shot(page, 'ride-detail.png', 'h1')
+
+            context.clear_cookies()
+            login(page, email='rider@example.com')
+            page.goto(f'{BASE_URL}/clubs/nova-paceline/')
+            shot(page, 'club-dues-payment.png', 'button:has-text("Pay Club Dues")')
 
             context.close()
             browser.close()
