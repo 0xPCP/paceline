@@ -59,6 +59,9 @@ Set these in App Platform's environment variable panel (encrypted at rest):
 | `RESEND_API_KEY` | From Resend dashboard |
 | `MAIL_DEFAULT_SENDER` | `Paceline <noreply@paceline.club>` |
 | `DONATE_URL` | Stripe payment link |
+| `STRIPE_SECRET_KEY` | Paceline Stripe platform key, if Stripe Connect dues are enabled |
+| `STRIPE_CONNECT_CLIENT_ID` | Paceline Stripe Connect client ID |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret for `/stripe/webhook` |
 | `SPACES_BUCKET` | `paceline-media` |
 | `SPACES_REGION` | `nyc3` |
 | `SPACES_ENDPOINT` | `https://nyc3.digitaloceanspaces.com` |

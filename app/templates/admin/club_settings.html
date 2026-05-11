@@ -297,21 +297,62 @@
             {{ form.membership_dues_required(class="form-check-input", role="switch", id="membership_dues_required") }}
             {{ form.membership_dues_required.label(class="form-check-label", for="membership_dues_required") }}
           </div>
-          <div class="form-text">Use this when dues must be paid outside Paceline before membership is active. Paceline does not process, hold, or take a cut of club dues.</div>
+          <div class="form-text">Use this when dues must be paid before membership is active. Paceline does not hold club dues or take a cut.</div>
+        </div>
+
+        <div class="mb-3">
+          {{ form.membership_dues_mode.label(class="form-label") }}
+          {{ form.membership_dues_mode(class="form-select" + (" is-invalid" if form.membership_dues_mode.errors else "")) }}
+          {% for e in form.membership_dues_mode.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          <div class="form-text">Phase 1 uses your external payment link and manual confirmation. Phase 2 uses your connected Stripe account and activates members automatically after payment.</div>
         </div>
 
         <div class="mb-3">
           {{ form.membership_dues_url.label(class="form-label") }}
           {{ form.membership_dues_url(class="form-control" + (" is-invalid" if form.membership_dues_url.errors else ""), placeholder="https://buy.stripe.com/...") }}
           {% for e in form.membership_dues_url.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
-          <div class="form-text">Paste the club-owned Stripe, PayPal, Square, or other hosted payment link for dues.</div>
+          <div class="form-text">For Phase 1, paste the club-owned Stripe, PayPal, Square, or other hosted payment link for dues.</div>
+        </div>
+
+        <div class="mb-3">
+          {{ form.membership_dues_amount.label(class="form-label") }}
+          <div class="input-group">
+            <span class="input-group-text">$</span>
+            {{ form.membership_dues_amount(class="form-control" + (" is-invalid" if form.membership_dues_amount.errors else ""), placeholder="40.00", min="1", step="0.01") }}
+            {% for e in form.membership_dues_amount.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="form-text">Required for Phase 2 so Paceline can send riders to the correct Stripe Checkout amount.</div>
         </div>
 
         <div class="mb-4">
           {{ form.membership_duration_months.label(class="form-label") }}
           {{ form.membership_duration_months(class="form-control" + (" is-invalid" if form.membership_duration_months.errors else ""), min="1", max="60") }}
           {% for e in form.membership_duration_months.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
-          <div class="form-text">When an admin confirms payment, membership is marked active for this many months.</div>
+          <div class="form-text">Membership is marked active for this many months after manual confirmation or successful Stripe Checkout.</div>
+        </div>
+
+        <div class="border rounded p-3 mb-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
+            <div>
+              <h6 class="mb-1">Stripe Connect</h6>
+              {% if club.stripe_account_id %}
+              <p class="text-muted small mb-0">Connected account: <code>{{ club.stripe_account_id }}</code></p>
+              {% else %}
+              <p class="text-muted small mb-0">Connect the club's Stripe account to enable automatic dues confirmation.</p>
+              {% endif %}
+            </div>
+            <div class="d-flex gap-2 align-items-start">
+              {% if club.stripe_account_id %}
+              <form method="post" action="{{ url_for('stripe_connect.disconnect_club', slug=club.slug) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button class="btn btn-outline-danger btn-sm">Disconnect</button>
+              </form>
+              {% else %}
+              <a class="btn btn-outline-primary btn-sm" href="{{ url_for('stripe_connect.connect_club', slug=club.slug) }}">Connect Stripe</a>
+              {% endif %}
+            </div>
+          </div>
+          <div class="form-text mt-2">Stripe handles the checkout and deposits funds into the club's connected Stripe account. Paceline receives a payment-success webhook only so membership can be activated.</div>
         </div>
 
         </div>{# /membership-section #}
