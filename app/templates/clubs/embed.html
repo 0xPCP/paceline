@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ club.name }} — Upcoming Rides</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      color: #1a1a2e;
+      background: #fff;
+      padding: 0;
+    }
+
+    .ew-header {
+      background: {{ club.theme_primary or '#2d6a4f' }};
+      color: #fff;
+      padding: .75rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+    }
+    .ew-header-logo {
+      height: 28px;
+      max-width: 70px;
+      object-fit: contain;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    .ew-header-name {
+      font-weight: 700;
+      font-size: .95rem;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ew-header-label {
+      font-size: .72rem;
+      opacity: .8;
+      white-space: nowrap;
+    }
+
+    .ew-body { padding: .5rem 0; }
+
+    .ew-ride {
+      display: flex;
+      align-items: flex-start;
+      gap: .75rem;
+      padding: .55rem 1rem;
+      border-bottom: 1px solid #f0f0f0;
+      text-decoration: none;
+      color: inherit;
+      transition: background .1s;
+    }
+    .ew-ride:last-child { border-bottom: none; }
+    .ew-ride:hover { background: #f8f9fa; }
+
+    .ew-date {
+      text-align: center;
+      flex-shrink: 0;
+      min-width: 36px;
+    }
+    .ew-date-month {
+      font-size: .6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: {{ club.theme_primary or '#2d6a4f' }};
+    }
+    .ew-date-day {
+      font-size: 1.3rem;
+      font-weight: 800;
+      line-height: 1;
+      color: #1a1a2e;
+    }
+
+    .ew-info { flex: 1; min-width: 0; }
+    .ew-title {
+      font-weight: 600;
+      font-size: .88rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ew-meta {
+      font-size: .75rem;
+      color: #666;
+      margin-top: .15rem;
+    }
+
+    .ew-pace {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      font-size: .7rem;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .pace-A { background: #dc3545; }
+    .pace-B { background: #fd7e14; }
+    .pace-C { background: #198754; }
+    .pace-D { background: #0d6efd; }
+
+    .ew-empty {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: #888;
+      font-size: .85rem;
+    }
+
+    .ew-footer {
+      text-align: center;
+      padding: .5rem 1rem .75rem;
+      border-top: 1px solid #f0f0f0;
+      margin-top: .25rem;
+    }
+    .ew-footer a {
+      font-size: .7rem;
+      color: #999;
+      text-decoration: none;
+    }
+    .ew-footer a:hover { color: {{ club.theme_primary or '#2d6a4f' }}; }
+  </style>
+</head>
+<body>
+
+  <div class="ew-header">
+    {% if club.logo_key %}
+      <img src="{{ url_for('clubs.serve_club_logo', slug=club.slug, _external=True) }}"
+           alt="{{ club.name }}" class="ew-header-logo">
+    {% elif club.logo_url %}
+      <img src="{{ club.logo_url }}" alt="{{ club.name }}" class="ew-header-logo"
+           onerror="this.style.display='none'">
+    {% endif %}
+    <span class="ew-header-name">{{ club.name }}</span>
+    <span class="ew-header-label">Upcoming Rides</span>
+  </div>
+
+  <div class="ew-body">
+    {% if rides %}
+      {% for ride in rides %}
+      <a href="{{ url_for('clubs.ride_detail', slug=club.slug, ride_id=ride.id, _external=True) }}"
+         class="ew-ride" target="_blank" rel="noopener">
+        <div class="ew-date">
+          <div class="ew-date-month">{{ ride.date.strftime('%b') }}</div>
+          <div class="ew-date-day">{{ ride.date.day }}</div>
+        </div>
+        <div class="ew-info">
+          <div class="ew-title">{{ ride.title }}</div>
+          <div class="ew-meta">
+            {{ ride.time.strftime('%I:%M %p').lstrip('0') }} &bull;
+            {{ ride.distance_miles }} mi
+            {% if ride.elevation_feet %}&bull; {{ ride.elevation_feet }} ft{% endif %}
+            &bull; {{ ride.signup_count }} signed up
+          </div>
+        </div>
+        <div class="ew-pace pace-{{ ride.pace_category }}">{{ ride.pace_category }}</div>
+      </a>
+      {% endfor %}
+    {% else %}
+      <div class="ew-empty">No upcoming rides in the next 30 days.</div>
+    {% endif %}
+  </div>
+
+  <div class="ew-footer">
+    <a href="{{ url_for('clubs.home', slug=club.slug, _external=True) }}" target="_blank" rel="noopener">
+      Powered by Paceline
+    </a>
+  </div>
+
+</body>
+</html>

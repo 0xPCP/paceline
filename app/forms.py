@@ -154,6 +154,12 @@ class ClubSettingsForm(FlaskForm):
     membership_duration_months = IntegerField('Dues Valid For (months)',
                                              validators=[Optional(), NumberRange(min=1, max=60)],
                                              default=12)
+    # Hosting mode
+    hosting_mode = SelectField('Hosting Mode', choices=[
+        ('full',       'Full Club — membership, waivers, news, and full admin tools'),
+        ('rides_only', 'Rides Only — simplified ride calendar, no membership management'),
+    ])
+
     # Strava integration
     strava_club_id = StringField('Strava Club ID', validators=[Optional(), Length(max=20)])
     # Social media / communication
@@ -186,6 +192,8 @@ class ClubCreateForm(FlaskForm):
     state         = StringField('State', validators=[Optional(), Length(max=50)])
     zip_code      = StringField('Zip Code', validators=[Optional(), Length(max=10)])
     is_private    = BooleanField('Private Club')
+    # hosting_mode and theme_preset are written by JS, validated as strings
+    hosting_mode  = StringField('Hosting Mode', validators=[Optional(), Length(max=20)])
     # theme_preset is written by JS, validated as a string
     theme_preset  = StringField('Theme Preset', validators=[Optional(), Length(max=30)])
     theme_primary = StringField('Primary Color', validators=[

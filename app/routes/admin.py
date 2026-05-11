@@ -644,6 +644,8 @@ def club_settings(slug):
         club.cancel_temp_min_f   = form.cancel_temp_min_f.data if form.cancel_temp_min_f.data is not None else 28
         club.cancel_temp_max_f   = form.cancel_temp_max_f.data if form.cancel_temp_max_f.data is not None else 100
 
+        raw_mode = form.hosting_mode.data or 'full'
+        club.hosting_mode       = raw_mode if raw_mode in ('full', 'rides_only') else 'full'
         club.is_hidden           = form.is_hidden.data
         club.is_private         = form.is_private.data
         club.require_membership = form.require_membership.data

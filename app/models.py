@@ -192,6 +192,9 @@ class Club(db.Model):
     theme_accent  = db.Column(db.String(7), nullable=True)   # hex e.g. "#e76f51"
     banner_url    = db.Column(db.String(500), nullable=True)  # header background image
 
+    # Hosting mode: 'full' (complete club platform) or 'rides_only' (ride calendar only)
+    hosting_mode = db.Column(db.String(20), default='full', nullable=False)
+
     # Visibility
     is_hidden = db.Column(db.Boolean, default=True, nullable=False)
     is_verified = db.Column(db.Boolean, default=False, nullable=False)
