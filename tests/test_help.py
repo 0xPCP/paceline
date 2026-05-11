@@ -29,9 +29,11 @@ def test_club_manager_help_page(client):
     assert b'Publish rides' in resp.data
     assert b'Manage signups' in resp.data
     assert b'Handle paid club dues' in resp.data
-    assert b'does not process club dues' in resp.data
+    assert b'does not hold club dues' in resp.data
     assert b'img/help/club-create.png' in resp.data
     assert b'img/help/club-settings.png' in resp.data
+    assert b'img/help/club-dues-settings.png' in resp.data
+    assert b'img/help/club-dues-payment.png' in resp.data
     assert b'img/help/club-team.png' in resp.data
     assert b'img/help/club-rides-admin.png' in resp.data
 
@@ -51,6 +53,8 @@ def test_help_screenshots_exist():
     expected = {
         'club-create.png',
         'club-settings.png',
+        'club-dues-settings.png',
+        'club-dues-payment.png',
         'club-team.png',
         'club-rides-admin.png',
         'find-clubs.png',

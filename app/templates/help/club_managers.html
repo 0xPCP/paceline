@@ -187,6 +187,29 @@
           The duration setting controls how long each confirmed or automatically paid
           membership stays active.
         </p>
+        <figure class="mb-4">
+          <img class="img-fluid rounded border shadow-sm"
+               src="{{ url_for('static', filename='img/help/club-dues-settings.png') }}"
+               alt="Club membership settings showing manual dues, Stripe Connect dues, amount, duration, and connection status">
+          <figcaption class="small text-muted mt-2">
+            Club settings let managers choose manual confirmation or Stripe Connect automation, set the dues amount, and control how long paid memberships stay active.
+          </figcaption>
+        </figure>
+        <p class="section-body">
+          For Phase 2, riders who are waiting on dues see a <strong>Pay Club Dues</strong>
+          button on the club page. After Stripe confirms the payment, Paceline marks
+          the membership active automatically. If Stripe is not connected or the club
+          uses Phase 1, the rider follows the external dues link and waits for a club
+          admin to confirm payment from the Team page.
+        </p>
+        <figure class="mb-4">
+          <img class="img-fluid rounded border shadow-sm"
+               src="{{ url_for('static', filename='img/help/club-dues-payment.png') }}"
+               alt="Club page showing Pay Club Dues button for a rider whose membership is waiting on payment">
+          <figcaption class="small text-muted mt-2">
+            Riders with a pending paid membership can start checkout from the club page.
+          </figcaption>
+        </figure>
         <p class="section-body">
           When importing an existing roster, add a paid-through date for the whole batch
           or add dates per row using <code>rider@example.com, 2026-12-31</code>.
