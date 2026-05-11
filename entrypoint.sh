@@ -4,7 +4,7 @@
 set -e
 
 echo "Running database migrations..."
-flask db upgrade
+FLASK_SKIP_SCHEDULER=1 flask db upgrade
 
 echo "Starting gunicorn on port ${PORT:-8000}..."
 exec gunicorn -w 4 -b "0.0.0.0:${PORT:-8000}" --timeout 60 --preload \
