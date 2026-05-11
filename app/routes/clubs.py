@@ -426,6 +426,7 @@ def embed(slug):
              .filter(Ride.date >= today, Ride.date <= end_date)
              .order_by(Ride.date.asc(), Ride.time.asc())
              .limit(50).all())
+
     return render_template('clubs/embed.html', club=club, rides=rides, today=today)
 
 

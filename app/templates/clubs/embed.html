@@ -37,7 +37,10 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      color: #fff;
+      text-decoration: none;
     }
+    .ew-header-name:hover { text-decoration: underline; }
     .ew-header-label {
       font-size: .72rem;
       opacity: .8;
@@ -141,7 +144,9 @@
       <img src="{{ club.logo_url }}" alt="{{ club.name }}" class="ew-header-logo"
            onerror="this.style.display='none'">
     {% endif %}
-    <span class="ew-header-name">{{ club.name }}</span>
+    <a href="{{ url_for('clubs.home', slug=club.slug, _external=True) }}"
+       target="_blank" rel="noopener"
+       class="ew-header-name">{{ club.name }}</a>
     <span class="ew-header-label">Upcoming Rides</span>
   </div>
 
