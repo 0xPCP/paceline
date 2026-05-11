@@ -31,7 +31,22 @@
           This gives you time to fill in the details before riders find you.
         </p>
         <p class="section-body">
-          You can also choose whether the club is public or private. Public clubs
+          During setup you will choose a <strong>hosting mode</strong>:
+        </p>
+        <ul class="section-body">
+          <li><strong>Full Club:</strong> The complete Paceline experience — membership management,
+              waivers, dues tracking, news posts, safety guidelines, and a full public club page.
+              Best for established clubs that want everything managed in one place.</li>
+          <li><strong>Rides Only:</strong> A simplified ride calendar with no membership management.
+              Riders can view and sign up for rides without needing to join the club. Great for clubs
+              that already have a website and just want an easy way to publish and share rides.</li>
+        </ul>
+        <p class="section-body">
+          You can switch modes at any time from <strong>Admin → Settings → Hosting Mode</strong>.
+          All ride data is preserved when you switch.
+        </p>
+        <p class="section-body">
+          In Full Club mode you can also choose whether the club is public or private. Public clubs
           are easy for anyone to join. Private clubs are better when you want to
           approve or invite members before they participate.
         </p>
@@ -166,6 +181,46 @@
         <p class="section-body">
           When importing an existing roster, add a paid-through date for the whole batch
           or add dates per row using <code>rider@example.com, 2026-12-31</code>.
+        </p>
+      </div>
+
+      <div class="mb-5">
+        <h2 class="section-heading h4">9. Embed rides on your website</h2>
+        <p class="section-body">
+          Every club gets an embeddable ride widget you can drop into any website —
+          your club's WordPress site, Squarespace page, or any platform that accepts
+          custom HTML.
+        </p>
+        <p class="section-body">
+          The widget shows your next 30 days of upcoming rides. Each ride is a link
+          that opens the full ride page on Paceline. The widget automatically picks up
+          your club's logo and theme color.
+        </p>
+        <p class="section-body">
+          To get your embed code:
+        </p>
+        <ol class="section-body">
+          <li>Open <strong>Admin → Settings</strong> on your club page.</li>
+          <li>Scroll to the <strong>Embed Ride Widget</strong> section near the bottom.</li>
+          <li>A live preview of the widget is shown. Click <strong>Copy to Clipboard</strong>
+              to copy the embed code.</li>
+          <li>Paste the <code>&lt;iframe&gt;</code> code anywhere in your website's HTML editor.</li>
+        </ol>
+        <p class="section-body">
+          Example embed code:
+        </p>
+        <pre class="bg-light border rounded p-3 small mb-3" style="overflow-x:auto">&lt;iframe
+  src="https://paceline.club/clubs/your-club/embed"
+  width="100%"
+  height="450"
+  frameborder="0"
+  scrolling="auto"
+  title="Your Club — Upcoming Rides"
+  style="border:none;border-radius:8px;display:block"&gt;
+&lt;/iframe&gt;</pre>
+        <p class="section-body">
+          You can adjust the <code>height</code> value to fit more or fewer rides in the widget.
+          The widget is responsive — it adapts to the width of its container.
         </p>
       </div>
 

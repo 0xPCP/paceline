@@ -228,6 +228,18 @@
         </div>
 
         <hr class="my-4" />
+        <h5 class="mb-1">Hosting Mode</h5>
+        <p class="text-muted small mb-3">
+          Choose how Paceline is used for this club. Changing to <em>Rides Only</em> disables
+          membership management, waivers, and news — but keeps all your ride data.
+        </p>
+        <div class="mb-4">
+          {{ form.hosting_mode(class="form-select" + (" is-invalid" if form.hosting_mode.errors else ""), id="hosting_mode_select") }}
+          {% for e in form.hosting_mode.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          <div class="form-text" id="hosting-mode-hint"></div>
+        </div>
+
+        <hr class="my-4" />
         <h5 class="mb-1">Visibility</h5>
         <p class="text-muted small mb-3">
           Control whether your club appears in public listings, the map, and search results.
@@ -247,7 +259,13 @@
         </div>
 
         <hr class="my-4" />
+        <div id="membership-section" class="{{ 'opacity-50' if club.hosting_mode == 'rides_only' else '' }}">
         <h5 class="mb-1">Membership</h5>
+        {% if club.hosting_mode == 'rides_only' %}
+        <div class="alert alert-secondary py-2 small mb-3">
+          Membership features are disabled in <strong>Rides Only</strong> mode. Switch to Full Club to use them.
+        </div>
+        {% endif %}
         <p class="text-muted small mb-3">
           Control who can sign up for rides and how new members join the club.
         </p>
@@ -296,6 +314,8 @@
           <div class="form-text">When an admin confirms payment, membership is marked active for this many months.</div>
         </div>
 
+        </div>{# /membership-section #}
+
         <hr class="my-4" />
         <h5 class="mb-3">Weather Auto-Cancel</h5>
         <p class="text-muted small mb-3">
@@ -334,6 +354,46 @@
               {% for e in form.cancel_temp_max_f.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
             </div>
           </div>
+        </div>
+
+        <hr class="my-4" />
+        <h5 class="mb-1">Embed Ride Widget</h5>
+        <p class="text-muted small mb-3">
+          Display your upcoming rides on your own website by embedding this widget. Visitors
+          click a ride to open the full details on Paceline.
+        </p>
+
+        {# Live preview #}
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Preview</label>
+          <div style="border:1px solid #dee2e6;border-radius:8px;overflow:hidden;max-width:480px">
+            <iframe src="{{ url_for('clubs.embed', slug=club.slug, _external=True) }}"
+                    width="100%" height="320"
+                    frameborder="0" scrolling="auto"
+                    title="{{ club.name }} ride widget preview"
+                    style="display:block;border:none"></iframe>
+          </div>
+        </div>
+
+        {# iframe embed code #}
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Embed Code (copy &amp; paste into your website)</label>
+          <div class="input-group">
+            <textarea id="embed-code-box" class="form-control font-monospace" rows="5"
+                      readonly style="font-size:.78rem;resize:none">{% set embed_url = url_for('clubs.embed', slug=club.slug, _external=True) %}&lt;iframe
+  src="{{ embed_url }}"
+  width="100%"
+  height="450"
+  frameborder="0"
+  scrolling="auto"
+  title="{{ club.name }} — Upcoming Rides"
+  style="border:none;border-radius:8px;display:block"&gt;
+&lt;/iframe&gt;</textarea>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="copy-embed-btn">
+            Copy to Clipboard
+          </button>
+          <span id="copy-embed-confirm" class="text-success small ms-2 d-none">Copied!</span>
         </div>
 
         <div class="d-flex gap-2">
@@ -383,6 +443,40 @@
         };
         reader.readAsDataURL(file);
       }
+    });
+  }
+
+  // ── Hosting mode — show/hide membership section ───────────────────────
+  const modeSelect = document.getElementById('hosting_mode_select');
+  const membershipSection = document.getElementById('membership-section');
+  const modeHint = document.getElementById('hosting-mode-hint');
+
+  const MODE_HINTS = {
+    'full': 'Full Club enables membership management, waivers, news posts, dues tracking, and all admin tools.',
+    'rides_only': 'Rides Only hides membership and waiver features. Riders can view and sign up for rides without joining the club.',
+  };
+
+  function applyModeUi(mode) {
+    const isRidesOnly = mode === 'rides_only';
+    membershipSection.classList.toggle('opacity-50', isRidesOnly);
+    modeHint.textContent = MODE_HINTS[mode] || '';
+  }
+
+  if (modeSelect) {
+    applyModeUi(modeSelect.value);
+    modeSelect.addEventListener('change', () => applyModeUi(modeSelect.value));
+  }
+
+  // ── Embed code copy button ────────────────────────────────────────────
+  const copyBtn = document.getElementById('copy-embed-btn');
+  const copyConfirm = document.getElementById('copy-embed-confirm');
+  const embedBox = document.getElementById('embed-code-box');
+  if (copyBtn && embedBox) {
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(embedBox.value).then(() => {
+        copyConfirm.classList.remove('d-none');
+        setTimeout(() => copyConfirm.classList.add('d-none'), 2000);
+      });
     });
   }
 </script>

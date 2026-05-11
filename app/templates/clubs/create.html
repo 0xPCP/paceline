@@ -143,8 +143,9 @@
       {{ form.hidden_tag() }}
 
       <!-- Hidden fields written by JS -->
-      <input type="hidden" name="is_private"   id="f-is-private"   value="0">
-      <input type="hidden" name="theme_preset" id="f-theme-preset" value="forest">
+      <input type="hidden" name="is_private"    id="f-is-private"    value="0">
+      <input type="hidden" name="hosting_mode"  id="f-hosting-mode"  value="full">
+      <input type="hidden" name="theme_preset"  id="f-theme-preset"  value="forest">
       <input type="hidden" name="theme_primary" id="f-theme-primary" value="#2d6a4f">
       <input type="hidden" name="theme_accent"  id="f-theme-accent"  value="#e76f51">
 
@@ -182,26 +183,43 @@
         </div>
 
         <div class="d-flex justify-content-end mt-3">
-          <button type="button" class="btn btn-paceline px-4" data-next-step="1">Next: Privacy →</button>
+          <button type="button" class="btn btn-paceline px-4" data-next-step="1">Next: Hosting Mode →</button>
         </div>
       </div>
 
-      <!-- ── Step 2: Privacy ── -->
+      <!-- ── Step 2: Hosting Mode & Access ── -->
       <div class="wz-panel" id="step-2">
         <div class="card border-0 shadow-sm p-4">
-          <h4 class="mb-1">Membership Privacy</h4>
-          <p class="text-muted small mb-4">Who can join your club?</p>
+          <h4 class="mb-1">Hosting Mode</h4>
+          <p class="text-muted small mb-4">Choose how you want to use Paceline. You can change this in settings later.</p>
 
-          <div class="privacy-cards">
-            <div class="privacy-card selected" id="card-public" data-private="false">
-              <div class="privacy-card-icon">🌐</div>
-              <div class="privacy-card-title">Public</div>
-              <div class="privacy-card-desc">Anyone can join with one click. Great for open community clubs.</div>
+          <div class="privacy-cards mb-4" id="hosting-cards">
+            <div class="privacy-card selected" id="card-full" data-mode="full">
+              <div class="privacy-card-icon">🏛️</div>
+              <div class="privacy-card-title">Full Club</div>
+              <div class="privacy-card-desc">Complete club management: membership, waivers, news, dues, and a full club page. Best for established clubs that want everything in one place.</div>
             </div>
-            <div class="privacy-card" id="card-private" data-private="true">
-              <div class="privacy-card-icon">🔒</div>
-              <div class="privacy-card-title">Private</div>
-              <div class="privacy-card-desc">Members must be invited by a club admin. Good for team or workplace clubs.</div>
+            <div class="privacy-card" id="card-rides-only" data-mode="rides_only">
+              <div class="privacy-card-icon">🚴</div>
+              <div class="privacy-card-title">Rides Only</div>
+              <div class="privacy-card-desc">A simplified ride calendar — no membership management or waivers. Great for clubs that already have a website and just want to post and share rides.</div>
+            </div>
+          </div>
+
+          <div id="privacy-section">
+            <h5 class="mb-2" style="font-size:.95rem">Membership Access</h5>
+            <p class="text-muted small mb-3">Who can join your club?</p>
+            <div class="privacy-cards">
+              <div class="privacy-card selected" id="card-public" data-private="false">
+                <div class="privacy-card-icon">🌐</div>
+                <div class="privacy-card-title">Public</div>
+                <div class="privacy-card-desc">Anyone can join with one click. Great for open community clubs.</div>
+              </div>
+              <div class="privacy-card" id="card-private" data-private="true">
+                <div class="privacy-card-icon">🔒</div>
+                <div class="privacy-card-title">Private</div>
+                <div class="privacy-card-desc">Members must be invited by a club admin. Good for team or workplace clubs.</div>
+              </div>
             </div>
           </div>
         </div>
@@ -380,6 +398,19 @@
     document.getElementById('preview-name').textContent = v || 'Your Club Name';
   }
 
+  // ── Hosting mode selection ────────────────────────────────────────────
+  window.setHostingMode = function(mode) {
+    document.getElementById('f-hosting-mode').value = mode;
+    document.getElementById('card-full').classList.toggle('selected', mode === 'full');
+    document.getElementById('card-rides-only').classList.toggle('selected', mode === 'rides_only');
+    // Hide privacy section for rides_only (no membership concept)
+    const privacySection = document.getElementById('privacy-section');
+    privacySection.style.display = mode === 'rides_only' ? 'none' : '';
+    if (mode === 'rides_only') {
+      document.getElementById('f-is-private').value = '0';
+    }
+  };
+
   // ── Privacy selection ─────────────────────────────────────────────────
   window.setPrivacy = function(isPrivate) {
     document.getElementById('f-is-private').value = isPrivate ? '1' : '0';
@@ -441,6 +472,7 @@
     const zip         = document.querySelector('[name=zip_code]').value.trim();
     const locationStr = [city, state, zip].filter(Boolean).join(', ') || '(not set)';
     const isPrivate   = document.getElementById('f-is-private').value === '1';
+    const mode        = document.getElementById('f-hosting-mode').value;
     const presetId    = document.getElementById('f-theme-preset').value;
     const primary     = document.getElementById('f-theme-primary').value;
     const accent      = document.getElementById('f-theme-accent').value;
@@ -456,10 +488,15 @@
       <span style="width:18px;height:18px;border-radius:4px;background:${accent};display:inline-block"></span>
     </span>`;
 
+    const modeLabel = mode === 'rides_only'
+      ? '🚴 Rides Only — simplified ride calendar'
+      : '🏛️ Full Club — membership, waivers, news & admin tools';
+
     const rows = [
       ['Club Name',  `<strong>${name}</strong>`],
       ['Location',   locationStr],
-      ['Membership', isPrivate ? '🔒 Private — invite only' : '🌐 Public — anyone can join'],
+      ['Mode',       modeLabel],
+      ['Membership', mode === 'rides_only' ? '<em class="text-muted">N/A (Rides Only)</em>' : (isPrivate ? '🔒 Private — invite only' : '🌐 Public — anyone can join')],
       ['Theme',      `${presetLabel} ${swatchHtml}`],
       ['Description', desc || '<em class="text-muted">None</em>'],
       ['Contact',    email || '<em class="text-muted">None</em>'],
@@ -484,6 +521,10 @@
 
   document.querySelectorAll('[data-next-step]').forEach(btn => {
     btn.addEventListener('click', () => nextStep(parseInt(btn.dataset.nextStep, 10)));
+  });
+
+  document.querySelectorAll('[data-mode]').forEach(card => {
+    card.addEventListener('click', () => setHostingMode(card.dataset.mode));
   });
 
   document.querySelectorAll('[data-private]').forEach(card => {

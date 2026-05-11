@@ -185,6 +185,9 @@ def create():
                 primary   = '#2d6a4f'
                 accent    = '#e76f51'
 
+        raw_mode = request.form.get('hosting_mode', 'full').strip().lower()
+        hosting_mode = raw_mode if raw_mode in ('full', 'rides_only') else 'full'
+
         club = Club(
             slug          = slug,
             name          = form.name.data.strip(),
@@ -192,6 +195,7 @@ def create():
             state         = form.state.data.strip() or None,
             zip_code      = form.zip_code.data.strip() or None,
             is_private    = request.form.get('is_private') == '1',
+            hosting_mode  = hosting_mode,
             theme_preset  = preset_id,
             theme_primary = primary,
             theme_accent  = accent,
@@ -407,6 +411,22 @@ def _week_view(club):
                            days=days, today=today,
                            prev_start=prev_start, next_start=next_start,
                            weather=weather, view='week')
+
+
+# ── Embeddable ride widget ────────────────────────────────────────────────────
+
+@clubs_bp.route('/<slug>/embed')
+def embed(slug):
+    """Public embeddable ride widget — designed to be iframed on external sites."""
+    club = _get_club_or_404(slug)
+    today = date.today()
+    end_date = today + timedelta(days=30)
+    rides = (Ride.query
+             .filter_by(club_id=club.id, is_cancelled=False)
+             .filter(Ride.date >= today, Ride.date <= end_date)
+             .order_by(Ride.date.asc(), Ride.time.asc())
+             .limit(50).all())
+    return render_template('clubs/embed.html', club=club, rides=rides, today=today)
 
 
 # ── Ride detail & signups ─────────────────────────────────────────────────────
