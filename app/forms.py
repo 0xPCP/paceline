@@ -2,7 +2,8 @@ from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
 from wtforms import (
     StringField, PasswordField, BooleanField, SubmitField,
-    TextAreaField, SelectField, FloatField, IntegerField, DateField, TimeField
+    TextAreaField, SelectField, FloatField, IntegerField, DateField, TimeField,
+    DecimalField
 )
 from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional, URL, NumberRange, Regexp, ValidationError
 from .security import is_safe_external_url
@@ -149,8 +150,15 @@ class ClubSettingsForm(FlaskForm):
         ('manual', 'Manual approval — admin must approve each request'),
     ])
     membership_dues_required = BooleanField('Require paid dues before membership becomes active')
+    membership_dues_mode = SelectField('Dues Payment Workflow', choices=[
+        ('manual', 'Phase 1 - Club-owned payment link with admin confirmation'),
+        ('stripe_connect', 'Phase 2 - Stripe Connect with automatic activation'),
+    ])
     membership_dues_url = StringField('External Dues Payment Link',
                                       validators=[Optional(), SafeURL(), Length(max=500)])
+    membership_dues_amount = DecimalField('Dues Amount (USD)',
+                                         validators=[Optional(), NumberRange(min=1, max=10000)],
+                                         places=2)
     membership_duration_months = IntegerField('Dues Valid For (months)',
                                              validators=[Optional(), NumberRange(min=1, max=60)],
                                              default=12)

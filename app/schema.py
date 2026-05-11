@@ -71,11 +71,26 @@ def ensure_runtime_schema():
     if club_columns and 'membership_dues_required' not in club_columns:
         db.session.execute(text('ALTER TABLE clubs ADD COLUMN membership_dues_required BOOLEAN NOT NULL DEFAULT FALSE'))
         changed = True
+    if club_columns and 'membership_dues_mode' not in club_columns:
+        db.session.execute(text("ALTER TABLE clubs ADD COLUMN membership_dues_mode VARCHAR(20) NOT NULL DEFAULT 'manual'"))
+        changed = True
     if club_columns and 'membership_dues_url' not in club_columns:
         db.session.execute(text('ALTER TABLE clubs ADD COLUMN membership_dues_url VARCHAR(500)'))
         changed = True
+    if club_columns and 'membership_dues_amount_cents' not in club_columns:
+        db.session.execute(text('ALTER TABLE clubs ADD COLUMN membership_dues_amount_cents INTEGER'))
+        changed = True
+    if club_columns and 'membership_dues_currency' not in club_columns:
+        db.session.execute(text("ALTER TABLE clubs ADD COLUMN membership_dues_currency VARCHAR(3) NOT NULL DEFAULT 'usd'"))
+        changed = True
     if club_columns and 'membership_duration_months' not in club_columns:
         db.session.execute(text('ALTER TABLE clubs ADD COLUMN membership_duration_months INTEGER NOT NULL DEFAULT 12'))
+        changed = True
+    if club_columns and 'stripe_account_id' not in club_columns:
+        db.session.execute(text('ALTER TABLE clubs ADD COLUMN stripe_account_id VARCHAR(255)'))
+        changed = True
+    if club_columns and 'stripe_account_connected_at' not in club_columns:
+        db.session.execute(text('ALTER TABLE clubs ADD COLUMN stripe_account_connected_at TIMESTAMP'))
         changed = True
 
     membership_columns = (
@@ -131,6 +146,11 @@ def ensure_runtime_schema():
     if 'club_ownership_transfers' not in inspector.get_table_names():
         from .models import ClubOwnershipTransfer
         ClubOwnershipTransfer.__table__.create(db.engine, checkfirst=True)
+        changed = True
+
+    if 'club_membership_payments' not in inspector.get_table_names():
+        from .models import ClubMembershipPayment
+        ClubMembershipPayment.__table__.create(db.engine, checkfirst=True)
         changed = True
 
     superadmin_emails = _configured_superadmin_emails()

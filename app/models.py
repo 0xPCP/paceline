@@ -206,8 +206,13 @@ class Club(db.Model):
     require_membership = db.Column(db.Boolean, default=False, nullable=False)  # must join before ride signup
     join_approval = db.Column(db.String(10), default='auto', nullable=False)   # 'auto' | 'manual'
     membership_dues_required = db.Column(db.Boolean, default=False, nullable=False)
+    membership_dues_mode = db.Column(db.String(20), default='manual', nullable=False)
     membership_dues_url = db.Column(db.String(500), nullable=True)
+    membership_dues_amount_cents = db.Column(db.Integer, nullable=True)
+    membership_dues_currency = db.Column(db.String(3), default='usd', nullable=False)
     membership_duration_months = db.Column(db.Integer, default=12, nullable=False)
+    stripe_account_id = db.Column(db.String(255), nullable=True)
+    stripe_account_connected_at = db.Column(db.DateTime, nullable=True)
 
     # Strava integration
     strava_club_id = db.Column(db.BigInteger, nullable=True)  # numeric Strava club ID
@@ -265,6 +270,20 @@ class Club(db.Model):
                 .first())
 
     @property
+    def stripe_dues_ready(self):
+        return bool(
+            self.membership_dues_mode == 'stripe_connect'
+            and self.stripe_account_id
+            and self.membership_dues_amount_cents
+        )
+
+    @property
+    def membership_dues_amount_display(self):
+        if not self.membership_dues_amount_cents:
+            return ''
+        return f'{self.membership_dues_amount_cents / 100:.2f}'
+
+    @property
     def effective_owner(self):
         if self.owner:
             return self.owner
@@ -291,6 +310,28 @@ class ClubMembership(db.Model):
     dues_confirmed_by = db.relationship('User', foreign_keys=[dues_confirmed_by_id])
 
     __table_args__ = (db.UniqueConstraint('user_id', 'club_id', name='uq_membership'),)
+
+
+class ClubMembershipPayment(db.Model):
+    """Tracks automated dues payments created through Stripe Connect."""
+    __tablename__ = 'club_membership_payments'
+
+    id = db.Column(db.Integer, primary_key=True)
+    club_id = db.Column(db.Integer, db.ForeignKey('clubs.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    membership_id = db.Column(db.Integer, db.ForeignKey('club_memberships.id'), nullable=False)
+    provider = db.Column(db.String(20), default='stripe', nullable=False)
+    provider_session_id = db.Column(db.String(255), unique=True, nullable=True)
+    provider_payment_intent_id = db.Column(db.String(255), nullable=True)
+    amount_cents = db.Column(db.Integer, nullable=False)
+    currency = db.Column(db.String(3), default='usd', nullable=False)
+    status = db.Column(db.String(20), default='pending', nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    paid_at = db.Column(db.DateTime, nullable=True)
+
+    club = db.relationship('Club')
+    user = db.relationship('User')
+    membership = db.relationship('ClubMembership')
 
 
 class ClubAdmin(db.Model):

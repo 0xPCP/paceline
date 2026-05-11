@@ -20,6 +20,7 @@ def membership_club(db):
         city='Reston', state='VA',
         require_membership=True,
         join_approval='auto',
+        is_hidden=False,
     )
     db.session.add(club)
     db.session.commit()
@@ -35,6 +36,7 @@ def manual_approval_club(db):
         city='Reston', state='VA',
         require_membership=True,
         join_approval='manual',
+        is_hidden=False,
     )
     db.session.add(club)
     db.session.commit()
@@ -49,6 +51,7 @@ def private_club(db):
         name='Private Cycling Club',
         city='Reston', state='VA',
         is_private=True,
+        is_hidden=False,
     )
     db.session.add(club)
     db.session.commit()

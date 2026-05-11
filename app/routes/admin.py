@@ -18,6 +18,7 @@ from ..recurrence import generate_instances, delete_future_instances
 from ..geocoding import geocode_zip
 from ..storage import get_storage
 from ..utils import process_logo_image, process_post_image
+from ..membership_dues import activate_membership_dues, default_dues_expiration
 from ..admin_stats import (active_superadmin_count, configured_superadmin_emails,
                            platform_report)
 from ..email import (send_cancellation_emails, send_new_ride_notification,
@@ -58,10 +59,7 @@ def _ensure_owner_membership_and_admin(club, user):
 
 
 def _confirm_membership_dues(membership, confirmed_by):
-    membership.status = 'active'
-    membership.dues_paid_until = _default_dues_expiration(membership.club)
-    membership.dues_confirmed_at = datetime.now(timezone.utc)
-    membership.dues_confirmed_by_id = confirmed_by.id
+    activate_membership_dues(membership, confirmed_by=confirmed_by)
 
 
 def _can_transfer_club_owner(club):
@@ -93,7 +91,7 @@ def _add_months(start_date, months):
 
 
 def _default_dues_expiration(club):
-    return _add_months(date.today(), club.membership_duration_months or 12)
+    return default_dues_expiration(club)
 
 
 def _require_fresh_auth():
@@ -601,6 +599,8 @@ def club_dashboard(slug):
 def club_settings(slug):
     club = _get_club_or_404(slug)
     form = ClubSettingsForm(obj=club)
+    if request.method == 'GET' and club.membership_dues_amount_cents:
+        form.membership_dues_amount.data = club.membership_dues_amount_cents / 100
     if form.validate_on_submit():
         club.name         = form.name.data
         club.tagline      = form.tagline.data or None
@@ -651,7 +651,14 @@ def club_settings(slug):
         club.require_membership = form.require_membership.data
         club.join_approval      = form.join_approval.data if form.join_approval.data in ('auto', 'manual') else 'auto'
         club.membership_dues_required = form.membership_dues_required.data
+        dues_mode = form.membership_dues_mode.data or 'manual'
+        club.membership_dues_mode = dues_mode if dues_mode in ('manual', 'stripe_connect') else 'manual'
         club.membership_dues_url = form.membership_dues_url.data or None
+        if form.membership_dues_amount.data is not None:
+            club.membership_dues_amount_cents = int(round(float(form.membership_dues_amount.data) * 100))
+        else:
+            club.membership_dues_amount_cents = None
+        club.membership_dues_currency = 'usd'
         club.membership_duration_months = form.membership_duration_months.data or 12
 
         club.facebook_url      = form.facebook_url.data or None

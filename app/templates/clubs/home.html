@@ -91,7 +91,13 @@
           <span class="btn btn-outline-light disabled">Pending Approval</span>
           <p class="text-white-50 small mb-0 mt-1">Your request is under review. You'll be notified when approved.</p>
           {% elif is_pending_payment %}
-          {% if club.membership_dues_url %}
+          {% if club.stripe_dues_ready %}
+          <form method="post" action="{{ url_for('stripe_connect.dues_checkout', slug=club.slug) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <button class="btn btn-paceline">Pay Club Dues</button>
+          </form>
+          <p class="text-white-50 small mb-0 mt-1">Your membership activates automatically after Stripe confirms payment.</p>
+          {% elif club.membership_dues_url %}
           <a class="btn btn-paceline" href="{{ club.membership_dues_url }}" target="_blank" rel="noopener">Pay Club Dues</a>
           <p class="text-white-50 small mb-0 mt-1">Your membership will activate after a club admin confirms payment.</p>
           {% else %}
