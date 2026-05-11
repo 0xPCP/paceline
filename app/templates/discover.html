@@ -60,7 +60,7 @@
            class="btn btn-xs btn-sm py-0 px-2 {{ 'btn-paceline' if r == radius else 'btn-outline-secondary' }}" style="font-size:.75rem">{{ r }}mi</a>
         {% endif %}
       {% endfor %}
-      <a href="{{ url_for('main.discover', source=source, range=active_range, pace=active_pace, type=active_type) }}"
+      <a href="{{ url_for('main.discover', source=source, range=active_range, pace=active_pace, type=active_type, no_geo=1) }}"
          class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.75rem">Clear location</a>
     </div>
   </div>
@@ -256,12 +256,27 @@
 {% block scripts %}
 <script nonce="{{ g.csp_nonce }}">
 (function () {
-  // Only trigger geolocation if no location is already in the URL
   const params = new URLSearchParams(window.location.search);
-  if (params.get('lat') || params.get('zip')) return;
-
   const prompt = document.getElementById('zip-prompt');
   const geoForm = document.getElementById('geo-form');
+
+  // Already has a location in the URL — clear the no-geo flag so future visits work
+  if (params.get('lat') || params.get('zip')) {
+    sessionStorage.removeItem('paceline_no_geo');
+    return;
+  }
+
+  // User clicked "Clear location" — remember their choice for this tab session
+  // so filter-tab changes don't silently re-trigger geo with the browser cache
+  if (params.get('no_geo')) {
+    sessionStorage.setItem('paceline_no_geo', '1');
+  }
+
+  if (params.get('no_geo') || sessionStorage.getItem('paceline_no_geo')) {
+    if (prompt) prompt.classList.remove('d-none');
+    return;
+  }
+
   if (!geoForm || !navigator.geolocation) {
     if (prompt) prompt.classList.remove('d-none');
     return;
