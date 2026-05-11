@@ -167,52 +167,53 @@
   {% for ride in rides %}
   {% set w = weather.get(ride.id) %}
   <div class="ride-card mb-3 {{ 'ride-cancelled' if ride.is_cancelled else '' }}">
-    <div class="d-flex gap-3 align-items-start">
+    <div class="rc-layout">
+
+      {# ── Date block ───────────────────────────────────────────────────────── #}
       <div class="ride-date-block">
         <div class="rdb-month">{{ ride.date.strftime('%b') }}</div>
         <div class="rdb-day">{{ ride.date.day }}</div>
       </div>
-      <div class="flex-grow-1 min-w-0">
 
-        {# ── Host row ────────────────────────────────────────────────────────── #}
+      {# ── Body ─────────────────────────────────────────────────────────────── #}
+      <div class="rc-body">
+
+        {# Host attribution (compact byline) #}
         {% if ride.owner_id %}
-        <div class="ride-host ride-host--personal mb-2">
-          <span class="ride-host-icon">👤</span>
-          <span class="ride-host-name">@{{ ride.owner.username }}</span>
-          <span class="ride-host-label">Personal ride</span>
+        <div class="rc-host rc-host--personal">
+          <span class="rc-host-icon">👤</span>
+          <span class="rc-host-name">@{{ ride.owner.username }}</span>
+          <span class="rc-host-label">· Personal</span>
         </div>
         {% else %}
-        <a href="{{ url_for('clubs.home', slug=ride.club.slug) }}" class="ride-host ride-host--club mb-2">
+        <a href="{{ url_for('clubs.home', slug=ride.club.slug) }}" class="rc-host rc-host--club">
           {% if ride.club.logo_key %}
             <img src="{{ url_for('clubs.serve_club_logo', slug=ride.club.slug) }}"
-                 alt="{{ ride.club.name }}"
-                 class="ride-host-logo" loading="lazy">
+                 alt="{{ ride.club.name }}" class="rc-host-logo" loading="lazy">
           {% elif ride.club.logo_url %}
-            <img src="{{ ride.club.logo_url }}"
-                 alt="{{ ride.club.name }}"
-                 class="ride-host-logo" loading="lazy"
-                 onerror="this.style.display='none'">
+            <img src="{{ ride.club.logo_url }}" alt="{{ ride.club.name }}"
+                 class="rc-host-logo" loading="lazy" onerror="this.style.display='none'">
           {% endif %}
-          <span class="ride-host-name">{{ ride.club.name }}</span>
-          {% if ride.club.is_verified %}<span class="verified-badge ms-1">✓ Verified</span>{% endif %}
+          <span class="rc-host-name">{{ ride.club.name }}</span>
+          {% if ride.club.is_verified %}<span class="rc-verified-mark" title="Verified club">✓</span>{% endif %}
         </a>
         {% endif %}
 
-        {# ── Badges row ─────────────────────────────────────────────────────── #}
-        <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+        {# Mobile-only badges (hidden on sm+, shown below host on small screens) #}
+        <div class="d-flex d-sm-none align-items-center gap-1 mb-1 flex-wrap">
           <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
-          {% if ride.ride_type %}<span class="badge bg-secondary" style="font-size:.7rem">{{ ride.ride_type.title() }}</span>{% endif %}
-          {% if w %}{% include '_weather_chip.html' with context %}{% endif %}
+          {% if ride.ride_type %}<span class="badge bg-secondary" style="font-size:.65rem">{{ ride.ride_type.title() }}</span>{% endif %}
+          {% if w %}{% set size = 'sm' %}{% include '_weather_chip.html' with context %}{% endif %}
         </div>
 
-        {# ── Title ──────────────────────────────────────────────────────────── #}
+        {# Title #}
         {% if ride.owner_id %}
           <a href="{{ url_for('user_rides.detail', ride_id=ride.id) }}" class="ride-title">{{ ride.title }}</a>
         {% else %}
           <a href="{{ url_for('clubs.ride_detail', slug=ride.club.slug, ride_id=ride.id) }}" class="ride-title">{{ ride.title }}</a>
         {% endif %}
 
-        {# ── Meta ───────────────────────────────────────────────────────────── #}
+        {# Meta #}
         <p class="ride-meta mb-0">
           {{ ride.time.strftime('%I:%M %p').lstrip('0') }} &bull;
           {{ ride.distance_miles }} mi
@@ -221,6 +222,16 @@
         </p>
 
       </div>
+
+      {# ── Aside: pace + weather (desktop only, sm+) ────────────────────────── #}
+      <div class="rc-aside d-none d-sm-flex">
+        <div class="d-flex align-items-center gap-1 flex-wrap justify-content-end">
+          <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
+          {% if ride.ride_type %}<span class="badge bg-secondary" style="font-size:.7rem">{{ ride.ride_type.title() }}</span>{% endif %}
+        </div>
+        {% if w %}{% include '_weather_chip.html' with context %}{% endif %}
+      </div>
+
     </div>
   </div>
   {% endfor %}
