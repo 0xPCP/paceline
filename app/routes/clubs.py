@@ -812,6 +812,17 @@ def invite_claim(token):
     return redirect(url_for('clubs.home', slug=club.slug))
 
 
+@clubs_bp.route('/<slug>/logo')
+def serve_club_logo(slug):
+    """Serve an uploaded club logo (always public)."""
+    from flask import current_app
+    club = _get_club_or_404(slug)
+    if not club.logo_key:
+        abort(404)
+    return get_storage().serve(club.logo_key, is_private=False,
+                               upload_folder=current_app.config['UPLOAD_FOLDER'])
+
+
 @clubs_bp.route('/<slug>/sponsors/<int:sponsor_id>/logo')
 def serve_sponsor_logo(slug, sponsor_id):
     """Serve an uploaded sponsor logo (always public)."""

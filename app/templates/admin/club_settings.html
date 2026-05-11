@@ -18,7 +18,7 @@
 <div class="container py-4">
   <div class="row">
     <div class="col-lg-8">
-      <form method="post" novalidate>
+      <form method="post" enctype="multipart/form-data" novalidate>
         {{ form.hidden_tag() }}
 
         <div class="mb-3">
@@ -77,10 +77,31 @@
           {% for e in form.contact_email.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
         </div>
 
-        <div class="mb-4">
-          {{ form.logo_url.label(class="form-label") }}
-          {{ form.logo_url(class="form-control" + (" is-invalid" if form.logo_url.errors else ""), placeholder="https://...") }}
-          <div class="form-text">Direct link to your club's logo image.</div>
+        <div class="mb-3">
+          <label class="form-label">Club Logo</label>
+          {% if club.logo_key %}
+          <div class="mb-2 d-flex align-items-center gap-2">
+            <img src="{{ url_for('clubs.serve_club_logo', slug=club.slug) }}" alt="Current logo"
+                 id="club-logo-preview"
+                 style="height:48px;max-width:160px;object-fit:contain;border-radius:6px;background:#f8f9fa;padding:4px;border:1px solid #dee2e6">
+            <span class="text-muted small">Current logo</span>
+          </div>
+          {% elif club.logo_url %}
+          <div class="mb-2 d-flex align-items-center gap-2">
+            <img src="{{ club.logo_url }}" alt="Current logo"
+                 id="club-logo-preview"
+                 style="height:48px;max-width:160px;object-fit:contain;border-radius:6px;background:#f8f9fa;padding:4px;border:1px solid #dee2e6"
+                 onerror="this.style.display='none'">
+            <span class="text-muted small">Current logo (URL)</span>
+          </div>
+          {% else %}
+          <img id="club-logo-preview" src="" alt="" style="height:48px;max-width:160px;object-fit:contain;border-radius:6px;background:#f8f9fa;padding:4px;border:1px solid #dee2e6;display:none" />
+          {% endif %}
+          {{ form.logo_file(class="form-control mb-2", id="club-logo-file", accept="image/*") }}
+          <div class="form-text mb-2">Upload a logo image (JPEG, PNG, or WebP). It will be resized automatically.</div>
+          {% for e in form.logo_file.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          {{ form.logo_url(class="form-control" + (" is-invalid" if form.logo_url.errors else ""), placeholder="https://… (optional, used if no file uploaded)") }}
+          <div class="form-text">Or paste a direct URL to your logo.</div>
           {% for e in form.logo_url.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
         </div>
 
@@ -144,7 +165,9 @@
         {% if club.theme_primary or club.theme_accent or club.banner_url %}
         <div class="mb-4 p-3 rounded" id="theme-preview"
              style="background:{{ club.theme_primary or '#1b4332' }};color:#fff;display:flex;align-items:center;gap:1rem;border-radius:8px;">
-          {% if club.logo_url %}
+          {% if club.logo_key %}
+          <img src="{{ url_for('clubs.serve_club_logo', slug=club.slug) }}" alt="" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:#fff;padding:3px">
+          {% elif club.logo_url %}
           <img src="{{ club.logo_url }}" alt="" style="width:40px;height:40px;object-fit:contain;border-radius:6px;background:#fff;padding:3px" onerror="this.style.display='none'">
           {% endif %}
           <span style="font-weight:700;font-size:1.05rem">{{ club.name }}</span>
@@ -346,5 +369,21 @@
   toggle.addEventListener('change', () => {
     panel.classList.toggle('opacity-50', !toggle.checked);
   });
+
+  const logoFile = document.getElementById('club-logo-file');
+  const logoPreview = document.getElementById('club-logo-preview');
+  if (logoFile && logoPreview) {
+    logoFile.addEventListener('change', () => {
+      const file = logoFile.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          logoPreview.src = e.target.result;
+          logoPreview.style.display = '';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
 </script>
 {% endblock %}

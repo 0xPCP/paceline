@@ -190,6 +190,7 @@ def discover():
     ride_type = request.args.get('type', '')
     date_range = request.args.get('range', 'week')
     zip_q     = request.args.get('zip', '').strip()
+    club_only = request.args.get('club_only', '') == '1'
     radius    = 50
 
     # Date window
@@ -213,12 +214,17 @@ def discover():
     # Limit to active clubs
     active_club_ids = [c.id for c in Club.query.filter_by(is_active=True, is_hidden=False).with_entities(Club.id).all()]
 
+    if club_only:
+        ride_filter = Ride.club_id.in_(active_club_ids)
+    else:
+        ride_filter = or_(
+            Ride.club_id.in_(active_club_ids),
+            and_(Ride.owner_id.isnot(None), Ride.is_private == False),
+        )
+
     query = (Ride.query
              .filter(
-                 or_(
-                     Ride.club_id.in_(active_club_ids),
-                     and_(Ride.owner_id.isnot(None), Ride.is_private == False),
-                 ),
+                 ride_filter,
                  Ride.is_cancelled == False,
                  Ride.date >= start_date,
                  Ride.date <= end_date,
@@ -262,4 +268,5 @@ def discover():
     return render_template('discover.html', rides=rides, weather=weather,
                            active_pace=pace, active_type=ride_type,
                            active_range=date_range, zip_q=zip_q,
+                           club_only=club_only,
                            geo_error=geo_error, ride_types=ride_types, today=today)

@@ -597,7 +597,15 @@ def club_settings(slug):
         club.state        = form.state.data or None
         club.address      = form.address.data or None
         club.contact_email = form.contact_email.data or None
-        club.logo_url     = form.logo_url.data or None
+        if form.logo_file.data and form.logo_file.data.filename:
+            _delete_club_logo(club.logo_key)
+            club.logo_key = _save_club_logo(form.logo_file.data, club.id)
+            club.logo_url = None
+        elif form.logo_url.data:
+            _delete_club_logo(club.logo_key)
+            club.logo_key = None
+            club.logo_url = form.logo_url.data or None
+        # if neither provided, keep existing logo_key/logo_url unchanged
 
         new_zip = (form.zip_code.data or '').strip()
         if new_zip != (club.zip_code or ''):
@@ -1215,6 +1223,22 @@ def _save_sponsor_logo(file, club_id):
 
 
 def _delete_sponsor_logo(key):
+    if key:
+        try:
+            get_storage().delete(key, upload_folder=current_app.config['UPLOAD_FOLDER'])
+        except Exception:
+            pass
+
+
+def _save_club_logo(file, club_id):
+    data = process_logo_image(file.stream.read())
+    key = f'club_logos/{club_id}/{uuid.uuid4().hex}.jpg'
+    storage = get_storage()
+    storage.save(key, data, upload_folder=current_app.config['UPLOAD_FOLDER'])
+    return key
+
+
+def _delete_club_logo(key):
     if key:
         try:
             get_storage().delete(key, upload_folder=current_app.config['UPLOAD_FOLDER'])

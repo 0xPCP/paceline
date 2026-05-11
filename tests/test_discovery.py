@@ -103,6 +103,85 @@ class TestDiscovery:
         r = client.get('/')
         assert b'Discover Rides' in r.data
 
+    def test_discover_club_only_filter_hides_user_rides(self, client, db, sample_club, regular_user, mock_weather):
+        """club_only=1 should exclude personal user rides."""
+        from app.models import User as UserModel
+        club_ride = Ride(
+            club_id=sample_club.id, title='Club Group Ride',
+            date=date.today() + timedelta(days=2), time=time(8, 0),
+            meeting_location='HQ', distance_miles=30.0, pace_category='B',
+        )
+        personal_ride = Ride(
+            owner_id=regular_user.id, title='My Personal Ride',
+            date=date.today() + timedelta(days=2), time=time(9, 0),
+            meeting_location='Start', distance_miles=25.0, pace_category='C',
+            is_private=False,
+        )
+        db.session.add_all([club_ride, personal_ride])
+        db.session.commit()
+
+        r = client.get('/discover/?range=week&club_only=1')
+        assert b'Club Group Ride' in r.data
+        assert b'My Personal Ride' not in r.data
+
+    def test_discover_without_club_only_shows_user_rides(self, client, db, sample_club, regular_user, mock_weather):
+        """Without club_only filter, personal public rides should appear."""
+        personal_ride = Ride(
+            owner_id=regular_user.id, title='Public Personal Ride',
+            date=date.today() + timedelta(days=2), time=time(9, 0),
+            meeting_location='Start', distance_miles=25.0, pace_category='C',
+            is_private=False,
+        )
+        db.session.add(personal_ride)
+        db.session.commit()
+
+        r = client.get('/discover/?range=week')
+        assert b'Public Personal Ride' in r.data
+
+    def test_discover_club_logo_url_shown(self, client, db, sample_club, mock_weather):
+        """Club logo URL should appear in ride card when club has a logo."""
+        sample_club.logo_url = 'https://example.com/logo.png'
+        db.session.commit()
+
+        db.session.add(Ride(
+            club_id=sample_club.id, title='Logo Test Ride',
+            date=date.today() + timedelta(days=2), time=time(8, 0),
+            meeting_location='HQ', distance_miles=20.0, pace_category='B',
+        ))
+        db.session.commit()
+
+        r = client.get('/discover/?range=week')
+        assert b'Logo Test Ride' in r.data
+        assert b'example.com/logo.png' in r.data
+
+    def test_discover_club_no_logo_shows_name(self, client, db, sample_club, mock_weather):
+        """When club has no logo, its name should still be shown as text."""
+        sample_club.logo_url = None
+        sample_club.logo_key = None
+        db.session.commit()
+
+        db.session.add(Ride(
+            club_id=sample_club.id, title='No Logo Ride',
+            date=date.today() + timedelta(days=2), time=time(8, 0),
+            meeting_location='HQ', distance_miles=20.0, pace_category='B',
+        ))
+        db.session.commit()
+
+        r = client.get('/discover/?range=week')
+        assert b'No Logo Ride' in r.data
+        assert sample_club.name.encode() in r.data
+
+    def test_discover_club_only_button_shown(self, client, mock_weather):
+        """Club Rides Only filter button should be rendered on the page."""
+        r = client.get('/discover/')
+        assert b'Club Rides Only' in r.data
+
+    def test_discover_favicon_in_base(self, client, mock_weather):
+        """Favicon .ico link should be present in discover page (extends base.html)."""
+        r = client.get('/discover/')
+        assert b'favicon.ico' in r.data
+        assert b'apple-touch-icon' in r.data
+
 
 # ── Ride leader roster ────────────────────────────────────────────────────────
 

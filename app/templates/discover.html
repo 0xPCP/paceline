@@ -18,11 +18,11 @@
       <div>
         <label class="form-label small mb-1">Date Range</label>
         <div class="btn-group" role="group">
-          <a href="{{ url_for('main.discover', range='weekend', pace=active_pace, type=active_type, zip=zip_q) }}"
+          <a href="{{ url_for('main.discover', range='weekend', pace=active_pace, type=active_type, zip=zip_q, club_only=club_only) }}"
              class="btn btn-sm {{ 'btn-paceline' if active_range == 'weekend' else 'btn-outline-secondary' }}">This Weekend</a>
-          <a href="{{ url_for('main.discover', range='week', pace=active_pace, type=active_type, zip=zip_q) }}"
+          <a href="{{ url_for('main.discover', range='week', pace=active_pace, type=active_type, zip=zip_q, club_only=club_only) }}"
              class="btn btn-sm {{ 'btn-paceline' if active_range == 'week' else 'btn-outline-secondary' }}">Next 7 Days</a>
-          <a href="{{ url_for('main.discover', range='two-weeks', pace=active_pace, type=active_type, zip=zip_q) }}"
+          <a href="{{ url_for('main.discover', range='two-weeks', pace=active_pace, type=active_type, zip=zip_q, club_only=club_only) }}"
              class="btn btn-sm {{ 'btn-paceline' if active_range == 'two-weeks' else 'btn-outline-secondary' }}">Next 2 Weeks</a>
         </div>
       </div>
@@ -31,7 +31,7 @@
         <label class="form-label small mb-1">Pace</label>
         <div class="btn-group" role="group">
           {% for p in ['A','B','C','D'] %}
-          <a href="{{ url_for('main.discover', range=active_range, pace=('' if active_pace == p else p), type=active_type, zip=zip_q) }}"
+          <a href="{{ url_for('main.discover', range=active_range, pace=('' if active_pace == p else p), type=active_type, zip=zip_q, club_only=club_only) }}"
              class="btn btn-sm {{ 'pace-badge pace-' + p if active_pace == p else 'btn-outline-secondary' }}">{{ p }}</a>
           {% endfor %}
         </div>
@@ -48,6 +48,7 @@
         <input type="hidden" name="range" value="{{ active_range }}">
         <input type="hidden" name="pace" value="{{ active_pace }}">
         <input type="hidden" name="zip" value="{{ zip_q }}">
+        <input type="hidden" name="club_only" value="{{ '1' if club_only else '' }}">
       </div>
 
       <div>
@@ -57,8 +58,15 @@
           <input type="hidden" name="range" value="{{ active_range }}">
           <input type="hidden" name="pace" value="{{ active_pace }}">
           <input type="hidden" name="type" value="{{ active_type }}">
+          <input type="hidden" name="club_only" value="{{ '1' if club_only else '' }}">
           <button class="btn btn-outline-secondary" type="submit">Go</button>
         </div>
+      </div>
+
+      <div>
+        <label class="form-label small mb-1 d-block">&nbsp;</label>
+        <a href="{{ url_for('main.discover', range=active_range, pace=active_pace, type=active_type, zip=zip_q, club_only=('' if club_only else '1')) }}"
+           class="btn btn-sm {{ 'btn-paceline' if club_only else 'btn-outline-secondary' }}">Club Rides Only</a>
       </div>
 
     </div>
@@ -96,7 +104,27 @@
           {% if ride.owner_id %}
             &bull; <span class="text-muted">@{{ ride.owner.username }}</span>
           {% else %}
-            &bull; <a href="{{ url_for('clubs.home', slug=ride.club.slug) }}" class="text-muted">{{ ride.club.name }}</a>
+            &bull;
+            {% if ride.club.logo_key %}
+              <a href="{{ url_for('clubs.home', slug=ride.club.slug) }}" class="text-muted d-inline-flex align-items-center gap-1">
+                <img src="{{ url_for('clubs.serve_club_logo', slug=ride.club.slug) }}"
+                     alt="{{ ride.club.name }}"
+                     style="height:20px;max-width:60px;object-fit:contain;vertical-align:middle;border-radius:3px"
+                     loading="lazy">
+                <span>{{ ride.club.name }}</span>
+              </a>
+            {% elif ride.club.logo_url %}
+              <a href="{{ url_for('clubs.home', slug=ride.club.slug) }}" class="text-muted d-inline-flex align-items-center gap-1">
+                <img src="{{ ride.club.logo_url }}"
+                     alt="{{ ride.club.name }}"
+                     style="height:20px;max-width:60px;object-fit:contain;vertical-align:middle;border-radius:3px"
+                     loading="lazy"
+                     onerror="this.style.display='none'">
+                <span>{{ ride.club.name }}</span>
+              </a>
+            {% else %}
+              <a href="{{ url_for('clubs.home', slug=ride.club.slug) }}" class="text-muted">{{ ride.club.name }}</a>
+            {% endif %}
           {% endif %}
           &bull; <strong>{{ ride.signup_count }}</strong> signed up
         </p>
