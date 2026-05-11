@@ -9,7 +9,7 @@ from app import create_app
 from app.extensions import db, bcrypt
 from app.models import (User, Club, ClubMembership, ClubAdmin, ClubWaiver,
                          WaiverSignature, Ride, RideSignup, UserRideInvite,
-                         ClubSponsor, ClubPost)
+                         ClubSponsor, ClubPost, ClubLeader)
 
 app = create_app()
 
@@ -57,6 +57,7 @@ with app.app_context():
             'Founded in 1972, RBC welcomes cyclists of all abilities. '
             'We ride rain or shine and believe cycling is best done together.'
         ),
+        logo_url='https://placehold.co/220x80/2d6a4f/ffffff?text=RESTON+BIKE+CLUB&font=montserrat',
         website='https://restonbikeclub.org',
         contact_email='info@restonbikeclub.org',
         banner_url='https://images.unsplash.com/photo-1541625602330-2277a4c46182?w=1400&q=80',
@@ -88,6 +89,7 @@ with app.app_context():
             'Fast-paced road and gravel club based in McLean and the DC suburbs. '
             'Known for challenging Saturday hammerfests and weeknight criterium training.'
         ),
+        logo_url='https://placehold.co/220x80/1565c0/ffffff?text=NVCC&font=montserrat',
         website='https://example.com/nvcc',
         banner_url='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1400&q=80',
         contact_email='info@nvcc.dev',
@@ -111,6 +113,9 @@ with app.app_context():
             'Northern Virginia\'s premier women\'s cycling club. '
             'Supportive, no-drop rides for all fitness levels plus structured training for racers.'
         ),
+        logo_url='https://placehold.co/220x80/6c3483/ffffff?text=ARTEMIS+CYCLING&font=montserrat',
+        is_verified=True,
+        is_hidden=False,
         website='https://example.com/artemis',
         banner_url='https://images.unsplash.com/photo-1571188654248-7a89213915f7?w=1400&q=80',
         contact_email='info@artemis.dev',
@@ -288,6 +293,49 @@ with app.app_context():
     db.session.commit()
     print("Created RBC news posts")
 
+    # ── Club Leaders ──────────────────────────────────────────────────────────
+    db.session.add_all([
+        ClubLeader(club_id=rbc.id, user_id=dkeller.id,
+                   name='Dave Keller', display_order=1,
+                   bio='RBC club admin and Tuesday Worlds pace-setter. 12 years of racing in NoVA. '
+                       'Cat 3 road racer and Century veteran.',
+                   photo_url='https://i.pravatar.cc/150?img=52'),
+        ClubLeader(club_id=rbc.id, name='Linda Harrison', display_order=2,
+                   bio='Leads the Wednesday Morning Ramble and Saturday C group. '
+                       'Passionate about getting more cyclists on the road at any pace.',
+                   photo_url='https://i.pravatar.cc/150?img=47'),
+        ClubLeader(club_id=rbc.id, name='Tom Reynolds', display_order=3,
+                   bio='Tuesday B group leader. Former collegiate racer turned club evangelist. '
+                       'Specializes in no-drop rides that somehow still challenge everyone.',
+                   photo_url='https://i.pravatar.cc/150?img=11'),
+        ClubLeader(club_id=rbc.id, name='Jennifer Larson', display_order=4,
+                   bio="Organizes the Women's Thursday evening rides. "
+                       "Certified USA Cycling coach and Level 1 first aid.",
+                   photo_url='https://i.pravatar.cc/150?img=44'),
+        ClubLeader(club_id=rbc.id, name='Mark Whitfield', display_order=5,
+                   bio='Thursday evening B group. Mechanical whiz — never stranded a rider yet.',
+                   photo_url='https://i.pravatar.cc/150?img=65'),
+        # NVCC
+        ClubLeader(club_id=nvcc.id, user_id=arider.id,
+                   name='Alex Rider', display_order=1,
+                   bio='NVCC founder and Thursday Night Worlds architect. '
+                       'Cat 2 road racer. "If it hurts, you\'re doing it right."',
+                   photo_url='https://i.pravatar.cc/150?img=33'),
+        ClubLeader(club_id=nvcc.id, user_id=bclimber.id,
+                   name='Beth Climber', display_order=2,
+                   bio='Saturday hammerfest leader. Loves long days and big climbs. '
+                       'Specializes in the Great Falls–Chain Bridge sufferfest.',
+                   photo_url='https://i.pravatar.cc/150?img=48'),
+        # Artemis
+        ClubLeader(club_id=artemis.id, user_id=cspinner.id,
+                   name='Claire Spinner', display_order=1,
+                   bio='Head ride leader for Artemis. Certified cycling coach with 8 years '
+                       'leading women\'s group rides. Believes every woman deserves a strong cycling community.',
+                   photo_url='https://i.pravatar.cc/150?img=49'),
+    ])
+    db.session.commit()
+    print("Created club leaders")
+
     # ── RBC Rides ─────────────────────────────────────────────────────────────
     HUNTERWOODS  = 'Hunterwoods Shopping Center, 2324 Hunter Mill Rd, Reston, VA'
     ARTSPACE     = 'ArtSpace Parking Lot, 635 Herndon Pkwy, Herndon, VA'
@@ -440,6 +488,159 @@ with app.app_context():
              )),
     ]
 
+    # ── RBC extended schedule: weeks 4-9 (May 11 – June 14) ─────────────────
+    rbc_upcoming = [
+        # Week 4: May 11–17
+        Ride(club_id=rbc.id, title='Tuesday Worlds — A Group',
+             date=date(2026, 5, 12), time=time(17, 0), meeting_location=HUNTERWOODS,
+             distance_miles=40, elevation_feet=2200, pace_category='A', ride_type='road',
+             ride_leader='Dave K.', route_url=RWGPS_TUE_WORLDS,
+             description='No mercy. Bring race legs.'),
+        Ride(club_id=rbc.id, title='Tuesday Evening — B Group',
+             date=date(2026, 5, 12), time=time(17, 0), meeting_location=HUNTERWOODS,
+             distance_miles=28, elevation_feet=1350, pace_category='B', ride_type='road',
+             ride_leader='Tom R.', route_url=RWGPS_TUE_B),
+        Ride(club_id=rbc.id, title='Wednesday Morning Ramble',
+             date=date(2026, 5, 13), time=time(10, 0), meeting_location=BIKE_LANE,
+             distance_miles=24, elevation_feet=850, pace_category='C', ride_type='social',
+             ride_leader='Linda H.', route_url=RWGPS_WED_RAMBLE,
+             description='Easy mid-week spin. Coffee stop on return.'),
+        Ride(club_id=rbc.id, title='Wednesday Evening Gravel — NEW',
+             date=date(2026, 5, 13), time=time(18, 0), meeting_location='Reston Town Center Parking Garage, Reston, VA',
+             distance_miles=28, elevation_feet=1800, pace_category='B', ride_type='gravel',
+             ride_leader='Dave K.',
+             description='Inaugural Wednesday evening gravel ride. Potomac Heritage Trail system. Lights required.'),
+        Ride(club_id=rbc.id, title='Thursday Evening — B Group',
+             date=date(2026, 5, 14), time=time(17, 0), meeting_location=ARTSPACE,
+             distance_miles=30, elevation_feet=1500, pace_category='B', ride_type='road',
+             ride_leader='Mark W.', route_url=RWGPS_THU_B),
+        Ride(club_id=rbc.id, title="Women's Thursday Ride",
+             date=date(2026, 5, 14), time=time(18, 0), meeting_location=LAKE_NEWPORT,
+             distance_miles=18, elevation_feet=600, pace_category='D', ride_type='social',
+             ride_leader='Jennifer L.', route_url=RWGPS_WOMENS_THU,
+             description='No drop. All welcome.'),
+        Ride(club_id=rbc.id, title='Saturday Club Ride — A Group',
+             date=date(2026, 5, 16), time=time(8, 0), meeting_location=HUNTERWOODS,
+             distance_miles=58, elevation_feet=3400, pace_category='A', ride_type='road',
+             ride_leader='Dave K.', route_url=RWGPS_MIDDLEBURG,
+             description='Middleburg loop. Bring two full bottles and a snack.'),
+        Ride(club_id=rbc.id, title='Saturday Club Ride — B Group',
+             date=date(2026, 5, 16), time=time(8, 30), meeting_location=HUNTERWOODS,
+             distance_miles=40, elevation_feet=2000, pace_category='B', ride_type='road',
+             ride_leader='Susan P.', route_url=RWGPS_SAT_B_LEESB),
+        Ride(club_id=rbc.id, title='Saturday Club Ride — C Group',
+             date=date(2026, 5, 16), time=time(9, 0), meeting_location=HUNTERWOODS,
+             distance_miles=30, elevation_feet=1100, pace_category='C', ride_type='road',
+             ride_leader='Linda H.', route_url=RWGPS_SAT_C),
+        # Week 5: May 18–24
+        Ride(club_id=rbc.id, title='Tuesday Worlds — A Group',
+             date=date(2026, 5, 19), time=time(17, 0), meeting_location=HUNTERWOODS,
+             distance_miles=40, elevation_feet=2200, pace_category='A', ride_type='road',
+             ride_leader='Dave K.', route_url=RWGPS_TUE_WORLDS),
+        Ride(club_id=rbc.id, title='Tuesday Evening — B Group',
+             date=date(2026, 5, 19), time=time(17, 0), meeting_location=HUNTERWOODS,
+             distance_miles=28, elevation_feet=1350, pace_category='B', ride_type='road',
+             ride_leader='Tom R.', route_url=RWGPS_TUE_B),
+        Ride(club_id=rbc.id, title='Wednesday Evening Gravel',
+             date=date(2026, 5, 20), time=time(18, 0), meeting_location='Reston Town Center Parking Garage, Reston, VA',
+             distance_miles=30, elevation_feet=1900, pace_category='B', ride_type='gravel',
+             ride_leader='Mark W.',
+             description='Gravel + doubletrack. Tubeless recommended. Lights required.'),
+        Ride(club_id=rbc.id, title='Thursday Evening — B Group',
+             date=date(2026, 5, 21), time=time(17, 0), meeting_location=ARTSPACE,
+             distance_miles=30, elevation_feet=1500, pace_category='B', ride_type='road',
+             ride_leader='Mark W.', route_url=RWGPS_THU_B),
+        Ride(club_id=rbc.id, title="Women's Thursday Ride",
+             date=date(2026, 5, 21), time=time(18, 0), meeting_location=LAKE_NEWPORT,
+             distance_miles=20, elevation_feet=700, pace_category='D', ride_type='social',
+             ride_leader='Jennifer L.', route_url=RWGPS_WOMENS_THU),
+        Ride(club_id=rbc.id, title='Saturday Goose Creek Loop — A Group',
+             date=date(2026, 5, 23), time=time(8, 0), meeting_location=HUNTERWOODS,
+             distance_miles=62, elevation_feet=3800, pace_category='A', ride_type='road',
+             ride_leader='Dave K.', route_url=RWGPS_GOOSE_CREEK,
+             description='Big Loudoun loop. 62 miles. Bring food.'),
+        Ride(club_id=rbc.id, title='Saturday Club Ride — C/D Group',
+             date=date(2026, 5, 23), time=time(9, 0), meeting_location=HUNTERWOODS,
+             distance_miles=28, elevation_feet=900, pace_category='C', ride_type='road',
+             ride_leader='Linda H.', route_url=RWGPS_SUNDAY_EASY),
+        # Week 6: May 25–31 (Memorial Day week)
+        Ride(club_id=rbc.id, title='Memorial Day Ride — All Paces Welcome',
+             date=date(2026, 5, 25), time=time(9, 0), meeting_location=HUNTERWOODS,
+             distance_miles=35, elevation_feet=1400, pace_category='C', ride_type='social',
+             ride_leader='Linda H.',
+             description='Annual Memorial Day club ride. Steady pace, no drop. '
+                         'All members and guests welcome. Post-ride cookout at Lake Newport.'),
+        Ride(club_id=rbc.id, title='Tuesday Worlds — A Group',
+             date=date(2026, 5, 26), time=time(17, 0), meeting_location=HUNTERWOODS,
+             distance_miles=40, elevation_feet=2200, pace_category='A', ride_type='road',
+             ride_leader='Dave K.', route_url=RWGPS_TUE_WORLDS),
+        Ride(club_id=rbc.id, title='Wednesday Evening Gravel',
+             date=date(2026, 5, 27), time=time(18, 0), meeting_location='Reston Town Center Parking Garage, Reston, VA',
+             distance_miles=28, elevation_feet=1750, pace_category='B', ride_type='gravel',
+             ride_leader='Dave K.'),
+        Ride(club_id=rbc.id, title='Thursday Evening — B Group',
+             date=date(2026, 5, 28), time=time(17, 0), meeting_location=ARTSPACE,
+             distance_miles=32, elevation_feet=1600, pace_category='B', ride_type='road',
+             ride_leader='Mark W.', route_url=RWGPS_THU_B),
+        Ride(club_id=rbc.id, title='Saturday Club Ride — A Group',
+             date=date(2026, 5, 30), time=time(8, 0), meeting_location=HUNTERWOODS,
+             distance_miles=55, elevation_feet=3200, pace_category='A', ride_type='road',
+             ride_leader='Dave K.', route_url=RWGPS_SAT_A_LEESB),
+        Ride(club_id=rbc.id, title='Saturday Club Ride — B/C Group',
+             date=date(2026, 5, 30), time=time(8, 30), meeting_location=HUNTERWOODS,
+             distance_miles=38, elevation_feet=1800, pace_category='B', ride_type='road',
+             ride_leader='Tom R.', route_url=RWGPS_SAT_B_LEESB),
+        # Week 7: June 1–7
+        Ride(club_id=rbc.id, title='Tuesday Worlds — A Group',
+             date=date(2026, 6, 2), time=time(17, 0), meeting_location=HUNTERWOODS,
+             distance_miles=40, elevation_feet=2200, pace_category='A', ride_type='road',
+             ride_leader='Dave K.', route_url=RWGPS_TUE_WORLDS),
+        Ride(club_id=rbc.id, title='Tuesday Evening — B Group',
+             date=date(2026, 6, 2), time=time(17, 0), meeting_location=HUNTERWOODS,
+             distance_miles=30, elevation_feet=1400, pace_category='B', ride_type='road',
+             ride_leader='Tom R.', route_url=RWGPS_TUE_B),
+        Ride(club_id=rbc.id, title='Wednesday Evening Gravel',
+             date=date(2026, 6, 3), time=time(18, 0), meeting_location='Reston Town Center Parking Garage, Reston, VA',
+             distance_miles=30, elevation_feet=1900, pace_category='B', ride_type='gravel',
+             ride_leader='Mark W.',
+             description='Night gravel is here — lights are mandatory past 7:30.'),
+        Ride(club_id=rbc.id, title='Thursday Evening — B Group',
+             date=date(2026, 6, 4), time=time(17, 0), meeting_location=ARTSPACE,
+             distance_miles=30, elevation_feet=1500, pace_category='B', ride_type='road',
+             ride_leader='Mark W.', route_url=RWGPS_THU_B),
+        Ride(club_id=rbc.id, title="Women's Thursday Ride",
+             date=date(2026, 6, 4), time=time(18, 0), meeting_location=LAKE_NEWPORT,
+             distance_miles=20, elevation_feet=700, pace_category='D', ride_type='social',
+             ride_leader='Jennifer L.', route_url=RWGPS_WOMENS_THU),
+        Ride(club_id=rbc.id, title='Saturday Club Ride — A Group',
+             date=date(2026, 6, 6), time=time(8, 0), meeting_location=HUNTERWOODS,
+             distance_miles=62, elevation_feet=3800, pace_category='A', ride_type='road',
+             ride_leader='Dave K.', route_url=RWGPS_GOOSE_CREEK),
+        Ride(club_id=rbc.id, title='Saturday Club Ride — C Group',
+             date=date(2026, 6, 6), time=time(9, 0), meeting_location=HUNTERWOODS,
+             distance_miles=30, elevation_feet=1100, pace_category='C', ride_type='road',
+             ride_leader='Linda H.', route_url=RWGPS_SAT_C),
+        # Week 8: June 8–14
+        Ride(club_id=rbc.id, title='Tuesday Worlds — A Group',
+             date=date(2026, 6, 9), time=time(17, 0), meeting_location=HUNTERWOODS,
+             distance_miles=40, elevation_feet=2200, pace_category='A', ride_type='road',
+             ride_leader='Dave K.', route_url=RWGPS_TUE_WORLDS),
+        Ride(club_id=rbc.id, title='Wednesday Evening Gravel',
+             date=date(2026, 6, 10), time=time(18, 0), meeting_location='Reston Town Center Parking Garage, Reston, VA',
+             distance_miles=28, elevation_feet=1750, pace_category='B', ride_type='gravel',
+             ride_leader='Dave K.'),
+        Ride(club_id=rbc.id, title='Saturday Middleburg Loop — A Group',
+             date=date(2026, 6, 13), time=time(7, 30), meeting_location=HUNTERWOODS,
+             distance_miles=65, elevation_feet=4000, pace_category='A', ride_type='road',
+             ride_leader='Dave K.', route_url=RWGPS_MIDDLEBURG,
+             description='Early start for the heat. Biggest RBC ride of the month.'),
+        Ride(club_id=rbc.id, title='Saturday Club Ride — B Group',
+             date=date(2026, 6, 13), time=time(8, 30), meeting_location=HUNTERWOODS,
+             distance_miles=42, elevation_feet=2100, pace_category='B', ride_type='road',
+             ride_leader='Tom R.', route_url=RWGPS_SAT_B_LEESB),
+    ]
+    rbc_rides = rbc_rides + rbc_upcoming
+
     # ── NVCC Rides ────────────────────────────────────────────────────────────
     MCLEAN_CC    = 'McLean Community Center, 1234 Ingleside Ave, McLean, VA'
     GREAT_FALLS  = 'Great Falls Park Entrance, Georgetown Pike, Great Falls, VA'
@@ -473,6 +674,49 @@ with app.app_context():
              date=date(2026, 5, 7), time=time(18, 0), meeting_location=MCLEAN_CC,
              distance_miles=32, elevation_feet=1800, pace_category='A', ride_type='road',
              ride_leader='Alex R.'),
+        # Upcoming NVCC
+        Ride(club_id=nvcc.id, title='Thursday Night Worlds',
+             date=date(2026, 5, 14), time=time(18, 0), meeting_location=MCLEAN_CC,
+             distance_miles=34, elevation_feet=1900, pace_category='A', ride_type='road',
+             ride_leader='Alex R.',
+             description='Chain Bridge loop with a Georgetown climb bonus.'),
+        Ride(club_id=nvcc.id, title='Saturday Great Falls Hammerfest',
+             date=date(2026, 5, 16), time=time(7, 30), meeting_location=MCLEAN_CC,
+             distance_miles=62, elevation_feet=4400, pace_category='A', ride_type='road',
+             ride_leader='Beth C.',
+             description='Great Falls + River Rd + MacArthur Blvd loop. Bring your legs.'),
+        Ride(club_id=nvcc.id, title='Sunday Recovery Spin',
+             date=date(2026, 5, 17), time=time(9, 0), meeting_location=GREAT_FALLS,
+             distance_miles=28, elevation_feet=900, pace_category='C', ride_type='social',
+             ride_leader='Alex R.',
+             description='Easy Sunday miles. Coffee at Great Falls General Store.'),
+        Ride(club_id=nvcc.id, title='Thursday Night Worlds',
+             date=date(2026, 5, 21), time=time(18, 0), meeting_location=MCLEAN_CC,
+             distance_miles=32, elevation_feet=1800, pace_category='A', ride_type='road',
+             ride_leader='Beth C.'),
+        Ride(club_id=nvcc.id, title='Saturday Great Falls Hammerfest',
+             date=date(2026, 5, 23), time=time(7, 30), meeting_location=MCLEAN_CC,
+             distance_miles=65, elevation_feet=4600, pace_category='A', ride_type='road',
+             ride_leader='Alex R.',
+             description='Long version this week — Poolesville extension.'),
+        Ride(club_id=nvcc.id, title='Thursday Night Worlds',
+             date=date(2026, 5, 28), time=time(18, 0), meeting_location=MCLEAN_CC,
+             distance_miles=32, elevation_feet=1800, pace_category='A', ride_type='road',
+             ride_leader='Alex R.'),
+        Ride(club_id=nvcc.id, title='Saturday Great Falls Hammerfest',
+             date=date(2026, 5, 30), time=time(7, 30), meeting_location=MCLEAN_CC,
+             distance_miles=60, elevation_feet=4200, pace_category='A', ride_type='road',
+             ride_leader='Beth C.'),
+        Ride(club_id=nvcc.id, title='Thursday Night Worlds',
+             date=date(2026, 6, 4), time=time(18, 0), meeting_location=MCLEAN_CC,
+             distance_miles=34, elevation_feet=1900, pace_category='A', ride_type='road',
+             ride_leader='Alex R.',
+             description='Pre-summer sufferfest. Longest daylight of the year.'),
+        Ride(club_id=nvcc.id, title='Saturday Great Falls Hammerfest',
+             date=date(2026, 6, 6), time=time(7, 0), meeting_location=MCLEAN_CC,
+             distance_miles=70, elevation_feet=5000, pace_category='A', ride_type='road',
+             ride_leader='Beth C.',
+             description='June mega-ride. 70 miles, 5k feet. Show up ready.'),
     ]
 
     # ── Artemis Rides ─────────────────────────────────────────────────────────
@@ -508,6 +752,55 @@ with app.app_context():
              distance_miles=12, elevation_feet=300, pace_category='D', ride_type='social',
              ride_leader='Claire S.',
              description='Never ridden in a group before? This is for you. Max 12mph, fully no-drop.'),
+        # Upcoming Artemis
+        Ride(club_id=artemis.id, title='Tuesday Empowerment Ride',
+             date=date(2026, 5, 12), time=time(18, 30), meeting_location=BALLSTON,
+             distance_miles=22, elevation_feet=750, pace_category='C', ride_type='social',
+             ride_leader='Claire S.',
+             description='Supportive group, we regroup at every mile marker.'),
+        Ride(club_id=artemis.id, title='Saturday Training Ride — Intermediate',
+             date=date(2026, 5, 16), time=time(8, 0), meeting_location=ROSSLYN,
+             distance_miles=44, elevation_feet=2200, pace_category='B', ride_type='training',
+             ride_leader='Beth C.',
+             description='Focus this week: climbing technique and recovery pedaling.'),
+        Ride(club_id=artemis.id, title='Saturday Training Ride — Advanced',
+             date=date(2026, 5, 16), time=time(8, 0), meeting_location=ROSSLYN,
+             distance_miles=58, elevation_feet=3400, pace_category='A', ride_type='training',
+             ride_leader='Claire S.',
+             description='Race simulation ride. 3x10min threshold efforts.'),
+        Ride(club_id=artemis.id, title='Tuesday Empowerment Ride',
+             date=date(2026, 5, 19), time=time(18, 30), meeting_location=BALLSTON,
+             distance_miles=20, elevation_feet=700, pace_category='C', ride_type='social',
+             ride_leader='Claire S.'),
+        Ride(club_id=artemis.id, title='Saturday Training Ride — Intermediate',
+             date=date(2026, 5, 23), time=time(8, 0), meeting_location=ROSSLYN,
+             distance_miles=42, elevation_feet=2000, pace_category='B', ride_type='training',
+             ride_leader='Beth C.'),
+        Ride(club_id=artemis.id, title='Tuesday Empowerment Ride',
+             date=date(2026, 5, 26), time=time(18, 30), meeting_location=BALLSTON,
+             distance_miles=22, elevation_feet=800, pace_category='C', ride_type='social',
+             ride_leader='Claire S.',
+             description='Post-Memorial Day ride. Easy pace, good vibes.'),
+        Ride(club_id=artemis.id, title='Saturday Gran Fondo — Artemis Signature Ride',
+             date=date(2026, 5, 30), time=time(7, 30), meeting_location=ROSSLYN,
+             distance_miles=75, elevation_feet=4800, pace_category='B', ride_type='event',
+             ride_leader='Claire S.',
+             description='Annual Artemis Gran Fondo. Two waves: 75mi and 45mi. '
+                         'SAG support, jerseys for finishers. Women and non-binary cyclists only.'),
+        Ride(club_id=artemis.id, title='Tuesday Empowerment Ride',
+             date=date(2026, 6, 2), time=time(18, 30), meeting_location=BALLSTON,
+             distance_miles=20, elevation_feet=700, pace_category='C', ride_type='social',
+             ride_leader='Claire S.'),
+        Ride(club_id=artemis.id, title='Saturday Training Ride — All Levels',
+             date=date(2026, 6, 6), time=time(8, 30), meeting_location=ROSSLYN,
+             distance_miles=38, elevation_feet=1800, pace_category='C', ride_type='training',
+             ride_leader='Beth C.',
+             description='All-levels ride this week. We split at mile 10 — A group pushes, C group enjoys.'),
+        Ride(club_id=artemis.id, title='New Rider Orientation Ride',
+             date=date(2026, 6, 7), time=time(10, 0), meeting_location=BALLSTON,
+             distance_miles=12, elevation_feet=300, pace_category='D', ride_type='social',
+             ride_leader='Claire S.',
+             description='Monthly new rider welcome. Helmets required, no experience needed.'),
     ]
 
     all_rides = rbc_rides + nvcc_rides + artemis_rides
@@ -527,7 +820,7 @@ with app.app_context():
     signup(rbc_rides[3],  dkeller, phil, jsmith)
     signup(rbc_rides[4],  mbaker, kroller, twheels)
 
-    # RBC upcoming
+    # RBC past/week 1-3 signups
     signup(rbc_rides[5],  dkeller, phil)
     signup(rbc_rides[6],  jsmith, mbaker, twheels, smartin)
     signup(rbc_rides[7],  mbaker, kroller, smartin)
@@ -535,17 +828,53 @@ with app.app_context():
     signup(rbc_rides[9],  mbaker, kroller)
     signup(rbc_rides[10], dkeller, phil, jsmith)
     signup(rbc_rides[11], mbaker, twheels, kroller)
-    signup(rbc_rides[25], dkeller, phil, jsmith, smartin)  # Century
+    signup(rbc_rides[26], dkeller, phil, jsmith, smartin)  # Century
+
+    # RBC upcoming weeks 4-9 (indices 27+)
+    # Week 4 (May 11-17): rbc_rides[27] is first rbc_upcoming item
+    week4_start = 27
+    signup(rbc_rides[week4_start + 0], dkeller, phil, jsmith, smartin)       # Tue A
+    signup(rbc_rides[week4_start + 1], mbaker, twheels, kroller)              # Tue B
+    signup(rbc_rides[week4_start + 2], mbaker, kroller, smartin)              # Wed Ramble
+    signup(rbc_rides[week4_start + 3], dkeller, phil, jsmith)                 # Wed Gravel
+    signup(rbc_rides[week4_start + 4], phil, twheels, jsmith)                 # Thu B
+    signup(rbc_rides[week4_start + 5], mbaker, kroller)                       # Women's Thu
+    signup(rbc_rides[week4_start + 6], dkeller, phil, jsmith, smartin)        # Sat A
+    signup(rbc_rides[week4_start + 7], twheels, mbaker, kroller)              # Sat B
+    signup(rbc_rides[week4_start + 8], kroller, smartin)                      # Sat C
+
+    # Week 5 (May 18-24): +9
+    week5_start = week4_start + 9
+    signup(rbc_rides[week5_start + 0], dkeller, phil)                         # Tue A
+    signup(rbc_rides[week5_start + 1], jsmith, mbaker, twheels)               # Tue B
+    signup(rbc_rides[week5_start + 2], dkeller, phil, jsmith)                 # Wed Gravel
+    signup(rbc_rides[week5_start + 3], phil, twheels)                         # Thu B
+    signup(rbc_rides[week5_start + 4], mbaker, kroller)                       # Women's Thu
+    signup(rbc_rides[week5_start + 5], dkeller, jsmith, smartin)              # Sat A
+    signup(rbc_rides[week5_start + 6], mbaker, kroller)                       # Sat C/D
+
+    # Memorial Day week (week 6) + Ken Thompson Century
+    week6_start = week5_start + 7
+    signup(rbc_rides[week6_start + 0], dkeller, phil, jsmith, mbaker, kroller, smartin, twheels)  # Memorial Day ride
 
     # NVCC
     signup(nvcc_rides[0], arider, bclimber, phil)
     signup(nvcc_rides[1], arider, bclimber)
     signup(nvcc_rides[2], arider, phil)
+    # NVCC upcoming
+    signup(nvcc_rides[6], arider, bclimber)                                   # Thu May 14
+    signup(nvcc_rides[7], arider, bclimber, dkeller)                          # Sat May 16
+    signup(nvcc_rides[8], arider, phil)                                        # Sun May 17
 
     # Artemis
     signup(artemis_rides[0], mbaker, kroller, cspinner, bclimber)
     signup(artemis_rides[1], kroller, bclimber)
     signup(artemis_rides[2], cspinner)
+    # Artemis upcoming
+    signup(artemis_rides[6],  mbaker, kroller, cspinner)                      # Tue May 12
+    signup(artemis_rides[7],  kroller, bclimber, cspinner)                    # Sat May 16 Intermediate
+    signup(artemis_rides[8],  cspinner)                                        # Sat May 16 Advanced
+    signup(artemis_rides[12], mbaker, kroller, cspinner, bclimber, smartin)   # Gran Fondo May 30
 
     db.session.commit()
     print("Created signups")
