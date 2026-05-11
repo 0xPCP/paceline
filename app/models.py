@@ -173,6 +173,7 @@ class Club(db.Model):
     tagline = db.Column(db.String(200), nullable=True)
     description = db.Column(db.Text, nullable=True)
     logo_url = db.Column(db.String(500), nullable=True)
+    logo_key = db.Column(db.String(500), nullable=True)  # storage key for uploaded logo
     website = db.Column(db.String(500), nullable=True)
     contact_email = db.Column(db.String(255), nullable=True)
     address = db.Column(db.String(500), nullable=True)

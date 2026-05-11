@@ -123,7 +123,11 @@ class ClubSettingsForm(FlaskForm):
     zip_code    = StringField('Zip Code', validators=[Optional(), Length(max=10)])
     address     = StringField('Address', validators=[Optional(), Length(max=500)])
     contact_email = StringField('Contact Email', validators=[Optional(), Email(), Length(max=255)])
-    logo_url    = StringField('Logo URL', validators=[Optional(), SafeURL(), Length(max=500)])
+    logo_file   = FileField('Upload Logo', validators=[
+        Optional(),
+        FileAllowed(['jpg', 'jpeg', 'png', 'webp'], 'Images only (JPEG, PNG, WebP)'),
+    ])
+    logo_url    = StringField('Logo URL (or upload above)', validators=[Optional(), SafeURL(), Length(max=500)])
     # Appearance / theming
     theme_primary = StringField('Primary Color', validators=[
         Optional(), Length(max=7),
