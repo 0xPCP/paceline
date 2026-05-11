@@ -238,7 +238,11 @@ def create_app(config_class=Config):
     @app.after_request
     def set_security_headers(response):
         response.headers['X-Content-Type-Options'] = 'nosniff'
-        response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+        if request.endpoint == 'clubs.embed':
+            # Embed widget must be iframeable by any external site
+            response.headers.pop('X-Frame-Options', None)
+        else:
+            response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
         response.headers['Permissions-Policy'] = 'geolocation=(self), microphone=(), camera=()'
         # CSP: allow same-origin + Bootstrap/Google Fonts CDNs already in use
@@ -249,7 +253,7 @@ def create_app(config_class=Config):
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "
             "font-src 'self' https://fonts.gstatic.com; "
             "img-src 'self' data: https:; "
-            "frame-src https://ridewithgps.com https://www.youtube.com https://player.vimeo.com; "
+            "frame-src 'self' https://ridewithgps.com https://www.youtube.com https://player.vimeo.com; "
             "connect-src 'self';"
         )
         return response

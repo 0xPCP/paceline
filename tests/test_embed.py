@@ -162,6 +162,20 @@ class TestEmbedRoute:
         assert '<html' in html
         assert '</html>' in html
 
+    def test_embed_has_no_x_frame_options(self, client, sample_club):
+        """Embed response must not send X-Frame-Options so external sites can iframe it."""
+        resp = client.get(f'/clubs/{sample_club.slug}/embed')
+        assert 'X-Frame-Options' not in resp.headers
+
+    def test_embed_club_name_is_a_link(self, client, sample_club):
+        """Club name in the embed header links to the club homepage."""
+        resp = client.get(f'/clubs/{sample_club.slug}/embed')
+        html = resp.data.decode()
+        assert f'/clubs/{sample_club.slug}/' in html
+        assert 'ew-header-name' in html
+        # The name element should be an anchor tag
+        assert f'href' in html and 'ew-header-name' in html
+
 
 class TestEmbedCodeInAdminSettings:
 
