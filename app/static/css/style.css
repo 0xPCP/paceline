@@ -813,6 +813,66 @@ body.club-page {
 .paceline-table thead th { background: var(--paceline-light); font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--paceline-gray); border-color: var(--paceline-border); }
 .paceline-table td { vertical-align: middle; }
 
+.admin-club-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+.admin-club-card {
+  background: #fff;
+  border: 1px solid var(--paceline-border);
+  border-radius: 10px;
+  padding: 1rem;
+}
+.admin-club-card-title {
+  display: block;
+  font-weight: 700;
+  line-height: 1.25;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.admin-club-card-meta {
+  color: var(--paceline-gray);
+  font-size: .85rem;
+  margin-top: .15rem;
+}
+.admin-club-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+  margin-top: .75rem;
+}
+.admin-club-card-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .5rem;
+  margin: .9rem 0;
+}
+.admin-club-card-stats div {
+  border: 1px solid var(--paceline-border);
+  border-radius: 8px;
+  min-width: 0;
+  padding: .55rem .45rem;
+  text-align: center;
+}
+.admin-club-card-stats dt {
+  color: var(--paceline-gray);
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.admin-club-card-stats dd {
+  color: var(--paceline-dark);
+  font-weight: 700;
+  margin: .15rem 0 0;
+}
+.admin-club-card-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: .45rem;
+}
+
 /* ── Auth pages ──────────────────────────────────────────────────────────── */
 .auth-wrapper { min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; background: var(--paceline-light); }
 .auth-card { background: #fff; border: 1px solid var(--paceline-border); border-radius: 12px; padding: 2.5rem; width: 100%; max-width: 420px; box-shadow: 0 4px 24px rgba(0,0,0,.07); }
@@ -1375,6 +1435,16 @@ a:hover { color: var(--paceline-green-dark); }
 
   /* Admin tables: make them horizontally scrollable */
   .paceline-table-wrap { overflow-x: auto; }
+
+  .detail-card { padding: 1rem; }
+  .admin-stat-card { padding: 1rem .65rem; }
+  .admin-stat-num { font-size: 1.75rem; }
+  .admin-stat-label { font-size: .76rem; }
+  .admin-growth-grid { gap: 1rem !important; }
+  .admin-growth-section + .admin-growth-section {
+    border-top: 1px solid var(--paceline-border);
+    padding-top: 1rem;
+  }
 
   /* Auth card: reduce padding on small screens */
   .auth-card { padding: 1.5rem 1.25rem; }

@@ -117,7 +117,7 @@
         <div class="wtw-header">
           <span class="wtw-title">{{ _('What to Wear') }}</span>
           <span class="wtw-location" id="wtw-location-label">
-            {% if current_user.zip_code %}{{ current_user.zip_code }}{% else %}{{ _('no location set') }}{% endif %}
+            {% if current_user.zip_code %}{{ _('Location: %(zip)s', zip=current_user.zip_code) }}{% else %}{{ _('No location set') }}{% endif %}
           </span>
         </div>
         <div id="wtw-body">
@@ -215,7 +215,7 @@ function setLoading() {
 
 function fetchWidget(params, locationLabel) {
   setLoading();
-  if (locationLabel) document.getElementById('wtw-location-label').textContent = locationLabel;
+  if (locationLabel) document.getElementById('wtw-location-label').textContent = `Location: ${locationLabel}`;
   fetch(WTW_API + '?' + new URLSearchParams(params))
     .then(r => r.json())
     .then(data => {
