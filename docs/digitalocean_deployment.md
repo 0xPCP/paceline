@@ -68,7 +68,6 @@ Production configuration should be environment-driven:
 - `SUPERADMIN_EMAILS=phil@pcp.dev`
 - `DONATE_URL`
 - `STRIPE_SECRET_KEY`
-- `STRIPE_CONNECT_CLIENT_ID`
 - `STRIPE_WEBHOOK_SECRET`
 - `MAIL_SERVER`
 - `MAIL_PORT`
