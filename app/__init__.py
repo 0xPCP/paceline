@@ -7,7 +7,7 @@ import warnings
 from datetime import datetime, timezone
 from flask import Flask, request, session, redirect, url_for, flash, g, has_request_context
 from flask_login import current_user, logout_user, login_fresh
-from markupsafe import Markup
+from markupsafe import Markup, escape
 from werkzeug.middleware.proxy_fix import ProxyFix
 from .config import Config
 from .extensions import db, migrate, login_manager, bcrypt, csrf, mail, babel, limiter
@@ -47,7 +47,10 @@ def _markdown_filter(text):
     """Render markdown text to safe HTML. HTML tags in the source are escaped."""
     if not text:
         return Markup('')
-    import mistune
+    try:
+        import mistune
+    except ModuleNotFoundError:
+        return Markup('<br>'.join(str(escape(text)).splitlines()))
     md = mistune.create_markdown(escape=True)
     return Markup(md(text))
 

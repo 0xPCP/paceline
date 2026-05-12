@@ -239,8 +239,8 @@
     <div class="col-lg-7">
       <div class="detail-card h-100">
         <h5 class="detail-card-title">Growth Trends</h5>
-        <div class="row g-4">
-          <div class="col-md-4">
+        <div class="row g-4 admin-growth-grid">
+          <div class="col-md-4 admin-growth-section">
             <h6 class="text-muted text-uppercase small fw-semibold">New Users</h6>
             {% for point in report.user_growth %}
             <div class="mb-2">
@@ -253,7 +253,7 @@
             </div>
             {% endfor %}
           </div>
-          <div class="col-md-4">
+          <div class="col-md-4 admin-growth-section">
             <h6 class="text-muted text-uppercase small fw-semibold">New Clubs</h6>
             {% for point in report.club_growth %}
             <div class="mb-2">
@@ -266,7 +266,7 @@
             </div>
             {% endfor %}
           </div>
-          <div class="col-md-4">
+          <div class="col-md-4 admin-growth-section">
             <h6 class="text-muted text-uppercase small fw-semibold">Rides Hosted</h6>
             {% for point in report.ride_growth %}
             <div class="mb-2">
@@ -418,7 +418,7 @@
     <h4 class="mb-0">All Clubs</h4>
     <a href="{{ url_for('admin.club_new') }}" class="btn btn-paceline btn-sm">+ New Club</a>
   </div>
-  <div class="table-responsive">
+  <div class="table-responsive d-none d-md-block">
     <div class="paceline-table-wrap"><table class="table paceline-table">
       <thead>
         <tr>
@@ -457,6 +457,39 @@
         {% endfor %}
       </tbody>
     </table></div>
+  </div>
+  <div class="admin-club-card-list d-md-none">
+    {% for row in clubs %}
+    {% set club = row.club %}
+    <div class="admin-club-card">
+      <div class="admin-club-card-main">
+        <a href="{{ url_for('clubs.home', slug=club.slug) }}" class="admin-club-card-title">{{ club.name }}</a>
+        <div class="admin-club-card-meta">
+          {{ club.city }}{% if club.city and club.state %}, {% endif %}{{ club.state or 'Location not set' }}
+        </div>
+      </div>
+      <div class="admin-club-card-badges">
+        {% if club.is_active %}
+        <span class="badge bg-success">Active</span>
+        {% else %}
+        <span class="badge bg-secondary">Inactive</span>
+        {% endif %}
+        {% if club.is_private %}<span class="badge bg-dark">Private</span>{% endif %}
+      </div>
+      <dl class="admin-club-card-stats">
+        <div><dt>Members</dt><dd>{{ club.member_count }}</dd></div>
+        <div><dt>Upcoming</dt><dd>{{ row.upcoming }}</dd></div>
+        <div><dt>Created</dt><dd>{{ club.created_at.strftime('%b %Y') if club.created_at else '—' }}</dd></div>
+      </dl>
+      <div class="admin-club-card-actions">
+        <a href="{{ url_for('admin.club_dashboard', slug=club.slug) }}" class="btn btn-outline-secondary btn-sm">Manage</a>
+        <a href="{{ url_for('admin.club_settings', slug=club.slug) }}" class="btn btn-outline-secondary btn-sm">Settings</a>
+        <a href="{{ url_for('admin.club_superadmin', slug=club.slug) }}" class="btn btn-outline-danger btn-sm">Super Admin</a>
+      </div>
+    </div>
+    {% else %}
+    <div class="detail-card text-muted small">No clubs yet.</div>
+    {% endfor %}
   </div>
 </div>
 {% endblock %}
