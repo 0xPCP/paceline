@@ -192,3 +192,10 @@ class TestEmbedCodeInAdminSettings:
         _login(client, club_admin_user.email)
         resp = client.get(f'/admin/clubs/{sample_club.slug}/settings')
         assert f'/clubs/{sample_club.slug}/embed'.encode() in resp.data
+
+    def test_admin_settings_embed_code_uses_full_page_friendly_height(
+            self, client, db, club_admin_user, sample_club):
+        """Default embed code should not make the redesigned cards feel cramped."""
+        _login(client, club_admin_user.email)
+        resp = client.get(f'/admin/clubs/{sample_club.slug}/settings')
+        assert b'height="650"' in resp.data
