@@ -15,37 +15,47 @@
 </head>
 <body class="club-page">
 
-<!-- Club nav: Paceline logo + auth -->
-<nav class="navbar navbar-expand-lg club-page-nav">
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg paceline-navbar">
   <div class="container">
     <a class="navbar-brand" href="{{ url_for('main.index') }}" style="line-height:1">
-      <img src="{{ url_for('static', filename='img/logo.svg') }}?v={{ version }}" alt="Paceline" height="28" style="width:auto;display:block">
+      <img src="{{ url_for('static', filename='img/logo.svg') }}?v={{ version }}" alt="Paceline" height="34" style="width:auto;display:block">
     </a>
-    <ul class="navbar-nav ms-auto align-items-lg-center">
-      {% if current_user.is_authenticated %}
-        {% if current_user.is_admin %}
-        <li class="nav-item">
-          <a class="nav-link club-nav-link" href="{{ url_for('admin.dashboard') }}">{{ _('Super Admin') }}</a>
-        </li>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navMenu">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('clubs.index') }}">{{ _('Find Clubs') }}</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('main.discover') }}">{{ _('Discover Rides') }}</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('clubs.club_map') }}">{{ _('Map') }}</a></li>
+      </ul>
+      <ul class="navbar-nav ms-auto align-items-lg-center">
+        {% if current_user.is_authenticated %}
+          {% if current_user.is_admin %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('admin.dashboard') }}">{{ _('Super Admin') }}</a>
+          </li>
+          {% endif %}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+              {{ current_user.username }}
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><a class="dropdown-item" href="{{ url_for('auth.profile') }}">{{ _('Profile') }}</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('user_rides.list_rides') }}">{{ _('My Rides') }}</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><button class="dropdown-item" form="logout-form">{{ _('Sign Out') }}</button></li>
+            </ul>
+          </li>
+        {% else %}
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}">{{ _('Sign In') }}</a></li>
+          <li class="nav-item ms-lg-2">
+            <a class="btn btn-paceline-sm" href="{{ url_for('auth.register') }}">{{ _('Join') }}</a>
+          </li>
         {% endif %}
-        <li class="nav-item dropdown">
-          <a class="nav-link club-nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-            {{ current_user.username }}
-          </a>
-          <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item" href="{{ url_for('auth.profile') }}">{{ _('Profile') }}</a></li>
-            <li><a class="dropdown-item" href="{{ url_for('clubs.index') }}">{{ _('Find Clubs') }}</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><button class="dropdown-item" form="logout-form">{{ _('Sign Out') }}</button></li>
-          </ul>
-        </li>
-      {% else %}
-        <li class="nav-item"><a class="nav-link club-nav-link" href="{{ url_for('auth.login') }}">{{ _('Sign In') }}</a></li>
-        <li class="nav-item ms-lg-2">
-          <a class="btn btn-paceline-sm" href="{{ url_for('auth.register') }}">{{ _('Join') }}</a>
-        </li>
-      {% endif %}
-    </ul>
+      </ul>
+    </div>
   </div>
 </nav>
 
