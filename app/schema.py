@@ -60,6 +60,9 @@ def ensure_runtime_schema():
     if 'strava_profile_url' not in user_columns:
         db.session.execute(text('ALTER TABLE users ADD COLUMN strava_profile_url VARCHAR(500)'))
         changed = True
+    if 'email_preferences' not in user_columns:
+        db.session.execute(text('ALTER TABLE users ADD COLUMN email_preferences JSON'))
+        changed = True
 
     club_columns = {col['name'] for col in inspector.get_columns('clubs')} if 'clubs' in inspector.get_table_names() else set()
     if club_columns and 'sport_type' not in club_columns:
@@ -151,6 +154,25 @@ def ensure_runtime_schema():
     if 'club_membership_payments' not in inspector.get_table_names():
         from .models import ClubMembershipPayment
         ClubMembershipPayment.__table__.create(db.engine, checkfirst=True)
+        changed = True
+
+    if 'site_settings' not in inspector.get_table_names():
+        from .models import SiteSetting
+        SiteSetting.__table__.create(db.engine, checkfirst=True)
+        db.session.execute(text(
+            "INSERT INTO site_settings (key, value, updated_at) "
+            "VALUES ('email_daily_cap', '15', CURRENT_TIMESTAMP)"
+        ))
+        changed = True
+
+    if 'user_email_logs' not in inspector.get_table_names():
+        from .models import UserEmailLog
+        UserEmailLog.__table__.create(db.engine, checkfirst=True)
+        changed = True
+
+    if 'board_digest_items' not in inspector.get_table_names():
+        from .models import BoardDigestItem
+        BoardDigestItem.__table__.create(db.engine, checkfirst=True)
         changed = True
 
     superadmin_emails = _configured_superadmin_emails()

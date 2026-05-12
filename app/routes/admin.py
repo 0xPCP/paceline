@@ -24,7 +24,8 @@ from ..admin_stats import (active_superadmin_count, configured_superadmin_emails
 from ..email import (send_cancellation_emails, send_new_ride_notification,
                      send_membership_approved, send_membership_rejected, send_invite_email,
                      send_import_welcome_email, send_import_invite_email,
-                     send_club_ownership_transfer_email)
+                     send_club_ownership_transfer_email, send_club_news_notification,
+                     set_site_setting)
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -195,9 +196,21 @@ def club_member_view_required(f):
 
 # ── Global superadmin ─────────────────────────────────────────────────────────
 
-@admin_bp.route('/')
+@admin_bp.route('/', methods=['GET', 'POST'])
 @superadmin_required
 def dashboard():
+    if request.method == 'POST' and request.form.get('action') == 'email_settings':
+        try:
+            cap = max(0, min(500, int(request.form.get('email_daily_cap', 15))))
+        except (TypeError, ValueError):
+            flash('Enter a valid daily email cap.', 'danger')
+            return redirect(url_for('admin.dashboard'))
+        set_site_setting('email_daily_cap', cap)
+        _audit('update_email_settings', details=f'email_daily_cap={cap}')
+        db.session.commit()
+        flash('Email notification settings updated.', 'success')
+        return redirect(url_for('admin.dashboard'))
+
     started_at = time.perf_counter()
     today = date.today()
     report = platform_report(started_at)
@@ -1134,6 +1147,7 @@ def post_new(slug):
         )
         db.session.add(post)
         db.session.commit()
+        send_club_news_notification(post)
         flash('Post published.', 'success')
         return redirect(url_for('admin.club_posts', slug=slug))
     return render_template('admin/post_form.html', form=form, club=club, title='New Post', post=None)

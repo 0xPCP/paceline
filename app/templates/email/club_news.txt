@@ -1,0 +1,6 @@
+CLUB UPDATE - {{ post.club.name }}
+{{ post.title }}
+
+{{ post.body }}
+
+View club: https://paceline.club/clubs/{{ post.club.slug }}/

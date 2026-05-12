@@ -124,6 +124,8 @@
           </div>
         </div>
         <dl class="detail-dl mb-0">
+          <dt>Daily User Cap</dt>
+          <dd>{{ report.email.daily_cap }} emails/user/day</dd>
           <dt>Total Sent</dt>
           <dd>{{ report.email.total_sent }}</dd>
           <dt>Failures Last 30 Days</dt>
@@ -167,6 +169,18 @@
           Counts are tracked locally when Paceline attempts to send transactional email.
         </p>
         {% endif %}
+        <form method="post" class="row g-2 align-items-end mt-3">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="email_settings">
+          <div class="col">
+            <label class="form-label small text-muted">Daily user email cap</label>
+            <input type="number" class="form-control form-control-sm" name="email_daily_cap"
+                   value="{{ report.email.daily_cap }}" min="0" max="500">
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-outline-secondary btn-sm">Save</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>

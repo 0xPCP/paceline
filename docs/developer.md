@@ -502,26 +502,31 @@ Managed by APScheduler `BackgroundScheduler`. Initialised in `init_scheduler(app
 | `check_auto_cancels` | Daily at `AUTO_CANCEL_HOUR` (default 6 AM) | Cancels today's rides that breach weather thresholds; sends cancellation emails |
 | `send_reminders` | Daily at `AUTO_CANCEL_HOUR + 0:15` | Sends morning-of reminder emails to all signups for today's rides |
 | `send_weekly_digests` | Sundays at 7 AM | Emails each active member a digest of the next 7 days of rides |
+| `send_board_activity_digests` | Daily at 6 PM | Sends queued message board activity digests |
 | `purge_expired_media` | Daily at 2:30 AM | Deletes photo files + DB rows for rides older than `MEDIA_EXPIRY_DAYS` |
 
 ---
 
 ## Email system
 
-All functions in `app/email.py`. Each is fire-and-forget (errors logged, never raised). If `MAIL_SERVER` is empty, `MAIL_SUPPRESS_SEND=True` is set and no messages are sent.
+All functions in `app/email.py`. Each is fire-and-forget (errors logged, never raised). If `MAIL_SERVER` is empty, `MAIL_SUPPRESS_SEND=True` is set and no messages are sent. User-configurable notifications are filtered through `users.email_preferences` and the superadmin daily cap stored in `site_settings.email_daily_cap`.
 
 | Function | Trigger | Recipients |
 |---|---|---|
 | `send_cancellation_emails(ride)` | auto-cancel or manual cancel | all non-waitlist signups |
 | `send_ride_reminder(ride)` | scheduler, morning of ride | all non-waitlist signups |
 | `send_new_ride_notification(ride)` | admin creates a new ride | all active members |
+| `send_club_news_notification(post)` | admin publishes a club news post | all active members |
 | `send_waitlist_promoted(signup)` | unsignup frees a slot | promoted rider |
 | `send_membership_approved(user, club)` | admin approves pending | joining user |
 | `send_membership_rejected(user, club)` | admin rejects pending | joining user |
 | `send_invite_email(invite)` | admin sends invite | invite.email address |
 | `send_weekly_digest(club, rides)` | Sunday scheduler | all active members of club |
+| `send_board_digest(user, items)` | daily board digest scheduler | users with queued board activity |
 
 HTML and plain-text variants exist for all transactional emails under `app/templates/email/`.
+
+See `docs/notifications.md` for the notification strategy, defaults, daily cap behavior, and test coverage.
 
 ---
 

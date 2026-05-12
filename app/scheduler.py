@@ -9,7 +9,7 @@ import logging
 from datetime import date
 
 from .weather import get_weather_for_rides
-from .email import send_cancellation_emails, send_ride_reminder, send_weekly_digest
+from .email import send_board_digest, send_cancellation_emails, send_ride_reminder, send_weekly_digest
 from .storage import get_storage
 
 logger = logging.getLogger(__name__)
@@ -111,6 +111,41 @@ def send_weekly_digests(app):
         logger.info('Weekly digest job: processed %d club(s)', len(clubs))
 
 
+def send_board_activity_digests(app):
+    """Send daily board activity digests for queued board notifications."""
+    with app.app_context():
+        from datetime import datetime, timezone
+        from .extensions import db
+        from .models import BoardDigestItem, User
+
+        user_ids = [
+            user_id for (user_id,) in
+            db.session.query(BoardDigestItem.user_id)
+            .filter(BoardDigestItem.sent_at.is_(None))
+            .distinct()
+            .all()
+        ]
+        sent_count = 0
+        now = datetime.now(timezone.utc)
+        for user_id in user_ids:
+            user = db.session.get(User, user_id)
+            if not user or not user.is_active:
+                continue
+            items = (
+                BoardDigestItem.query
+                .filter(BoardDigestItem.user_id == user_id, BoardDigestItem.sent_at.is_(None))
+                .order_by(BoardDigestItem.created_at.asc())
+                .limit(50)
+                .all()
+            )
+            if send_board_digest(user, items):
+                for item in items:
+                    item.sent_at = now
+                sent_count += 1
+        db.session.commit()
+        logger.info('Board digest job: sent %d digest email(s)', sent_count)
+
+
 def purge_expired_media(app):
     """
     Delete ride media and board media older than MEDIA_EXPIRY_DAYS (default 90).
@@ -210,6 +245,15 @@ def init_scheduler(app):
         args=[app],
         id='weekly_digest',
         name='Sunday weekly ride digest',
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
+    scheduler.add_job(
+        func=send_board_activity_digests,
+        trigger=CronTrigger(hour=18, minute=0),
+        args=[app],
+        id='board_activity_digest',
+        name='Daily board activity digest',
         replace_existing=True,
         misfire_grace_time=3600,
     )

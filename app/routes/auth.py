@@ -16,6 +16,7 @@ from ..forms import (
     LoginForm, ProfileForm, SetPasswordForm, UsernameSetupForm,
 )
 from ..email import send_password_reset_email
+from ..email import DEFAULT_EMAIL_PREFERENCES, email_preferences_for
 from ..geocoding import geocode_zip
 from ..gear import GEAR_CATALOG
 from ..mfa import generate_backup_codes, generate_totp_secret, totp_uri, verify_totp
@@ -482,6 +483,21 @@ def logout():
 @fresh_login_required
 def profile():
     form = ProfileForm(obj=current_user)
+    pref_fields = {
+        'ride_cancellations': 'notify_ride_cancellations',
+        'ride_reminders': 'notify_ride_reminders',
+        'ride_waitlist': 'notify_ride_waitlist',
+        'ride_updates': 'notify_ride_updates',
+        'membership_updates': 'notify_membership_updates',
+        'club_new_rides': 'notify_club_new_rides',
+        'club_news': 'notify_club_news',
+        'weekly_digest': 'notify_weekly_digest',
+        'board_digest': 'notify_board_digest',
+    }
+    if request.method == 'GET':
+        prefs = email_preferences_for(current_user)
+        for key, field_name in pref_fields.items():
+            getattr(form, field_name).data = prefs.get(key, DEFAULT_EMAIL_PREFERENCES.get(key, True))
     if form.validate_on_submit():
         if form.email.data.lower() != current_user.email:
             if User.query.filter_by(email=form.email.data.lower()).first():
@@ -501,6 +517,10 @@ def profile():
         current_user.language  = form.language.data or None
         current_user.emergency_contact_name  = (form.emergency_contact_name.data or '').strip() or None
         current_user.emergency_contact_phone = (form.emergency_contact_phone.data or '').strip() or None
+        current_user.email_preferences = {
+            key: bool(getattr(form, field_name).data)
+            for key, field_name in pref_fields.items()
+        }
 
         # Gear inventory — validate each submitted ID against the known catalog
         valid_gear_ids = {item['id'] for items in GEAR_CATALOG.values() for item in items}

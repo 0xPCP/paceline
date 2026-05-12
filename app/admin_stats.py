@@ -9,6 +9,7 @@ from sqlalchemy import func
 
 from .extensions import db
 from .models import AppErrorLog, Club, EmailDeliveryLog, Ride, RideMedia, RideSignup, User
+from .email import daily_email_cap
 
 
 def configured_superadmin_emails():
@@ -214,6 +215,7 @@ def email_report():
         'sent_today': count_since('sent', today_start),
         'sent_month': count_since('sent', month_start),
         'sent_year': count_since('sent', year_start),
+        'daily_cap': daily_email_cap(),
         'total_sent': total_sent,
         'failed_30d': failed_30d,
         'last_success': last_success,
