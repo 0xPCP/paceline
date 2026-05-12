@@ -9,6 +9,8 @@ back to Flask-Mail/SMTP. If neither is configured, Flask-Mail suppresses sends.
 """
 import logging
 import time
+from collections import defaultdict
+from datetime import datetime, timezone
 from flask import render_template, current_app
 from flask_mail import Message
 import requests
@@ -17,12 +19,93 @@ from .extensions import mail
 logger = logging.getLogger(__name__)
 RESEND_BATCH_SIZE = 50
 RESEND_TRANSIENT_STATUS_CODES = {429, 500, 502, 503, 504}
+DEFAULT_DAILY_EMAIL_CAP = 15
+DEFAULT_EMAIL_PREFERENCES = {
+    'ride_cancellations': True,
+    'ride_reminders': True,
+    'ride_waitlist': True,
+    'ride_updates': True,
+    'membership_updates': True,
+    'club_new_rides': True,
+    'club_news': True,
+    'weekly_digest': True,
+    'board_digest': True,
+}
+
+
+def email_preferences_for(user):
+    prefs = dict(DEFAULT_EMAIL_PREFERENCES)
+    prefs.update(user.email_preferences or {})
+    return prefs
+
+
+def user_allows_email(user, notification_key):
+    if not notification_key:
+        return True
+    return bool(email_preferences_for(user).get(notification_key, True))
+
+
+def get_site_setting(key, default=None):
+    try:
+        from .models import SiteSetting
+        from .extensions import db
+        row = db.session.get(SiteSetting, key)
+        return row.value if row and row.value is not None else default
+    except Exception:
+        return default
+
+
+def set_site_setting(key, value):
+    from .models import SiteSetting
+    from .extensions import db
+    row = db.session.get(SiteSetting, key)
+    if row is None:
+        row = SiteSetting(key=key)
+        db.session.add(row)
+    row.value = str(value)
+
+
+def daily_email_cap():
+    try:
+        return max(0, int(get_site_setting('email_daily_cap', DEFAULT_DAILY_EMAIL_CAP)))
+    except (TypeError, ValueError):
+        return DEFAULT_DAILY_EMAIL_CAP
+
+
+def _cap_allows(user):
+    cap = daily_email_cap()
+    if cap <= 0:
+        return True
+    from .models import UserEmailLog
+    today_start = datetime.combine(datetime.now(timezone.utc).date(), datetime.min.time())
+    sent = UserEmailLog.query.filter(
+        UserEmailLog.user_id == user.id,
+        UserEmailLog.status == 'sent',
+        UserEmailLog.created_at >= today_start,
+    ).count()
+    return sent < cap
+
+
+def _record_user_email(user, notification_key, subject, status='sent'):
+    try:
+        from .models import UserEmailLog
+        from .extensions import db
+        db.session.add(UserEmailLog(
+            user_id=user.id,
+            notification_key=notification_key or 'transactional',
+            subject=(subject or '')[:255],
+            status=status,
+        ))
+        db.session.commit()
+    except Exception as exc:
+        db.session.rollback()
+        logger.debug('User email telemetry write failed: %s', exc)
 
 
 def _send(subject, recipients, html_body, text_body=None):
     """Send a single message, swallowing all exceptions."""
     if not recipients:
-        return
+        return False
     override = current_app.config.get('EMAIL_RECIPIENT_OVERRIDE', '').strip()
     if override:
         recipients = [override]
@@ -32,9 +115,32 @@ def _send(subject, recipients, html_body, text_body=None):
             _send_resend(subject, unique_recipients, html_body, text_body)
         else:
             _send_smtp(subject, unique_recipients, html_body, text_body)
+        return True
     except Exception as exc:
         _record_delivery(_provider_name(), subject, len(unique_recipients), 'failed', str(exc))
         logger.warning('Email send failed (%s): %s', subject, exc)
+        return False
+
+
+def _send_to_users(notification_key, subject, users, html_body, text_body=None, *, required=False):
+    selected = []
+    seen = set()
+    for user in users:
+        if not user or not user.email or user.id in seen:
+            continue
+        seen.add(user.id)
+        if not required and not user_allows_email(user, notification_key):
+            continue
+        if not required and not _cap_allows(user):
+            _record_user_email(user, notification_key, subject, status='capped')
+            continue
+        selected.append(user)
+    if not selected:
+        return False
+    sent_ok = _send(subject, [user.email for user in selected], html_body, text_body)
+    for user in selected:
+        _record_user_email(user, notification_key, subject, status='sent' if sent_ok else 'failed')
+    return sent_ok
 
 
 def _use_resend():
@@ -133,14 +239,14 @@ def send_cancellation_emails(ride):
     Notify all signed-up riders that a ride has been cancelled.
     Called when ride.is_cancelled is set to True (manual or auto).
     """
-    recipients = [s.user.email for s in ride.signups if s.user.email]
-    if not recipients:
+    users = [s.user for s in ride.signups]
+    if not users:
         return
     html = render_template('email/cancellation.html', ride=ride)
     text = render_template('email/cancellation.txt', ride=ride)
     subject = f'Ride Cancelled: {ride.title} — {ride.club.name}'
-    _send(subject, recipients, html, text)
-    logger.info('Cancellation emails sent for ride %d to %d recipient(s)', ride.id, len(recipients))
+    _send_to_users('ride_cancellations', subject, users, html, text)
+    logger.info('Cancellation emails queued for ride %d to %d signed-up user(s)', ride.id, len(users))
 
 
 def send_ride_reminder(ride):
@@ -148,14 +254,14 @@ def send_ride_reminder(ride):
     Send a morning-of reminder to all signed-up riders.
     Called by the scheduler at 6 AM on the day of the ride.
     """
-    recipients = [s.user.email for s in ride.signups if s.user.email]
-    if not recipients:
+    users = [s.user for s in ride.signups]
+    if not users:
         return
     html = render_template('email/reminder.html', ride=ride)
     text = render_template('email/reminder.txt', ride=ride)
     subject = f"Today's Ride: {ride.title} — {ride.club.name}"
-    _send(subject, recipients, html, text)
-    logger.info('Reminder emails sent for ride %d to %d recipient(s)', ride.id, len(recipients))
+    _send_to_users('ride_reminders', subject, users, html, text)
+    logger.info('Reminder emails queued for ride %d to %d signed-up user(s)', ride.id, len(users))
 
 
 def send_membership_approved(user, club):
@@ -164,7 +270,7 @@ def send_membership_approved(user, club):
         return
     html = render_template('email/membership_approved.html', club=club)
     text = render_template('email/membership_approved.txt', club=club)
-    _send(f'Membership Approved — {club.name}', [user.email], html, text)
+    _send_to_users('membership_updates', f'Membership Approved — {club.name}', [user], html, text)
     logger.info('Membership approved email sent to %s for club %d', user.email, club.id)
 
 
@@ -174,7 +280,7 @@ def send_membership_rejected(user, club):
         return
     html = render_template('email/membership_rejected.html', club=club)
     text = render_template('email/membership_rejected.txt', club=club)
-    _send(f'Membership Request — {club.name}', [user.email], html, text)
+    _send_to_users('membership_updates', f'Membership Request — {club.name}', [user], html, text)
     logger.info('Membership rejected email sent to %s for club %d', user.email, club.id)
 
 
@@ -185,14 +291,29 @@ def send_new_ride_notification(ride):
     """
     from .models import ClubMembership
     memberships = ClubMembership.query.filter_by(club_id=ride.club_id, status='active').all()
-    recipients = [m.user.email for m in memberships if m.user.email]
-    if not recipients:
+    users = [m.user for m in memberships]
+    if not users:
         return
     html = render_template('email/new_ride.html', ride=ride)
     text = render_template('email/new_ride.txt', ride=ride)
     subject = f'New Ride: {ride.title} — {ride.club.name}'
-    _send(subject, recipients, html, text)
-    logger.info('New ride notification sent for ride %d to %d recipient(s)', ride.id, len(recipients))
+    _send_to_users('club_new_rides', subject, users, html, text)
+    logger.info('New ride notification queued for ride %d to %d member(s)', ride.id, len(users))
+
+
+def send_club_news_notification(post):
+    """Notify active club members when a club admin publishes a news post."""
+    from .models import ClubMembership
+    memberships = ClubMembership.query.filter_by(club_id=post.club_id, status='active').all()
+    users = [m.user for m in memberships]
+    if not users:
+        return False
+    html = render_template('email/club_news.html', post=post)
+    text = render_template('email/club_news.txt', post=post)
+    subject = f'Club update: {post.title} — {post.club.name}'
+    sent = _send_to_users('club_news', subject, users, html, text)
+    logger.info('Club news notification queued for post %d to %d member(s)', post.id, len(users))
+    return sent
 
 
 def send_waitlist_promoted(signup):
@@ -204,7 +325,7 @@ def send_waitlist_promoted(signup):
     html = render_template('email/waitlist_promoted.html', ride=ride)
     text = render_template('email/waitlist_promoted.txt', ride=ride)
     subject = f"You're off the waitlist — {ride.title}"
-    _send(subject, [user.email], html, text)
+    _send_to_users('ride_waitlist', subject, [user], html, text)
     logger.info('Waitlist promotion email sent to %s for ride %d', user.email, ride.id)
 
 
@@ -278,14 +399,14 @@ def send_weekly_digest(club, rides):
     """
     from .models import ClubMembership
     memberships = ClubMembership.query.filter_by(club_id=club.id, status='active').all()
-    recipients = [m.user.email for m in memberships if m.user.email]
-    if not recipients:
+    users = [m.user for m in memberships]
+    if not users:
         return
     html = render_template('email/weekly_digest.html', club=club, rides=rides)
     text = render_template('email/weekly_digest.txt', club=club, rides=rides)
     subject = f"This week's rides — {club.name}"
-    _send(subject, recipients, html, text)
-    logger.info('Weekly digest sent for club %d (%s) to %d recipient(s)', club.id, club.name, len(recipients))
+    _send_to_users('weekly_digest', subject, users, html, text)
+    logger.info('Weekly digest queued for club %d (%s) to %d member(s)', club.id, club.name, len(users))
 
 
 def send_reply_notification(reply):
@@ -323,6 +444,20 @@ def send_board_post_notification(post, user):
     subject = f'[{post.club.name}] New post from {post.author.username}'
     _send(subject, [user.email], html, text)
     logger.info('Board notification sent to %s for post %d', user.email, post.id)
+
+
+def send_board_digest(user, items):
+    if not user.email or not items:
+        return False
+    if not user_allows_email(user, 'board_digest') or not _cap_allows(user):
+        return False
+    grouped = defaultdict(list)
+    for item in items:
+        grouped[item.club].append(item)
+    html = render_template('email/board_digest.html', user=user, grouped=grouped)
+    text = render_template('email/board_digest.txt', user=user, grouped=grouped)
+    subject = 'Your Paceline board activity digest'
+    return _send_to_users('board_digest', subject, [user], html, text)
 
 
 def send_feedback_notification(feedback):

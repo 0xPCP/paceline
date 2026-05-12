@@ -20,7 +20,7 @@ from flask_login import current_user, login_required
 
 from ..extensions import db
 from ..models import (Club, ClubBoardMedia, ClubBoardPost, ClubBoardReaction,
-                      ClubBoardReply, ClubBoardSubscription)
+                      ClubBoardReply, ClubBoardSubscription, BoardDigestItem)
 from ..utils import process_photo_bg
 
 logger = logging.getLogger(__name__)
@@ -74,9 +74,8 @@ def _board_query(club_id, before_post=None):
 
 
 def _notify_subscribers(app, post_id):
-    """Background thread: email all club subscribers except the author."""
+    """Queue daily digest entries for club subscribers except the author."""
     with app.app_context():
-        from ..email import send_board_post_notification
         post = db.session.get(ClubBoardPost, post_id)
         if not post:
             return
@@ -85,48 +84,60 @@ def _notify_subscribers(app, post_id):
                 .filter(ClubBoardSubscription.user_id != post.author_id)
                 .all())
         for sub in subs:
-            try:
-                send_board_post_notification(post, sub.user)
-            except Exception as exc:
-                logger.warning('Board notification failed for user %d: %s', sub.user_id, exc)
+            db.session.add(BoardDigestItem(
+                user_id=sub.user_id,
+                club_id=post.club_id,
+                post_id=post.id,
+                actor_id=post.author_id,
+                event_type='new_post',
+                body_preview=(post.body or '')[:300],
+            ))
+        db.session.commit()
 
 
 def _notify_reply_author(app, reply_id):
-    """Background thread: email the post author when someone replies (not themselves)."""
+    """Queue a daily digest entry for the post author when someone replies."""
     with app.app_context():
-        from ..email import send_reply_notification
         reply = db.session.get(ClubBoardReply, reply_id)
         if not reply or not reply.post:
             return
         if reply.author_id == reply.post.author_id:
             return
-        try:
-            send_reply_notification(reply)
-        except Exception as exc:
-            logger.warning('Reply notification failed for reply %d: %s', reply_id, exc)
+        db.session.add(BoardDigestItem(
+            user_id=reply.post.author_id,
+            club_id=reply.post.club_id,
+            post_id=reply.post_id,
+            actor_id=reply.author_id,
+            event_type='reply',
+            body_preview=(reply.body or '')[:300],
+        ))
+        db.session.commit()
 
 
 def _notify_mentions(app, body, club_id, author_id, post_id):
-    """Background thread: email any @mentioned active club members."""
+    """Queue daily digest entries for any @mentioned active club members."""
     with app.app_context():
         from ..models import User, ClubMembership
-        from ..email import send_mention_notification
         usernames = set(_MENTION_RE.findall(body or ''))
         if not usernames:
             return
         post = db.session.get(ClubBoardPost, post_id)
         if not post:
             return
-        author = db.session.get(User, author_id)
         users = User.query.filter(User.username.in_(usernames)).all()
         member_ids = {m.user_id for m in
                       ClubMembership.query.filter_by(club_id=club_id, status='active').all()}
         for user in users:
             if user.id in member_ids and user.id != author_id:
-                try:
-                    send_mention_notification(user, author, post, body)
-                except Exception as exc:
-                    logger.warning('Mention notification failed for user %d: %s', user.id, exc)
+                db.session.add(BoardDigestItem(
+                    user_id=user.id,
+                    club_id=club_id,
+                    post_id=post_id,
+                    actor_id=author_id,
+                    event_type='mention',
+                    body_preview=(body or '')[:300],
+                ))
+        db.session.commit()
 
 
 # ── Routes ─────────────────────────────────────────────────────────────────────

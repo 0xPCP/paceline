@@ -222,7 +222,7 @@
             </div>
             <div class="row justify-content-center">
               <div class="col-lg-10">
-                {% for post in club.posts %}
+                {% for post in club.posts[:3] %}
                 <article class="news-post">
                   {% if post.image_key %}
                   <img src="{{ url_for('clubs.serve_post_image', slug=club.slug, post_id=post.id) }}"

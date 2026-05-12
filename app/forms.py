@@ -97,6 +97,15 @@ class ProfileForm(FlaskForm):
     ], validators=[Optional()])
     emergency_contact_name  = StringField('Emergency Contact Name', validators=[Optional(), Length(max=100)])
     emergency_contact_phone = StringField('Emergency Contact Phone', validators=[Optional(), Length(max=30)])
+    notify_ride_cancellations = BooleanField('Ride cancellations')
+    notify_ride_reminders = BooleanField('Morning ride reminders')
+    notify_ride_waitlist = BooleanField('Waitlist promotions')
+    notify_ride_updates = BooleanField('Major ride changes')
+    notify_membership_updates = BooleanField('Membership approvals, rejections, and dues updates')
+    notify_club_new_rides = BooleanField('New rides from my clubs')
+    notify_club_news = BooleanField('Club news posts')
+    notify_weekly_digest = BooleanField('Weekly club digest')
+    notify_board_digest = BooleanField('Daily message board digest')
     submit   = SubmitField('Save Changes')
 
 

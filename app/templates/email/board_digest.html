@@ -1,0 +1,24 @@
+{% extends "email/_base.html" %}
+{% block body %}
+<h1>Board activity digest</h1>
+<p>Here is recent message board activity from your Paceline clubs.</p>
+
+{% for club, items in grouped.items() %}
+<h2 style="font-size:18px;margin-top:24px">{{ club.name }}</h2>
+<ul>
+  {% for item in items %}
+  <li style="margin-bottom:12px">
+    <strong>
+      {% if item.event_type == 'mention' %}Mention
+      {% elif item.event_type == 'reply' %}Reply
+      {% else %}New post{% endif %}
+    </strong>
+    {% if item.actor %} from {{ item.actor.username }}{% endif %}
+    <br>
+    {% if item.body_preview %}<span>{{ item.body_preview }}</span><br>{% endif %}
+    <a href="{{ url_for('board.board', slug=club.slug, _external=True) }}#post-{{ item.post_id }}">Open board post</a>
+  </li>
+  {% endfor %}
+</ul>
+{% endfor %}
+{% endblock %}

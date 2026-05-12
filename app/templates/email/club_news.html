@@ -1,0 +1,13 @@
+{% extends "email/_base.html" %}
+{% block body %}
+<div class="club-tag">{{ post.club.name }}</div>
+<h1>{{ post.title }}</h1>
+
+<div class="alert alert-info">
+  {{ post.club.name }} published a new club update.
+</div>
+
+<p style="white-space:pre-line">{{ post.body }}</p>
+
+<a href="https://paceline.club/clubs/{{ post.club.slug }}/" class="cta">View Club</a>
+{% endblock %}
