@@ -6,107 +6,185 @@
   <title>{{ club.name }} — Upcoming Rides</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --club-primary: {{ club.theme_primary or '#2d6a4f' }};
+      --club-accent: {{ club.theme_accent or '#e76f51' }};
+      --ink: #17212b;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --surface: #ffffff;
+      --page: #f6f8fb;
+    }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 14px;
-      color: #1a1a2e;
-      background: #fff;
+      font-size: 16px;
+      line-height: 1.45;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--club-primary) 9%, #fff) 0, var(--page) 260px),
+        var(--page);
       padding: 0;
     }
 
+    .ew-shell {
+      width: min(100%, 1120px);
+      margin: 0 auto;
+      padding: clamp(12px, 2.2vw, 28px);
+    }
+
     .ew-header {
-      background: {{ club.theme_primary or '#2d6a4f' }};
-      color: #fff;
-      padding: .75rem 1rem;
+      background: var(--surface);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: 0 8px 22px rgba(15, 23, 42, .08);
+      padding: clamp(14px, 2.5vw, 24px);
       display: flex;
       align-items: center;
-      gap: .6rem;
+      gap: 14px;
+      min-width: 0;
     }
     .ew-header-logo {
-      height: 28px;
-      max-width: 70px;
+      height: 48px;
+      width: 48px;
       object-fit: contain;
-      border-radius: 3px;
+      border-radius: 8px;
       flex-shrink: 0;
+      background: #fff;
+      border: 1px solid var(--line);
     }
+    .ew-header-main { flex: 1; min-width: 0; }
     .ew-header-name {
       font-weight: 700;
-      font-size: .95rem;
-      flex: 1;
+      font-size: clamp(1.1rem, 2.4vw, 1.55rem);
+      line-height: 1.15;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      color: var(--ink);
+      text-decoration: none;
+      display: block;
+    }
+    .ew-header-name:hover { color: var(--club-primary); }
+    .ew-header-label {
+      display: block;
+      color: var(--muted);
+      font-size: .92rem;
+      margin-top: 3px;
+    }
+    .ew-header-action {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 0 14px;
+      border-radius: 7px;
+      background: var(--club-primary);
       color: #fff;
       text-decoration: none;
+      font-weight: 650;
+      font-size: .9rem;
     }
-    .ew-header-name:hover { text-decoration: underline; }
-    .ew-header-label {
-      font-size: .72rem;
-      opacity: .8;
-      white-space: nowrap;
-    }
+    .ew-header-action:hover { filter: brightness(.95); }
 
-    .ew-body { padding: .5rem 0; }
+    .ew-body {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+      gap: 12px;
+      align-items: stretch;
+    }
 
     .ew-ride {
-      display: flex;
-      align-items: flex-start;
-      gap: .75rem;
-      padding: .55rem 1rem;
-      border-bottom: 1px solid #f0f0f0;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: start;
+      min-height: 118px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface);
+      box-shadow: 0 5px 16px rgba(15, 23, 42, .06);
       text-decoration: none;
       color: inherit;
-      transition: background .1s;
+      transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
     }
-    .ew-ride:last-child { border-bottom: none; }
-    .ew-ride:hover { background: #f8f9fa; }
+    .ew-ride:hover {
+      transform: translateY(-1px);
+      border-color: color-mix(in srgb, var(--club-primary) 30%, var(--line));
+      box-shadow: 0 9px 24px rgba(15, 23, 42, .1);
+    }
 
     .ew-date {
       text-align: center;
       flex-shrink: 0;
-      min-width: 36px;
+      width: 58px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      overflow: hidden;
+      background: #fff;
     }
     .ew-date-month {
-      font-size: .6rem;
+      font-size: .68rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: .06em;
-      color: {{ club.theme_primary or '#2d6a4f' }};
+      color: #fff;
+      background: var(--club-primary);
+      padding: 4px 0;
     }
     .ew-date-day {
-      font-size: 1.3rem;
+      font-size: 1.65rem;
       font-weight: 800;
-      line-height: 1;
-      color: #1a1a2e;
+      line-height: 1.05;
+      padding: 7px 0 8px;
+      color: var(--ink);
     }
 
     .ew-info { flex: 1; min-width: 0; }
     .ew-title {
-      font-weight: 600;
-      font-size: .88rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-weight: 750;
+      font-size: clamp(1rem, 1.6vw, 1.15rem);
+      line-height: 1.25;
+      color: var(--ink);
+      overflow-wrap: anywhere;
     }
     .ew-meta {
-      font-size: .75rem;
-      color: #666;
-      margin-top: .15rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      font-size: .88rem;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+    .ew-meta span {
+      display: inline-flex;
+      align-items: center;
+      min-width: 0;
+    }
+    .ew-location {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: .88rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .ew-pace {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 20px;
-      height: 20px;
-      border-radius: 4px;
-      font-size: .7rem;
+      min-width: 34px;
+      height: 30px;
+      padding: 0 9px;
+      border-radius: 7px;
+      font-size: .82rem;
       font-weight: 700;
       color: #fff;
       flex-shrink: 0;
-      margin-top: 2px;
     }
     .pace-A { background: #dc3545; }
     .pace-B { background: #fd7e14; }
@@ -115,72 +193,120 @@
 
     .ew-empty {
       text-align: center;
-      padding: 2rem 1rem;
-      color: #888;
-      font-size: .85rem;
+      grid-column: 1 / -1;
+      padding: clamp(34px, 8vw, 70px) 18px;
+      color: var(--muted);
+      font-size: 1rem;
+      background: var(--surface);
+      border: 1px dashed var(--line);
+      border-radius: 10px;
     }
 
     .ew-footer {
       text-align: center;
-      padding: .5rem 1rem .75rem;
-      border-top: 1px solid #f0f0f0;
-      margin-top: .25rem;
+      padding: 16px 8px 4px;
     }
     .ew-footer a {
-      font-size: .7rem;
-      color: #999;
+      font-size: .82rem;
+      color: var(--muted);
       text-decoration: none;
     }
-    .ew-footer a:hover { color: {{ club.theme_primary or '#2d6a4f' }}; }
+    .ew-footer a:hover { color: var(--club-primary); }
+
+    @media (max-width: 560px) {
+      body { font-size: 15px; }
+      .ew-shell { padding: 10px; }
+      .ew-header {
+        align-items: flex-start;
+        border-radius: 8px;
+      }
+      .ew-header-logo {
+        height: 40px;
+        width: 40px;
+      }
+      .ew-header-action { display: none; }
+      .ew-body {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+      .ew-ride {
+        grid-template-columns: auto minmax(0, 1fr);
+        min-height: 0;
+        padding: 13px;
+        border-radius: 8px;
+        gap: 12px;
+      }
+      .ew-pace {
+        grid-column: 2;
+        justify-self: start;
+        margin-top: 2px;
+        height: 26px;
+        min-width: 31px;
+      }
+      .ew-date { width: 50px; }
+      .ew-date-day { font-size: 1.45rem; }
+      .ew-meta { font-size: .82rem; gap: 4px 8px; }
+      .ew-location { white-space: normal; }
+    }
   </style>
 </head>
 <body>
 
-  <div class="ew-header">
-    {% if club.logo_key %}
-      <img src="{{ url_for('clubs.serve_club_logo', slug=club.slug, _external=True) }}"
-           alt="{{ club.name }}" class="ew-header-logo">
-    {% elif club.logo_url %}
-      <img src="{{ club.logo_url }}" alt="{{ club.name }}" class="ew-header-logo"
-           onerror="this.style.display='none'">
-    {% endif %}
-    <a href="{{ url_for('clubs.home', slug=club.slug, _external=True) }}"
-       target="_blank" rel="noopener"
-       class="ew-header-name">{{ club.name }}</a>
-    <span class="ew-header-label">Upcoming Rides</span>
-  </div>
+  <main class="ew-shell">
+    <div class="ew-header">
+      {% if club.logo_key %}
+        <img src="{{ url_for('clubs.serve_club_logo', slug=club.slug, _external=True) }}"
+             alt="{{ club.name }}" class="ew-header-logo">
+      {% elif club.logo_url %}
+        <img src="{{ club.logo_url }}" alt="{{ club.name }}" class="ew-header-logo"
+             onerror="this.style.display='none'">
+      {% endif %}
+      <div class="ew-header-main">
+        <a href="{{ url_for('clubs.home', slug=club.slug, _external=True) }}"
+           target="_blank" rel="noopener"
+           class="ew-header-name">{{ club.name }}</a>
+        <span class="ew-header-label">Upcoming rides for the next 30 days</span>
+      </div>
+      <a href="{{ url_for('clubs.home', slug=club.slug, _external=True) }}"
+         target="_blank" rel="noopener" class="ew-header-action">View Club</a>
+    </div>
 
-  <div class="ew-body">
-    {% if rides %}
-      {% for ride in rides %}
-      <a href="{{ url_for('clubs.ride_detail', slug=club.slug, ride_id=ride.id, _external=True) }}"
-         class="ew-ride" target="_blank" rel="noopener">
-        <div class="ew-date">
-          <div class="ew-date-month">{{ ride.date.strftime('%b') }}</div>
-          <div class="ew-date-day">{{ ride.date.day }}</div>
-        </div>
-        <div class="ew-info">
-          <div class="ew-title">{{ ride.title }}</div>
-          <div class="ew-meta">
-            {{ ride.time.strftime('%I:%M %p').lstrip('0') }} &bull;
-            {{ ride.distance_miles }} mi
-            {% if ride.elevation_feet %}&bull; {{ ride.elevation_feet }} ft{% endif %}
-            &bull; {{ ride.signup_count }} signed up
+    <div class="ew-body">
+      {% if rides %}
+        {% for ride in rides %}
+        <a href="{{ url_for('clubs.ride_detail', slug=club.slug, ride_id=ride.id, _external=True) }}"
+           class="ew-ride" target="_blank" rel="noopener">
+          <div class="ew-date">
+            <div class="ew-date-month">{{ ride.date.strftime('%b') }}</div>
+            <div class="ew-date-day">{{ ride.date.day }}</div>
           </div>
-        </div>
-        <div class="ew-pace pace-{{ ride.pace_category }}">{{ ride.pace_category }}</div>
-      </a>
-      {% endfor %}
-    {% else %}
-      <div class="ew-empty">No upcoming rides in the next 30 days.</div>
-    {% endif %}
-  </div>
+          <div class="ew-info">
+            <div class="ew-title">{{ ride.title }}</div>
+            <div class="ew-meta">
+              <span>{{ ride.time.strftime('%I:%M %p').lstrip('0') }}</span>
+              <span>{{ ride.distance_miles }} mi</span>
+              {% if ride.elevation_feet %}<span>{{ ride.elevation_feet }} ft</span>{% endif %}
+              {% if ride.ride_type %}<span>{{ ride.ride_type.title() }}</span>{% endif %}
+              <span>{{ ride.signup_count }} signed up</span>
+            </div>
+            {% if ride.meeting_location %}
+            <div class="ew-location">{{ ride.meeting_location }}</div>
+            {% endif %}
+          </div>
+          <div class="ew-pace pace-{{ ride.pace_category }}">{{ ride.pace_category }}</div>
+        </a>
+        {% endfor %}
+      {% else %}
+        <div class="ew-empty">No upcoming rides in the next 30 days.</div>
+      {% endif %}
+    </div>
 
-  <div class="ew-footer">
-    <a href="{{ url_for('clubs.home', slug=club.slug, _external=True) }}" target="_blank" rel="noopener">
-      Powered by Paceline
-    </a>
-  </div>
+    <div class="ew-footer">
+      <a href="{{ url_for('clubs.home', slug=club.slug, _external=True) }}" target="_blank" rel="noopener">
+        Powered by Paceline
+      </a>
+    </div>
+  </main>
 
 </body>
 </html>
