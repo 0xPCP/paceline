@@ -61,7 +61,6 @@ class Config:
     # Stripe Connect for optional automated club dues. These must be platform
     # keys stored in environment/secrets, never source control.
     STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '').strip()
-    STRIPE_CONNECT_CLIENT_ID = os.environ.get('STRIPE_CONNECT_CLIENT_ID', '').strip()
     STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '').strip()
 
     # Comma-separated email allowlist for platform superadmins. These accounts

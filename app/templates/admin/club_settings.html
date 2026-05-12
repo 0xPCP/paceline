@@ -337,6 +337,11 @@
               <h6 class="mb-1">Stripe Connect</h6>
               {% if club.stripe_account_id %}
               <p class="text-muted small mb-0">Connected account: <code>{{ club.stripe_account_id }}</code></p>
+              {% if club.stripe_account_connected_at %}
+              <p class="text-success small mb-0">Stripe onboarding has been completed enough to enable automated dues.</p>
+              {% else %}
+              <p class="text-warning small mb-0">Onboarding is not complete yet. Continue Stripe onboarding before using automated dues.</p>
+              {% endif %}
               {% else %}
               <p class="text-muted small mb-0">Connect the club's Stripe account to enable automatic dues confirmation.</p>
               {% endif %}
@@ -347,6 +352,7 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <button class="btn btn-outline-danger btn-sm">Disconnect</button>
               </form>
+              <a class="btn btn-outline-primary btn-sm" href="{{ url_for('stripe_connect.connect_club', slug=club.slug) }}">Continue Onboarding</a>
               {% else %}
               <a class="btn btn-outline-primary btn-sm" href="{{ url_for('stripe_connect.connect_club', slug=club.slug) }}">Connect Stripe</a>
               {% endif %}

@@ -274,6 +274,7 @@ class Club(db.Model):
         return bool(
             self.membership_dues_mode == 'stripe_connect'
             and self.stripe_account_id
+            and self.stripe_account_connected_at
             and self.membership_dues_amount_cents
         )
 

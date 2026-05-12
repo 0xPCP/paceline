@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import json
 import time
+from datetime import datetime, timezone
 
 from app.models import ClubMembership, ClubMembershipPayment
 from tests.conftest import login
@@ -58,35 +59,45 @@ def test_settings_saves_stripe_connect_dues_configuration(client, db, sample_clu
     assert sample_club.membership_dues_currency == 'usd'
 
 
-def test_connect_start_redirects_to_stripe_with_state(client, app, sample_club, club_admin_user):
+def test_connect_start_creates_account_and_redirects_to_onboarding(client, app, db, sample_club, club_admin_user, monkeypatch):
     app.config['STRIPE_SECRET_KEY'] = 'sk_test_fake'
-    app.config['STRIPE_CONNECT_CLIENT_ID'] = 'ca_test_fake'
     login(client, email='clubadmin@test.com')
+
+    def fake_account(**kwargs):
+        assert kwargs['club'].id == sample_club.id
+        assert kwargs['user'].email == club_admin_user.email
+        return {'id': 'acct_123'}
+
+    def fake_link(**kwargs):
+        assert kwargs['account_id'] == 'acct_123'
+        assert kwargs['refresh_url'] == f'http://localhost/stripe/clubs/{sample_club.slug}/connect'
+        assert kwargs['return_url'] == f'http://localhost/stripe/clubs/{sample_club.slug}/connect/return'
+        return {'url': 'https://connect.stripe.com/setup/test'}
+
+    monkeypatch.setattr('app.routes.stripe_connect.create_connected_account', fake_account)
+    monkeypatch.setattr('app.routes.stripe_connect.create_onboarding_link', fake_link)
 
     response = client.get(f'/stripe/clubs/{sample_club.slug}/connect')
 
     assert response.status_code == 302
-    assert response.headers['Location'].startswith('https://connect.stripe.com/oauth/authorize?')
-    assert 'redirect_uri=http%3A%2F%2Flocalhost%2Fstripe%2Fconnect%2Fcallback' in response.headers['Location']
-    with client.session_transaction() as sess:
-        assert sess['stripe_connect_oauth']['club_id'] == sample_club.id
-        assert sess['stripe_connect_oauth']['state']
+    assert response.headers['Location'] == 'https://connect.stripe.com/setup/test'
+    db.session.refresh(sample_club)
+    assert sample_club.stripe_account_id == 'acct_123'
 
 
-def test_connect_callback_stores_connected_account(client, app, db, sample_club, club_admin_user, monkeypatch):
+def test_connect_return_marks_account_connected_when_charges_enabled(client, app, db, sample_club, club_admin_user, monkeypatch):
     app.config['STRIPE_SECRET_KEY'] = 'sk_test_fake'
-    app.config['STRIPE_CONNECT_CLIENT_ID'] = 'ca_test_fake'
+    sample_club.stripe_account_id = 'acct_123'
+    db.session.commit()
     login(client, email='clubadmin@test.com')
-    with client.session_transaction() as sess:
-        sess['stripe_connect_oauth'] = {'state': 'state123', 'club_id': sample_club.id}
 
     monkeypatch.setattr(
-        'app.routes.stripe_connect.exchange_authorization_code',
-        lambda code: {'stripe_user_id': 'acct_123'},
+        'app.routes.stripe_connect.retrieve_connected_account',
+        lambda account_id: {'id': account_id, 'details_submitted': True, 'charges_enabled': True},
     )
 
     response = client.get(
-        '/stripe/connect/callback?code=authcode&state=state123',
+        f'/stripe/clubs/{sample_club.slug}/connect/return',
         follow_redirects=True,
     )
 
@@ -102,6 +113,7 @@ def test_stripe_checkout_creates_payment_and_redirects(client, app, db, sample_c
     sample_club.membership_dues_mode = 'stripe_connect'
     sample_club.membership_dues_amount_cents = 4500
     sample_club.stripe_account_id = 'acct_123'
+    sample_club.stripe_account_connected_at = datetime.now(timezone.utc)
     db.session.commit()
     login(client)
 

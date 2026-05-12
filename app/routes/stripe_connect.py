@@ -1,7 +1,6 @@
-import secrets
 from datetime import datetime, timezone
 
-from flask import Blueprint, abort, current_app, flash, redirect, request, session, url_for
+from flask import Blueprint, abort, current_app, flash, redirect, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy.exc import IntegrityError
 
@@ -10,10 +9,11 @@ from ..membership_dues import activate_membership_dues
 from ..models import Club, ClubMembership, ClubMembershipPayment
 from ..stripe_connect import (
     StripeConnectError,
-    authorization_url,
     connect_enabled,
+    create_connected_account,
     create_checkout_session,
-    exchange_authorization_code,
+    create_onboarding_link,
+    retrieve_connected_account,
     verify_webhook_payload,
 )
 
@@ -38,45 +38,56 @@ def connect_club(slug):
         flash('Stripe Connect is not configured for this Paceline environment yet.', 'warning')
         return redirect(url_for('admin.club_settings', slug=slug))
 
-    state = secrets.token_urlsafe(32)
-    session['stripe_connect_oauth'] = {'state': state, 'club_id': club.id}
-    redirect_uri = url_for('stripe_connect.oauth_callback', _external=True)
-    return redirect(authorization_url(state, redirect_uri))
+    try:
+        if not club.stripe_account_id:
+            account = create_connected_account(club=club, user=current_user)
+            club.stripe_account_id = account['id']
+            db.session.commit()
+
+        link = create_onboarding_link(
+            account_id=club.stripe_account_id,
+            refresh_url=url_for('stripe_connect.connect_club', slug=club.slug, _external=True),
+            return_url=url_for('stripe_connect.onboarding_return', slug=club.slug, _external=True),
+        )
+    except StripeConnectError as exc:
+        current_app.logger.warning('Stripe Connect onboarding failed for club %s: %s', club.id, exc)
+        db.session.rollback()
+        flash('Stripe could not start onboarding for this club. Please try again.', 'danger')
+        return redirect(url_for('admin.club_settings', slug=slug))
+
+    return redirect(link['url'])
 
 
 @stripe_connect_bp.route('/connect/callback')
 @login_required
 def oauth_callback():
-    pending = session.pop('stripe_connect_oauth', {}) or {}
-    club = db.session.get(Club, pending.get('club_id'))
-    if not club or not club.is_active:
-        abort(400)
+    flash('Stripe Connect now uses hosted onboarding. Please start again from club settings.', 'info')
+    return redirect(url_for('clubs.index'))
+
+
+@stripe_connect_bp.route('/clubs/<slug>/connect/return')
+@login_required
+def onboarding_return(slug):
+    club = _admin_club_or_404(slug)
     if not current_user.is_club_admin(club):
         abort(403)
-    expected_state = pending.get('state')
-    if not expected_state or not secrets.compare_digest(expected_state, request.args.get('state', '')):
-        abort(400)
-    if request.args.get('error'):
-        flash('Stripe Connect was canceled before the club account was connected.', 'warning')
+    if not club.stripe_account_id:
+        flash('Stripe did not return a connected account. Please try again.', 'warning')
         return redirect(url_for('admin.club_settings', slug=club.slug))
 
-    code = request.args.get('code', '')
     try:
-        payload = exchange_authorization_code(code)
+        account = retrieve_connected_account(club.stripe_account_id)
     except StripeConnectError as exc:
-        current_app.logger.warning('Stripe Connect OAuth failed for club %s: %s', club.id, exc)
-        flash('Stripe could not connect this club account. Please try again.', 'danger')
+        current_app.logger.warning('Stripe Connect account status check failed for club %s: %s', club.id, exc)
+        flash('Stripe onboarding started. Refresh this page after Stripe finishes verification.', 'info')
         return redirect(url_for('admin.club_settings', slug=club.slug))
 
-    stripe_account_id = payload.get('stripe_user_id')
-    if not stripe_account_id:
-        flash('Stripe did not return a connected account ID. Please try again.', 'danger')
-        return redirect(url_for('admin.club_settings', slug=club.slug))
-
-    club.stripe_account_id = stripe_account_id
-    club.stripe_account_connected_at = datetime.now(timezone.utc)
+    if account.get('charges_enabled'):
+        club.stripe_account_connected_at = datetime.now(timezone.utc)
+        flash('Stripe Connect onboarding is linked for automated club dues.', 'success')
+    else:
+        flash('Stripe onboarding was saved. Finish Stripe verification before using automated dues.', 'info')
     db.session.commit()
-    flash('Stripe Connect is now linked for automated club dues.', 'success')
     return redirect(url_for('admin.club_settings', slug=club.slug))
 
 

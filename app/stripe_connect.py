@@ -2,14 +2,12 @@ import hmac
 import hashlib
 import json
 import time
-from urllib.parse import urlencode
 
 import requests
 from flask import current_app
 
 
 STRIPE_API_BASE = 'https://api.stripe.com/v1'
-STRIPE_CONNECT_AUTHORIZE_URL = 'https://connect.stripe.com/oauth/authorize'
 STRIPE_API_VERSION = '2026-04-22.dahlia'
 
 
@@ -18,28 +16,11 @@ class StripeConnectError(RuntimeError):
 
 
 def connect_enabled():
-    return bool(
-        current_app.config.get('STRIPE_SECRET_KEY')
-        and current_app.config.get('STRIPE_CONNECT_CLIENT_ID')
-    )
+    return bool(current_app.config.get('STRIPE_SECRET_KEY'))
 
 
 def webhook_enabled():
     return bool(current_app.config.get('STRIPE_WEBHOOK_SECRET'))
-
-
-def authorization_url(state, redirect_uri):
-    client_id = current_app.config.get('STRIPE_CONNECT_CLIENT_ID')
-    if not client_id:
-        raise StripeConnectError('Stripe Connect client ID is not configured.')
-    query = urlencode({
-        'response_type': 'code',
-        'client_id': client_id,
-        'scope': 'read_write',
-        'state': state,
-        'redirect_uri': redirect_uri,
-    })
-    return f'{STRIPE_CONNECT_AUTHORIZE_URL}?{query}'
 
 
 def _headers():
@@ -52,15 +33,57 @@ def _headers():
     }
 
 
-def exchange_authorization_code(code):
+def create_connected_account(*, club, user):
+    data = {
+        'email': user.email,
+        'business_profile[name]': club.name,
+        'metadata[club_id]': str(club.id),
+        'metadata[club_slug]': club.slug,
+    }
+    if club.website:
+        data['business_profile[url]'] = club.website
     response = requests.post(
-        f'{STRIPE_API_BASE}/oauth/token',
+        f'{STRIPE_API_BASE}/accounts',
         headers=_headers(),
-        data={'grant_type': 'authorization_code', 'code': code},
+        data=data,
         timeout=15,
     )
     if response.status_code >= 400:
-        raise StripeConnectError('Stripe rejected the Connect authorization.')
+        raise StripeConnectError('Stripe could not create the connected account.')
+    payload = response.json()
+    if not payload.get('id'):
+        raise StripeConnectError('Stripe returned an incomplete connected account.')
+    return payload
+
+
+def create_onboarding_link(*, account_id, refresh_url, return_url):
+    response = requests.post(
+        f'{STRIPE_API_BASE}/account_links',
+        headers=_headers(),
+        data={
+            'account': account_id,
+            'refresh_url': refresh_url,
+            'return_url': return_url,
+            'type': 'account_onboarding',
+        },
+        timeout=15,
+    )
+    if response.status_code >= 400:
+        raise StripeConnectError('Stripe could not create the onboarding link.')
+    payload = response.json()
+    if not payload.get('url'):
+        raise StripeConnectError('Stripe returned an incomplete onboarding link.')
+    return payload
+
+
+def retrieve_connected_account(account_id):
+    response = requests.get(
+        f'{STRIPE_API_BASE}/accounts/{account_id}',
+        headers=_headers(),
+        timeout=15,
+    )
+    if response.status_code >= 400:
+        raise StripeConnectError('Stripe could not retrieve the connected account.')
     return response.json()
 
 
