@@ -20,6 +20,7 @@ def test_help_index_links_to_guides(client):
     assert b'Rider Guide' in resp.data
     assert b'href="/help/club-managers"' in resp.data
     assert b'href="/help/riders"' in resp.data
+    assert b'choose email notifications' in resp.data
 
 
 def test_club_manager_help_page(client):
@@ -29,6 +30,9 @@ def test_club_manager_help_page(client):
     assert b'Publish rides' in resp.data
     assert b'Manage signups' in resp.data
     assert b'Handle paid club dues' in resp.data
+    assert b'Keep members informed' in resp.data
+    assert b'club news emails are sent right away' in resp.data
+    assert b'accidental high-volume email sends' in resp.data
     assert b'does not hold club dues' in resp.data
     assert b'img/help/club-create.png' in resp.data
     assert b'img/help/club-settings.png' in resp.data
@@ -44,6 +48,9 @@ def test_rider_help_page(client):
     assert b'Find clubs near you' in resp.data
     assert b'Discover and sign up for rides' in resp.data
     assert b'Keep your profile current' in resp.data
+    assert b'Manage email notifications' in resp.data
+    assert b'Message board activity is bundled into a daily digest' in resp.data
+    assert b'account and security emails are always sent' in resp.data
     assert b'img/help/find-clubs.png' in resp.data
     assert b'img/help/discover-rides.png' in resp.data
     assert b'img/help/ride-detail.png' in resp.data
