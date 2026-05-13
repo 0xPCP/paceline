@@ -103,7 +103,7 @@
     {# Right: actions #}
     <div class="col-lg-4">
 
-      <div class="detail-card mb-4">
+      <div class="detail-card mb-4" data-testid="superadmin-user-actions">
         <h5 class="detail-card-title">Actions</h5>
         <div class="d-grid gap-2">
 
@@ -111,14 +111,14 @@
           <form method="post" action="{{ url_for('admin.reset_user_password', user_id=profile_user.id) }}"
                 onsubmit="return confirm('Reset password for {{ profile_user.username }}? A temporary password will be shown.')">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="btn btn-outline-warning w-100 btn-sm">Reset Password</button>
+            <button class="btn btn-outline-warning w-100 btn-sm" data-testid="reset-user-password-button">Reset Password</button>
           </form>
 
           {% if profile_user.id != current_user.id %}
           <form method="post" action="{{ url_for('admin.revoke_user_sessions', user_id=profile_user.id) }}"
                 onsubmit="return confirm('Revoke all active sessions for {{ profile_user.username }}? They will need to sign in again.')">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="btn btn-outline-secondary w-100 btn-sm">Revoke Sessions</button>
+            <button class="btn btn-outline-secondary w-100 btn-sm" data-testid="revoke-user-sessions-button">Revoke Sessions</button>
           </form>
           {% endif %}
 
@@ -127,7 +127,7 @@
           <form method="post" action="{{ url_for('admin.toggle_admin', user_id=profile_user.id) }}"
                 onsubmit="return confirm('{% if profile_user.is_admin %}Revoke{% else %}Grant{% endif %} super admin for {{ profile_user.username }}?')">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="btn btn-sm w-100 {{ 'btn-outline-danger' if profile_user.is_admin else 'btn-outline-primary' }}">
+            <button class="btn btn-sm w-100 {{ 'btn-outline-danger' if profile_user.is_admin else 'btn-outline-primary' }}" data-testid="toggle-superadmin-button">
               {{ 'Revoke Super Admin' if profile_user.is_admin else 'Grant Super Admin' }}
             </button>
           </form>
@@ -136,7 +136,7 @@
           <form method="post" action="{{ url_for('admin.toggle_active', user_id=profile_user.id) }}"
                 onsubmit="return confirm('{% if profile_user.is_active %}Deactivate{% else %}Reactivate{% endif %} account for {{ profile_user.username }}?')">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button class="btn btn-sm w-100 {{ 'btn-outline-secondary' if profile_user.is_active else 'btn-success' }}">
+            <button class="btn btn-sm w-100 {{ 'btn-outline-secondary' if profile_user.is_active else 'btn-success' }}" data-testid="toggle-user-active-button">
               {{ 'Deactivate Account' if profile_user.is_active else 'Reactivate Account' }}
             </button>
           </form>
@@ -146,6 +146,24 @@
 
         </div>
       </div>
+
+      {% if can_delete_test_user and profile_user.id != current_user.id %}
+      <div class="detail-card mb-4 border-danger" data-testid="delete-test-user-panel">
+        <h5 class="detail-card-title text-danger">Test User Cleanup</h5>
+        <p class="section-body">
+          Permanently deletes generated test accounts and their related test rides/clubs.
+          This action is only available for obvious test users.
+        </p>
+        <form method="post" action="{{ url_for('admin.delete_test_user', user_id=profile_user.id) }}"
+              onsubmit="return confirm('Permanently delete generated test user {{ profile_user.email }}? This cannot be undone.')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="form-label small">Type <strong>DELETE TEST USER {{ profile_user.email }}</strong> to confirm.</label>
+          <input class="form-control form-control-sm mb-2" name="confirmation" autocomplete="off"
+                 data-testid="delete-test-user-confirmation">
+          <button class="btn btn-outline-danger w-100 btn-sm" data-testid="delete-test-user-button">Delete Test User</button>
+        </form>
+      </div>
+      {% endif %}
 
       <div class="detail-card">
         <h5 class="detail-card-title">View as User</h5>

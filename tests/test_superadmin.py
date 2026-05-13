@@ -327,6 +327,80 @@ class TestToggleActive:
         assert b'reactivated' in resp.data
 
 
+class TestDeleteTestUser:
+
+    def test_detail_shows_delete_test_user_for_generated_account(self, client, db, admin_user):
+        test_user = make_user(db, 'audit_owner_20260513000102', 'audit_owner_20260513000102@example.com')
+        login_as(client, admin_user)
+        resp = client.get(f'/admin/users/{test_user.id}')
+        assert resp.status_code == 200
+        assert b'data-testid="delete-test-user-panel"' in resp.data
+        assert b'DELETE TEST USER audit_owner_20260513000102@example.com' in resp.data
+
+    def test_detail_hides_delete_test_user_for_real_account(self, client, db, admin_user, regular_user):
+        login_as(client, admin_user)
+        resp = client.get(f'/admin/users/{regular_user.id}')
+        assert resp.status_code == 200
+        assert b'data-testid="delete-test-user-panel"' not in resp.data
+
+    def test_delete_test_user_requires_generated_account(self, client, db, admin_user, regular_user):
+        login_as(client, admin_user)
+        resp = client.post(
+            f'/admin/users/{regular_user.id}/delete-test-user',
+            data={'confirmation': f'DELETE TEST USER {regular_user.email}'},
+            follow_redirects=True,
+        )
+        assert b'Only generated test users' in resp.data
+        assert db.session.get(User, regular_user.id) is not None
+
+    def test_delete_test_user_requires_exact_confirmation(self, client, db, admin_user):
+        test_user = make_user(db, 'audit_owner_20260513000103', 'audit_owner_20260513000103@example.com')
+        login_as(client, admin_user)
+        resp = client.post(
+            f'/admin/users/{test_user.id}/delete-test-user',
+            data={'confirmation': 'DELETE'},
+            follow_redirects=True,
+        )
+        assert b'DELETE TEST USER audit_owner_20260513000103@example.com' in resp.data
+        assert db.session.get(User, test_user.id) is not None
+
+    def test_superadmin_can_delete_generated_test_user_and_artifacts(self, client, db, admin_user):
+        test_user = make_user(db, 'audit_owner_20260513000104', 'audit_owner_20260513000104@example.com')
+        audit_club = Club(
+            slug='audit-workflow-club-20260513000104',
+            name='Audit Workflow Club 20260513000104',
+            owner_id=test_user.id,
+        )
+        db.session.add(audit_club)
+        db.session.commit()
+        personal_ride = Ride(
+            owner_id=test_user.id,
+            title='Audit Personal Ride',
+            date=date.today() + timedelta(days=3),
+            time=time(9, 0),
+            meeting_location='Test lot',
+            distance_miles=12,
+            pace_category='B',
+            ride_type='road',
+        )
+        db.session.add(personal_ride)
+        db.session.commit()
+
+        login_as(client, admin_user)
+        resp = client.post(
+            f'/admin/users/{test_user.id}/delete-test-user',
+            data={'confirmation': 'DELETE TEST USER audit_owner_20260513000104@example.com'},
+            follow_redirects=True,
+        )
+
+        assert resp.status_code == 200
+        assert b'Deleted test user' in resp.data
+        assert db.session.get(User, test_user.id) is None
+        assert db.session.get(Club, audit_club.id) is None
+        assert db.session.get(Ride, personal_ride.id) is None
+        assert AdminAuditLog.query.filter_by(action='delete_test_user').first() is not None
+
+
 # ── Deactivated user cannot log in ────────────────────────────────────────────
 
 class TestDeactivatedLogin:

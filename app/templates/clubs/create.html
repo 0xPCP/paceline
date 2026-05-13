@@ -139,7 +139,7 @@
       </div>
     </div>
 
-    <form method="post" id="create-form" novalidate>
+    <form method="post" id="create-form" novalidate data-testid="create-club-form">
       {{ form.hidden_tag() }}
 
       <!-- Hidden fields written by JS -->
@@ -158,6 +158,7 @@
           <div class="mb-3">
             <label class="form-label fw-semibold">Club Name <span class="text-danger">*</span></label>
             <input type="text" name="name" id="f-name" class="form-control form-control-lg"
+                   data-testid="create-club-name"
                    placeholder="e.g. Reston Bike Club" value="{{ form.name.data or '' }}" required>
             {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors[0] }}</div>{% endif %}
           </div>
@@ -166,16 +167,19 @@
             <div class="col-md-5">
               <label class="form-label fw-semibold">City</label>
               <input type="text" name="city" class="form-control" placeholder="Reston"
+                     data-testid="create-club-city"
                      value="{{ form.city.data or '' }}">
             </div>
             <div class="col-md-3">
               <label class="form-label fw-semibold">State</label>
               <input type="text" name="state" class="form-control" placeholder="VA" maxlength="50"
+                     data-testid="create-club-state"
                      value="{{ form.state.data or '' }}">
             </div>
             <div class="col-md-4">
               <label class="form-label fw-semibold">Zip Code</label>
               <input type="text" name="zip_code" class="form-control" placeholder="20191" maxlength="10"
+                     data-testid="create-club-zip"
                      value="{{ form.zip_code.data or '' }}">
               <div class="form-text">Used for map placement and nearby search.</div>
             </div>
@@ -183,7 +187,7 @@
         </div>
 
         <div class="d-flex justify-content-end mt-3">
-          <button type="button" class="btn btn-paceline px-4" data-next-step="1">Next: Hosting Mode →</button>
+          <button type="button" class="btn btn-paceline px-4" data-next-step="1" data-testid="create-club-next-hosting">Next: Hosting Mode →</button>
         </div>
       </div>
 
@@ -226,7 +230,7 @@
 
         <div class="d-flex justify-content-between mt-3">
           <button type="button" class="btn btn-outline-secondary" data-go-step="1">← Back</button>
-          <button type="button" class="btn btn-paceline px-4" data-go-step="3">Next: Theme →</button>
+          <button type="button" class="btn btn-paceline px-4" data-go-step="3" data-testid="create-club-next-theme">Next: Theme →</button>
         </div>
       </div>
 
@@ -285,7 +289,7 @@
 
         <div class="d-flex justify-content-between mt-3">
           <button type="button" class="btn btn-outline-secondary" data-go-step="2">← Back</button>
-          <button type="button" class="btn btn-paceline px-4" data-go-step="4">Next: Details →</button>
+          <button type="button" class="btn btn-paceline px-4" data-go-step="4" data-testid="create-club-next-details">Next: Details →</button>
         </div>
       </div>
 
@@ -298,12 +302,14 @@
           <div class="mb-3">
             <label class="form-label fw-semibold">Description</label>
             <textarea name="description" class="form-control" rows="3"
+                      data-testid="create-club-description"
                       placeholder="Tell riders what your club is about…">{{ form.description.data or '' }}</textarea>
           </div>
           <div class="row g-3 mb-3">
             <div class="col-md-6">
               <label class="form-label fw-semibold">Contact Email</label>
               <input type="email" name="contact_email" class="form-control"
+                     data-testid="create-club-contact-email"
                      placeholder="rides@yourclub.org" value="{{ form.contact_email.data or '' }}">
             </div>
           </div>
@@ -325,7 +331,7 @@
 
         <div class="d-flex justify-content-between mt-3">
           <button type="button" class="btn btn-outline-secondary" data-go-step="3">← Back</button>
-          <button type="button" class="btn btn-paceline px-4" data-build-review>Review →</button>
+          <button type="button" class="btn btn-paceline px-4" data-build-review data-testid="create-club-review">Review →</button>
         </div>
       </div>
 
@@ -338,7 +344,7 @@
 
         <div class="d-flex justify-content-between mt-3">
           <button type="button" class="btn btn-outline-secondary" data-go-step="4">← Back</button>
-          <button type="submit" class="btn btn-paceline btn-lg px-5">Create Club</button>
+          <button type="submit" class="btn btn-paceline btn-lg px-5" data-testid="create-club-submit">Create Club</button>
         </div>
       </div>
 
