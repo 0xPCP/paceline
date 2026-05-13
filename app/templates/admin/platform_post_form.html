@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} — Superadmin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Superadmin</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.platform_posts') }}">Homepage Posts</a></li>
+        <li class="breadcrumb-item active">{{ title }}</li>
+      </ol>
+    </nav>
+    <h1>{{ title }}</h1>
+    <p class="mb-0">Updates here appear on the homepage without comments or replies.</p>
+  </div>
+</div>
+
+<div class="container py-4">
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <form method="post" novalidate>
+        {{ form.hidden_tag() }}
+
+        <div class="detail-card mb-4">
+          <div class="mb-3">
+            {{ form.title.label(class="form-label") }}
+            {{ form.title(class="form-control" + (" is-invalid" if form.title.errors else ""), placeholder="Short update title") }}
+            {% for e in form.title.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="mb-3">
+            {{ form.summary.label(class="form-label") }}
+            {{ form.summary(class="form-control" + (" is-invalid" if form.summary.errors else ""), placeholder="One-sentence teaser shown on the homepage") }}
+            {% for e in form.summary.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            <div class="form-text">Optional. If blank, Paceline will use the first part of the post body.</div>
+          </div>
+
+          <div class="mb-3">
+            {{ form.body.label(class="form-label") }}
+            {{ form.body(class="form-control" + (" is-invalid" if form.body.errors else ""), rows=12,
+                         placeholder="Write the update here. Markdown is supported.") }}
+            {% for e in form.body.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            <div class="form-text">Markdown is supported. These posts do not have comments.</div>
+          </div>
+
+          <div class="form-check form-switch mb-0">
+            {{ form.is_published(class="form-check-input", role="switch") }}
+            {{ form.is_published.label(class="form-check-label") }}
+          </div>
+        </div>
+
+        <div class="d-flex gap-2">
+          {{ form.submit(class="btn btn-paceline") }}
+          <a href="{{ url_for('admin.platform_posts') }}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="detail-card">
+        <h5 class="detail-card-title">Homepage Layout</h5>
+        <p class="section-body mb-2">
+          Published posts appear in a compact news band below the hero for visitors
+          and in the dashboard sidebar for signed-in users.
+        </p>
+        <p class="text-muted small mb-0">Use this for release notes, feature launches, planned maintenance, and general platform news.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

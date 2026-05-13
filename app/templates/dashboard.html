@@ -112,6 +112,22 @@
     <!-- Sidebar -->
     <div class="col-lg-4">
 
+      {% if platform_posts %}
+      <div class="detail-card mb-4">
+        <h5 class="detail-card-title">
+          <span>Latest from Paceline</span>
+          <a href="{{ url_for('main.platform_news') }}" class="detail-card-link">View All</a>
+        </h5>
+        {% for post in platform_posts %}
+        <div class="platform-news-sidebar-item">
+          <div class="platform-news-date">{{ post.published_at | strftime('%b %-d') }}</div>
+          <a href="{{ url_for('main.platform_news_detail', post_id=post.id) }}" class="fw-semibold text-decoration-none">{{ post.title }}</a>
+          {% if post.summary %}<div class="text-muted small mt-1">{{ post.summary }}</div>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
       <!-- What to Wear widget -->
       <div class="wtw-card mb-4" id="wtw-widget">
         <div class="wtw-header">

@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, curren
 from flask_login import current_user, login_required
 from sqlalchemy import or_, and_, text
 from ..forms import FeedbackForm
-from ..models import Club, Ride, RideSignup, ClubMembership, SiteFeedback, User
+from ..models import Club, Ride, RideSignup, ClubMembership, PlatformPost, SiteFeedback, User
 from ..extensions import db
 from ..email import send_feedback_notification
 from ..weather import get_weather_for_rides
@@ -27,16 +27,26 @@ def health():
 @main_bp.route('/')
 def index():
     today = date.today()
+    platform_posts = _published_platform_posts(limit=3)
 
     if current_user.is_authenticated:
-        return _user_dashboard(today)
+        return _user_dashboard(today, platform_posts)
 
     # Landing page for logged-out visitors: show club directory teaser
     clubs = Club.query.filter_by(is_active=True, is_hidden=False).order_by(Club.name.asc()).all()
-    return render_template('index.html', clubs=clubs, today=today)
+    return render_template('index.html', clubs=clubs, today=today, platform_posts=platform_posts)
 
 
-def _user_dashboard(today):
+def _published_platform_posts(limit=None):
+    query = (PlatformPost.query
+             .filter_by(is_published=True)
+             .order_by(PlatformPost.published_at.desc(), PlatformPost.id.desc()))
+    if limit:
+        query = query.limit(limit)
+    return query.all()
+
+
+def _user_dashboard(today, platform_posts=None):
     """Home screen for logged-in users: upcoming rides across all subscribed clubs."""
     # Clubs the user has joined (active memberships)
     memberships = (ClubMembership.query
@@ -102,7 +112,20 @@ def _user_dashboard(today):
                            my_clubs=my_clubs,
                            suggested_clubs=suggested_clubs,
                            signed_up_ride_ids=signed_up_ride_ids,
-                           signup_eligible=signup_eligible)
+                           signup_eligible=signup_eligible,
+                           platform_posts=platform_posts or [])
+
+
+@main_bp.route('/news/')
+def platform_news():
+    posts = _published_platform_posts()
+    return render_template('news/index.html', posts=posts)
+
+
+@main_bp.route('/news/<int:post_id>')
+def platform_news_detail(post_id):
+    post = PlatformPost.query.filter_by(id=post_id, is_published=True).first_or_404()
+    return render_template('news/detail.html', post=post)
 
 
 @main_bp.route('/set-language/<lang>')

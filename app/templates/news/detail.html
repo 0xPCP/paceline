@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }} — Paceline News{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.platform_news') }}">Paceline News</a></li>
+        <li class="breadcrumb-item active">{{ post.title }}</li>
+      </ol>
+    </nav>
+    <h1>{{ post.title }}</h1>
+    <p class="mb-0">{{ post.published_at | strftime('%B %-d, %Y') }}</p>
+  </div>
+</div>
+
+<div class="container py-4">
+  <article class="platform-news-detail">
+    {% if post.summary %}<p class="platform-news-detail-summary">{{ post.summary }}</p>{% endif %}
+    <div class="platform-news-detail-body">{{ post.body | markdown }}</div>
+  </article>
+</div>
+{% endblock %}

@@ -239,6 +239,14 @@ class ClubPostForm(FlaskForm):
     submit = SubmitField('Save Post')
 
 
+class PlatformPostForm(FlaskForm):
+    title = StringField('Title', validators=[DataRequired(), Length(max=200)])
+    summary = StringField('Short Summary', validators=[Optional(), Length(max=300)])
+    body = TextAreaField('Post Body', validators=[DataRequired()])
+    is_published = BooleanField('Published', default=True)
+    submit = SubmitField('Save Post')
+
+
 class ClubLeaderForm(FlaskForm):
     name          = StringField('Display Name', validators=[DataRequired(), Length(max=100)])
     bio           = TextAreaField('Bio', validators=[Optional()])
