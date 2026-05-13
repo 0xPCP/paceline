@@ -1086,8 +1086,15 @@ body.club-page {
 .footer-brand { font-family: 'Barlow Condensed', sans-serif; font-size: 1.2rem; font-weight: 700; color: #fff; margin-bottom: .25rem; }
 .footer-tagline { font-size: .85rem; color: rgba(255,255,255,.5); }
 .footer-heading { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: rgba(255,255,255,.5); margin-bottom: .75rem; }
-.footer-links { list-style: none; padding: 0; margin: 0; }
-.footer-links li { margin-bottom: .35rem; }
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem 1.25rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.footer-links li { margin-bottom: 0; }
 .footer-links a { color: rgba(255,255,255,.7); text-decoration: none; font-size: .9rem; }
 .footer-links a:hover { color: #fff; }
 .footer-hr { border-color: rgba(255,255,255,.1); margin: 1.5rem 0 1rem; }
@@ -1666,6 +1673,13 @@ a:hover { color: var(--paceline-green-dark); }
 
   /* Superadmin stats: already 2-col, just reduce font */
   .admin-stat-num { font-size: 1.8rem; }
+
+  .footer-links {
+    display: block;
+  }
+  .footer-links li {
+    margin-bottom: .35rem;
+  }
 
   /* Board: media grid goes single-column on mobile */
   .board-media-grid { max-width: 100%; }
