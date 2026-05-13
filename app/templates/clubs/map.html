@@ -67,6 +67,18 @@
 
   /* ── Toggle buttons ── */
   .map-layer-toggle .btn { font-size: .82rem; padding: .3rem .75rem; }
+  .btn-map-secondary {
+    border-color: #6b7280;
+    color: #1f2937;
+    background: #fff;
+    font-weight: 600;
+  }
+  .btn-map-secondary:hover,
+  .btn-map-secondary:focus {
+    border-color: #2d6a4f;
+    color: #1b4332;
+    background: #f0fdf4;
+  }
 </style>
 {% endblock %}
 
@@ -77,7 +89,7 @@
       <h1 style="font-size:1.8rem;margin-bottom:.1rem">{{ _('Club Map') }}</h1>
       <p id="map-subtitle" class="mb-0" style="font-size:.9rem">{% if clubs %}{{ ngettext('%(num)d club on the map', '%(num)d clubs on the map', clubs|length) }}{% else %}{{ _('No geocoded clubs yet.') }}{% endif %}</p>
     </div>
-    <div class="d-flex gap-2 align-items-center flex-wrap">
+    <div id="map-controls" class="d-flex gap-2 align-items-center flex-wrap">
 
       {# Layer toggle #}
       <div class="btn-group map-layer-toggle" role="group">
@@ -85,18 +97,18 @@
           &#x1F3E2; {{ _('Clubs') }}
         </button>
         {% if current_user.is_authenticated %}
-        <button id="layer-rides" class="btn btn-outline-light">
+        <button id="layer-rides" class="btn btn-map-secondary">
           &#x1F6B4; {{ _('Rides This Week') }}
         </button>
         {% else %}
         <a href="{{ url_for('auth.login', next=request.path) }}"
-           class="btn btn-outline-light" title="{{ _('Sign in to see upcoming rides') }}">
+           class="btn btn-map-secondary" title="{{ _('Sign in to see upcoming rides') }}">
           &#x1F512; {{ _('Rides This Week') }}
         </a>
         {% endif %}
       </div>
 
-      <a href="{{ url_for('clubs.index') }}" class="btn btn-outline-light btn-sm">{{ _('List View') }}</a>
+      <a href="{{ url_for('clubs.index') }}" class="btn btn-map-secondary btn-sm">{{ _('List View') }}</a>
       <button id="locate-btn" class="btn btn-paceline-sm" style="font-size:.85rem;padding:.4rem .9rem">
         &#x1F4CD; {{ _('Near Me') }}
       </button>

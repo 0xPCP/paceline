@@ -92,8 +92,11 @@ msgstr "Account aangemaakt! U kunt nu inloggen."
 msgid "This account has been deactivated. Please contact support."
 msgstr "Dit account is gedeactiveerd. Neem contact op met de support."
 
-msgid "Find your pack."
-msgstr "Vind jouw groep."
+msgid "Connecting riders"
+msgstr "Fietsers verbinden"
+
+msgid "Connecting riders."
+msgstr "Fietsers verbinden."
 
 msgid "Group Cycling, Simplified"
 msgstr "Wielrennen in groep, vereenvoudigd"

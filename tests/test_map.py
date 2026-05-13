@@ -211,3 +211,20 @@ def test_map_rides_sign_in_prompt_for_anonymous(client, db, sample_club):
     assert resp.status_code == 200
     assert b'auth/login' in resp.data
     assert b'Rides This Week' in resp.data
+
+
+def test_map_header_controls_use_visible_light_background_buttons(client, sample_club):
+    """Map header controls sit on a light header; avoid white outline buttons."""
+    resp = client.get('/clubs/map/')
+    assert resp.status_code == 200
+    assert b'id="map-controls"' in resp.data
+    assert b'btn-outline-light' not in resp.data
+    assert resp.data.count(b'btn-map-secondary') >= 2
+
+
+def test_authenticated_map_rides_toggle_uses_visible_button(client, sample_club, regular_user):
+    login(client)
+    resp = client.get('/clubs/map/')
+    assert resp.status_code == 200
+    assert b'id="layer-rides" class="btn btn-map-secondary"' in resp.data
+    assert b'btn-outline-light' not in resp.data
