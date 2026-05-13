@@ -49,6 +49,20 @@
         {% endfor %}
       </div>
 
+      <div class="form-check mb-3">
+        {{ form.policy_ack(class="form-check-input" + (" is-invalid" if form.policy_ack.errors else ""), **{'data-testid': 'register-policy-ack'}) }}
+        <label class="form-check-label small" for="{{ form.policy_ack.id }}">
+          I have reviewed Paceline's
+          <a href="{{ url_for('main.privacy') }}" target="_blank" rel="noopener">Privacy Policy</a>
+          and
+          <a href="{{ url_for('main.data_use') }}" target="_blank" rel="noopener">Data Use Policy</a>,
+          including how Paceline may use location data, process data in the United States, retain inactive account data until deletion, and use aggregated or de-identified data.
+        </label>
+        {% for e in form.policy_ack.errors %}
+        <div class="invalid-feedback d-block">{{ e }}</div>
+        {% endfor %}
+      </div>
+
       {{ form.submit(class="btn btn-paceline w-100", **{'data-testid': 'register-submit'}) }}
     </form>
 

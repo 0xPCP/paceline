@@ -339,11 +339,13 @@ class TestSetupAccount:
         resp = client.get(f'/auth/setup-account/{invite.token}')
         assert resp.status_code == 200
         assert b'Set Password' in resp.data
+        assert b'Privacy Policy' in resp.data
+        assert b'Data Use Policy' in resp.data
 
     def test_valid_password_logs_user_in(self, client, club, club_admin, db):
         user, invite = self._make_new_user_invite(db, club, club_admin)
         resp = client.post(f'/auth/setup-account/{invite.token}',
-                           data={'password': 'newpassword1', 'confirm_password': 'newpassword1'},
+                           data={'password': 'newpassword1', 'confirm_password': 'newpassword1', 'policy_ack': 'y'},
                            follow_redirects=True)
         assert resp.status_code == 200
         # Should be on the club home page
@@ -352,7 +354,7 @@ class TestSetupAccount:
     def test_invite_marked_used_after_setup(self, client, club, club_admin, db):
         user, invite = self._make_new_user_invite(db, club, club_admin)
         client.post(f'/auth/setup-account/{invite.token}',
-                    data={'password': 'newpassword1', 'confirm_password': 'newpassword1'},
+                    data={'password': 'newpassword1', 'confirm_password': 'newpassword1', 'policy_ack': 'y'},
                     follow_redirects=True)
         db.session.refresh(invite)
         assert invite.used_at is not None
@@ -361,7 +363,7 @@ class TestSetupAccount:
     def test_password_actually_set(self, client, club, club_admin, db):
         user, invite = self._make_new_user_invite(db, club, club_admin)
         client.post(f'/auth/setup-account/{invite.token}',
-                    data={'password': 'newpassword1', 'confirm_password': 'newpassword1'},
+                    data={'password': 'newpassword1', 'confirm_password': 'newpassword1', 'policy_ack': 'y'},
                     follow_redirects=True)
         db.session.refresh(user)
         assert bcrypt.check_password_hash(user.password_hash, 'newpassword1')
@@ -369,9 +371,18 @@ class TestSetupAccount:
     def test_mismatched_passwords_rejected(self, client, club, club_admin, db):
         user, invite = self._make_new_user_invite(db, club, club_admin)
         resp = client.post(f'/auth/setup-account/{invite.token}',
-                           data={'password': 'password1', 'confirm_password': 'different'},
+                           data={'password': 'password1', 'confirm_password': 'different', 'policy_ack': 'y'},
                            follow_redirects=True)
         assert resp.status_code == 200
+        assert invite.used_at is None
+
+    def test_policy_acknowledgement_required_for_setup(self, client, club, club_admin, db):
+        user, invite = self._make_new_user_invite(db, club, club_admin)
+        resp = client.post(f'/auth/setup-account/{invite.token}',
+                           data={'password': 'newpassword1', 'confirm_password': 'newpassword1'},
+                           follow_redirects=True)
+        assert b'Privacy Policy' in resp.data
+        assert b'Data Use Policy' in resp.data
         assert invite.used_at is None
 
     def test_already_used_token_rejected(self, client, club, club_admin, db):

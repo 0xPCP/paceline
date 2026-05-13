@@ -140,6 +140,7 @@ def register(page: Page, email: str, username: str) -> None:
     page.get_by_test_id("register-email").fill(email)
     page.get_by_test_id("register-password").fill(PASSWORD)
     page.get_by_test_id("register-confirm-password").fill(PASSWORD)
+    page.get_by_test_id("register-policy-ack").check()
     page.get_by_test_id("register-submit").click()
     page.wait_for_load_state("domcontentloaded", timeout=20000)
     body = page.locator("body").inner_text(timeout=10000)

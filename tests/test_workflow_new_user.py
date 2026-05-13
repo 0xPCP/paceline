@@ -97,6 +97,7 @@ def _register(client, username, email, password='TestPass1!'):
         'email': email,
         'password': password,
         'confirm_password': password,
+        'policy_ack': 'y',
     }, follow_redirects=True)
 
 

@@ -18,7 +18,7 @@ from ..models import (AdminAuditLog, AppErrorLog, BoardDigestItem, Club,
                       SiteFeedback, User, UserEmailLog, UserRideInvite,
                       WaiverSignature)
 from ..forms import (
-    DisableMfaForm, MfaCodeForm, PasswordResetRequestForm, RegisterForm,
+    AccountSetupForm, DisableMfaForm, MfaCodeForm, PasswordResetRequestForm, RegisterForm,
     LoginForm, ProfileForm, SetPasswordForm, UsernameSetupForm,
 )
 from ..email import send_password_reset_email
@@ -505,7 +505,7 @@ def setup_account(token):
         db.session.commit()
         return redirect(url_for('clubs.home', slug=invite.club.slug))
 
-    form = SetPasswordForm()
+    form = AccountSetupForm()
     if form.validate_on_submit():
         user.password_hash = bcrypt.generate_password_hash(
             form.password.data

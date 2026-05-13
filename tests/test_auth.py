@@ -20,6 +20,7 @@ class TestRegistration:
             'email': 'newrider@rbc.com',
             'password': 'StrongPass1!',
             'confirm_password': 'StrongPass1!',
+            'policy_ack': 'y',
         }, follow_redirects=True)
         assert resp.status_code == 200
         user = User.query.filter_by(username='newrider').first()
@@ -32,6 +33,7 @@ class TestRegistration:
             'email': 'first@rbc.com',
             'password': 'StrongPass1!',
             'confirm_password': 'StrongPass1!',
+            'policy_ack': 'y',
         }, follow_redirects=True)
         user = User.query.filter_by(username='firstuser').first()
         assert user.is_admin is True
@@ -42,6 +44,7 @@ class TestRegistration:
             'email': 'second@rbc.com',
             'password': 'StrongPass1!',
             'confirm_password': 'StrongPass1!',
+            'policy_ack': 'y',
         }, follow_redirects=True)
         user = User.query.filter_by(username='seconduser').first()
         assert user.is_admin is False
@@ -52,6 +55,7 @@ class TestRegistration:
             'email': 'other@rbc.com',
             'password': 'StrongPass1!',
             'confirm_password': 'StrongPass1!',
+            'policy_ack': 'y',
         }, follow_redirects=True)
         assert resp.status_code == 200
         count = User.query.filter_by(username='rider').count()
@@ -63,6 +67,7 @@ class TestRegistration:
             'email': 'rider@test.com',   # same as regular_user
             'password': 'StrongPass1!',
             'confirm_password': 'StrongPass1!',
+            'policy_ack': 'y',
         }, follow_redirects=True)
         assert resp.status_code == 200
         count = User.query.filter_by(email='rider@test.com').count()
@@ -74,10 +79,22 @@ class TestRegistration:
             'email': 'mismatch@rbc.com',
             'password': 'StrongPass1!',
             'confirm_password': 'DifferentPass1!',
+            'policy_ack': 'y',
         }, follow_redirects=True)
         assert resp.status_code == 200
         user = User.query.filter_by(username='mismatch').first()
         assert user is None
+
+    def test_policy_acknowledgement_required(self, client, db):
+        resp = client.post('/auth/register', data={
+            'username': 'nopolicy',
+            'email': 'nopolicy@rbc.com',
+            'password': 'StrongPass1!',
+            'confirm_password': 'StrongPass1!',
+        }, follow_redirects=True)
+        assert b'Privacy Policy' in resp.data
+        assert b'Data Use Policy' in resp.data
+        assert User.query.filter_by(username='nopolicy').first() is None
 
 
 # ── Login / Logout ────────────────────────────────────────────────────────────
