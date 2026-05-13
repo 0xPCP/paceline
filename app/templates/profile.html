@@ -280,6 +280,22 @@
         </div>
       </div>
       {% endif %}
+
+      <div class="detail-card mt-3 border-danger">
+        <h5 class="detail-card-title text-danger">Delete Account</h5>
+        <p class="text-muted small">
+          Permanently delete your Paceline account and remove your personal profile, memberships,
+          signups, personal rides, and account preferences. If you own a club, transfer or delete
+          the club before deleting your account.
+        </p>
+        <form method="post" action="{{ url_for('auth.delete_account') }}"
+              onsubmit="return confirm('Permanently delete your Paceline account? This cannot be undone.')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="form-label small">Type <strong>DELETE {{ current_user.email }}</strong> to confirm.</label>
+          <input class="form-control form-control-sm mb-2" name="confirmation" autocomplete="off">
+          <button class="btn btn-outline-danger btn-sm">Delete My Account</button>
+        </form>
+      </div>
     </div>
 
   </div>
