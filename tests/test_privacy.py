@@ -28,6 +28,16 @@ def test_data_use_policy_page(client):
     assert b'privacy@paceline.club' in resp.data
 
 
+def test_registration_onboarding_links_to_policy_statements(client):
+    resp = client.get('/auth/register')
+    assert resp.status_code == 200
+    assert b'Privacy Policy' in resp.data
+    assert b'Data Use Policy' in resp.data
+    assert b'location data' in resp.data
+    assert b'United States' in resp.data
+    assert b'aggregated or de-identified data' in resp.data
+
+
 def test_profile_shows_delete_account(client, regular_user):
     login(client, regular_user.email)
     resp = client.get('/auth/profile')

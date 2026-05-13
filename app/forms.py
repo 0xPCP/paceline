@@ -5,7 +5,7 @@ from wtforms import (
     TextAreaField, SelectField, FloatField, IntegerField, DateField, TimeField,
     DecimalField
 )
-from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional, URL, NumberRange, Regexp, ValidationError
+from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional, URL, NumberRange, Regexp, ValidationError, InputRequired
 from .security import is_safe_external_url
 from .strava_profile import canonical_strava_profile_url
 
@@ -34,6 +34,9 @@ class RegisterForm(FlaskForm):
     email = StringField('Email Address', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired(), Length(min=8)])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
+    policy_ack = BooleanField('Policy acknowledgement', validators=[
+        InputRequired(message='You must review and acknowledge the Privacy Policy and Data Use Policy.'),
+    ])
     submit = SubmitField('Create Account')
 
 
@@ -41,6 +44,9 @@ class UsernameSetupForm(FlaskForm):
     username = StringField('Username', validators=[
         DataRequired(), Length(3, 50),
         Regexp(r'^[a-zA-Z0-9_.-]+$', message='Username may only contain letters, numbers, underscores, hyphens, and dots.'),
+    ])
+    policy_ack = BooleanField('Policy acknowledgement', validators=[
+        InputRequired(message='You must review and acknowledge the Privacy Policy and Data Use Policy.'),
     ])
     submit = SubmitField('Save Username')
 
@@ -310,6 +316,12 @@ class SetPasswordForm(FlaskForm):
     confirm_password = PasswordField('Confirm Password',
                                      validators=[DataRequired(), EqualTo('password', message='Passwords must match.')])
     submit = SubmitField('Set Password & Join Club')
+
+
+class AccountSetupForm(SetPasswordForm):
+    policy_ack = BooleanField('Policy acknowledgement', validators=[
+        InputRequired(message='You must review and acknowledge the Privacy Policy and Data Use Policy.'),
+    ])
 
 
 class FeedbackForm(FlaskForm):

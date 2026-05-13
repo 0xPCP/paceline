@@ -15,6 +15,17 @@
         {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else ""), placeholder="coolrider42") }}
         {% for e in form.username.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
       </div>
+      <div class="form-check mb-3">
+        {{ form.policy_ack(class="form-check-input" + (" is-invalid" if form.policy_ack.errors else "")) }}
+        <label class="form-check-label small" for="{{ form.policy_ack.id }}">
+          I have reviewed Paceline's
+          <a href="{{ url_for('main.privacy') }}" target="_blank" rel="noopener">Privacy Policy</a>
+          and
+          <a href="{{ url_for('main.data_use') }}" target="_blank" rel="noopener">Data Use Policy</a>,
+          including how Paceline may use location data, process data in the United States, retain inactive account data until deletion, and use aggregated or de-identified data.
+        </label>
+        {% for e in form.policy_ack.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+      </div>
       {{ form.submit(class="btn btn-paceline w-100") }}
     </form>
   </div>

@@ -112,10 +112,13 @@ def test_google_user_must_set_unique_username_before_using_app(client, app):
         client.get('/auth/google/callback?state=state-token&code=auth-code')
 
     assert client.get('/clubs/').headers['Location'].endswith('/auth/username')
-    duplicate = client.post('/auth/username', data={'username': 'taken'})
+    duplicate = client.post('/auth/username', data={'username': 'taken', 'policy_ack': 'y'})
     assert b'already taken' in duplicate.data
 
-    resp = client.post('/auth/username', data={'username': 'newgoogleuser'}, follow_redirects=False)
+    missing_ack = client.post('/auth/username', data={'username': 'newgoogleuser'})
+    assert b'Privacy Policy' in missing_ack.data
+
+    resp = client.post('/auth/username', data={'username': 'newgoogleuser', 'policy_ack': 'y'}, follow_redirects=False)
     assert resp.status_code == 302
     user = User.query.filter_by(email='needsname@example.com').one()
     assert user.username == 'newgoogleuser'

@@ -198,6 +198,7 @@ def _register_user(page, base, username, email, password='TestPass1!'):
     page.fill('input[name="email"]', email)
     page.fill('input[name="password"]', password)
     page.fill('input[name="confirm_password"]', password)
+    page.check('input[name="policy_ack"]')
     page.click('button[type="submit"], input[type="submit"]')
     page.wait_for_load_state('networkidle')
 
@@ -266,6 +267,7 @@ def test_scenario_a_register_join_auto_club_signup(server_info, browser):
     page.fill('input[name="email"]', 'newrider@wf.example.com')
     page.fill('input[name="password"]', 'TestPass1!')
     page.fill('input[name="confirm_password"]', 'TestPass1!')
+    page.check('input[name="policy_ack"]')
     _shot(page, '02_register_filled')
     page.click('button[type="submit"], input[type="submit"]')
     page.wait_for_load_state('networkidle')
