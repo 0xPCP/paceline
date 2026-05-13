@@ -92,8 +92,11 @@ msgstr "Compte créé ! Vous pouvez maintenant vous connecter."
 msgid "This account has been deactivated. Please contact support."
 msgstr "Ce compte a été désactivé. Veuillez contacter le support."
 
-msgid "Find your pack."
-msgstr "Trouvez votre groupe."
+msgid "Connecting riders"
+msgstr "Connecter les cyclistes"
+
+msgid "Connecting riders."
+msgstr "Connecter les cyclistes."
 
 msgid "Group Cycling, Simplified"
 msgstr "Le cyclisme en groupe, simplifié"

@@ -104,6 +104,10 @@ def mobile_page(browser):
     return browser.new_page(viewport=MOBILE_VIEWPORT)
 
 
+def desktop_page(browser):
+    return browser.new_page(viewport={'width': 1440, 'height': 900})
+
+
 # ── Tests ─────────────────────────────────────────────────────────────────────
 
 def test_club_home_renders_on_mobile(server_info, browser):
@@ -210,6 +214,35 @@ def test_map_page_embeds_clubs_no_loading_spinner(server_info, browser):
     assert 'club' in subtitle.lower(), f'Unexpected subtitle: {subtitle}'
 
     page.screenshot(path='tests/screenshots/browser_map_mobile.png',
+                    full_page=True)
+    page.close()
+
+
+def test_map_header_controls_visible_on_desktop(server_info, browser):
+    """Map header controls should be readable before hover on the light header."""
+    base, _, _ = server_info
+    page = desktop_page(browser)
+    page.goto(f'{base}/clubs/map/')
+    page.wait_for_selector('#map-controls')
+
+    assert page.locator('#map-controls .btn-outline-light').count() == 0
+    secondary_controls = page.locator('#map-controls .btn-map-secondary')
+    assert secondary_controls.count() >= 2
+    for i in range(secondary_controls.count()):
+        control = secondary_controls.nth(i)
+        assert control.is_visible()
+        colors = control.evaluate("""el => {
+            const style = getComputedStyle(el);
+            return { color: style.color, backgroundColor: style.backgroundColor };
+        }""")
+        assert colors['color'] not in ('rgb(255, 255, 255)', 'rgba(255, 255, 255, 1)'), (
+            f"Map control '{control.inner_text()}' uses white text before hover"
+        )
+        assert colors['backgroundColor'] not in ('rgba(0, 0, 0, 0)', 'transparent'), (
+            f"Map control '{control.inner_text()}' has no visible button background"
+        )
+
+    page.screenshot(path='tests/screenshots/browser_map_controls_desktop.png',
                     full_page=True)
     page.close()
 
