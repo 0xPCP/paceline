@@ -1,7 +1,7 @@
 """add featured club flags
 
 Revision ID: g4c9e2a1b7d8
-Revises: f3a1b2c4d5e6
+Revises: a6d0e1f2c3b4
 Create Date: 2026-05-13
 """
 from alembic import op
@@ -9,7 +9,7 @@ import sqlalchemy as sa
 
 
 revision = 'g4c9e2a1b7d8'
-down_revision = 'f3a1b2c4d5e6'
+down_revision = 'a6d0e1f2c3b4'
 branch_labels = None
 depends_on = None
 
