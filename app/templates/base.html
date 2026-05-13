@@ -94,6 +94,8 @@
           <li><a href="{{ url_for('main.help_index') }}">{{ _('Help') }}</a></li>
           <li><a href="{{ url_for('main.about') }}">{{ _('About') }}</a></li>
           <li><a href="{{ url_for('main.donate') }}">{{ _('Donate') }}</a></li>
+          <li><a href="{{ url_for('main.privacy') }}">Privacy</a></li>
+          <li><a href="{{ url_for('main.data_use') }}">Data Use</a></li>
           {% if not current_user.is_authenticated %}
           <li><a href="{{ url_for('auth.register') }}">{{ _('Create Account') }}</a></li>
           {% endif %}

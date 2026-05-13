@@ -140,6 +140,16 @@ def about():
     return render_template('about.html')
 
 
+@main_bp.route('/privacy')
+def privacy():
+    return render_template('privacy.html')
+
+
+@main_bp.route('/data-use')
+def data_use():
+    return render_template('data_use.html')
+
+
 @main_bp.route('/donate')
 def donate():
     donate_url = (current_app.config.get('DONATE_URL') or '').strip()

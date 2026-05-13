@@ -10,7 +10,13 @@ from flask_babel import gettext as _, refresh as refresh_locale
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 import requests
 from ..extensions import db, bcrypt, limiter
-from ..models import User, Ride, RideSignup, ClubInvite
+from ..models import (AdminAuditLog, AppErrorLog, BoardDigestItem, Club,
+                      ClubAdmin, ClubBoardPost, ClubBoardReaction, ClubBoardReply,
+                      ClubBoardSubscription, ClubInvite, ClubLeader, ClubMembership,
+                      ClubMembershipPayment, ClubOwnershipTransfer, ClubPost,
+                      PlatformPost, Ride, RideComment, RideMedia, RideSignup,
+                      SiteFeedback, User, UserEmailLog, UserRideInvite,
+                      WaiverSignature)
 from ..forms import (
     DisableMfaForm, MfaCodeForm, PasswordResetRequestForm, RegisterForm,
     LoginForm, ProfileForm, SetPasswordForm, UsernameSetupForm,
@@ -71,6 +77,55 @@ def _mfa_code_valid(user, code):
 
 def _password_reset_serializer():
     return URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt='paceline-password-reset')
+
+
+def _delete_current_user_account(user):
+    owned_clubs = Club.query.filter_by(owner_id=user.id).all()
+    if owned_clubs:
+        names = ', '.join(club.name for club in owned_clubs[:3])
+        if len(owned_clubs) > 3:
+            names += ', ...'
+        return False, f'Transfer or delete clubs you own before deleting your account: {names}.'
+
+    Ride.query.filter_by(leader_id=user.id).update({'leader_id': None}, synchronize_session=False)
+    Ride.query.filter_by(created_by=user.id).update({'created_by': None}, synchronize_session=False)
+    ClubMembership.query.filter_by(dues_confirmed_by_id=user.id).update({'dues_confirmed_by_id': None}, synchronize_session=False)
+    ClubPost.query.filter_by(author_id=user.id).update({'author_id': None}, synchronize_session=False)
+    ClubLeader.query.filter_by(user_id=user.id).update({'user_id': None}, synchronize_session=False)
+    PlatformPost.query.filter_by(author_id=user.id).update({'author_id': None}, synchronize_session=False)
+    BoardDigestItem.query.filter_by(actor_id=user.id).update({'actor_id': None}, synchronize_session=False)
+    ClubInvite.query.filter_by(used_by_user_id=user.id).update({'used_by_user_id': None}, synchronize_session=False)
+    AdminAuditLog.query.filter_by(actor_id=user.id).update({'actor_id': None}, synchronize_session=False)
+    AdminAuditLog.query.filter_by(target_user_id=user.id).update({'target_user_id': None}, synchronize_session=False)
+    SiteFeedback.query.filter_by(user_id=user.id).update({'user_id': None}, synchronize_session=False)
+    SiteFeedback.query.filter_by(read_by_id=user.id).update({'read_by_id': None}, synchronize_session=False)
+    AppErrorLog.query.filter_by(user_id=user.id).update({'user_id': None}, synchronize_session=False)
+
+    for ride in Ride.query.filter_by(owner_id=user.id).all():
+        db.session.delete(ride)
+    ClubMembershipPayment.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+    ClubOwnershipTransfer.query.filter(
+        (ClubOwnershipTransfer.from_user_id == user.id) | (ClubOwnershipTransfer.to_user_id == user.id)
+    ).delete(synchronize_session=False)
+    RideSignup.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+    RideMedia.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+    RideComment.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+    ClubMembership.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+    ClubAdmin.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+    WaiverSignature.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+    UserRideInvite.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+    ClubBoardSubscription.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+    ClubBoardReaction.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+    ClubBoardReply.query.filter_by(author_id=user.id).delete(synchronize_session=False)
+    for post in ClubBoardPost.query.filter_by(author_id=user.id).all():
+        BoardDigestItem.query.filter_by(post_id=post.id).delete(synchronize_session=False)
+        db.session.delete(post)
+    ClubInvite.query.filter_by(created_by=user.id).delete(synchronize_session=False)
+    BoardDigestItem.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+    UserEmailLog.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+
+    db.session.delete(user)
+    return True, 'Your account has been deleted.'
 
 
 def _password_reset_payload(user):
@@ -562,6 +617,28 @@ def profile():
                            disable_mfa_form=DisableMfaForm(),
                            gear_catalog=GEAR_CATALOG, owned_gear=owned,
                            past_signups=past_signups, ytd_stats=ytd_stats)
+
+
+@auth_bp.route('/profile/delete-account', methods=['POST'])
+@fresh_login_required
+def delete_account():
+    confirmation = (request.form.get('confirmation') or '').strip()
+    expected = f'DELETE {current_user.email}'
+    if confirmation != expected:
+        flash(f'Type "{expected}" to permanently delete your account.', 'danger')
+        return redirect(url_for('auth.profile'))
+
+    user = db.session.get(User, current_user.id)
+    ok, message = _delete_current_user_account(user)
+    if not ok:
+        flash(message, 'danger')
+        return redirect(url_for('auth.profile'))
+
+    logout_user()
+    session.clear()
+    db.session.commit()
+    flash(message, 'success')
+    return redirect(url_for('main.index'))
 
 
 @auth_bp.route('/mfa/setup', methods=['GET', 'POST'])
