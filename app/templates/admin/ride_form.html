@@ -11,13 +11,13 @@
 <div class="container py-4">
   <div class="row">
     <div class="col-lg-8">
-      <form method="post" novalidate>
+      <form method="post" novalidate data-testid="club-ride-form">
         {{ form.hidden_tag() }}
 
         <div class="row g-3 mb-3">
           <div class="col-12">
             {{ form.title.label(class="form-label") }}
-            {{ form.title(class="form-control" + (" is-invalid" if form.title.errors else ""), placeholder="e.g. Sunday Morning Club Ride") }}
+            {{ form.title(class="form-control" + (" is-invalid" if form.title.errors else ""), placeholder="e.g. Sunday Morning Club Ride", **{'data-testid': 'club-ride-title'}) }}
             {% for e in form.title.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
           </div>
         </div>
@@ -25,48 +25,48 @@
         <div class="row g-3 mb-3">
           <div class="col-sm-6">
             {{ form.date.label(class="form-label") }}
-            {{ form.date(class="form-control" + (" is-invalid" if form.date.errors else "")) }}
+            {{ form.date(class="form-control" + (" is-invalid" if form.date.errors else ""), **{'data-testid': 'club-ride-date'}) }}
             {% for e in form.date.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
           </div>
           <div class="col-sm-6">
             {{ form.time.label(class="form-label") }}
-            {{ form.time(class="form-control" + (" is-invalid" if form.time.errors else "")) }}
+            {{ form.time(class="form-control" + (" is-invalid" if form.time.errors else ""), **{'data-testid': 'club-ride-time'}) }}
             {% for e in form.time.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
           </div>
         </div>
 
         <div class="mb-3">
           {{ form.meeting_location.label(class="form-label") }}
-          {{ form.meeting_location(class="form-control" + (" is-invalid" if form.meeting_location.errors else ""), placeholder="e.g. Lake Fairfax Park parking lot") }}
+          {{ form.meeting_location(class="form-control" + (" is-invalid" if form.meeting_location.errors else ""), placeholder="e.g. Lake Fairfax Park parking lot", **{'data-testid': 'club-ride-meeting-location'}) }}
           {% for e in form.meeting_location.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
         </div>
 
         <div class="row g-3 mb-3">
           <div class="col-sm-3">
             {{ form.pace_category.label(class="form-label") }}
-            {{ form.pace_category(class="form-select" + (" is-invalid" if form.pace_category.errors else "")) }}
+            {{ form.pace_category(class="form-select" + (" is-invalid" if form.pace_category.errors else ""), **{'data-testid': 'club-ride-pace'}) }}
             {% for e in form.pace_category.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
           </div>
           <div class="col-sm-3">
             {{ form.ride_type.label(class="form-label") }}
-            {{ form.ride_type(class="form-select" + (" is-invalid" if form.ride_type.errors else "")) }}
+            {{ form.ride_type(class="form-select" + (" is-invalid" if form.ride_type.errors else ""), **{'data-testid': 'club-ride-type'}) }}
             {% for e in form.ride_type.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
           </div>
           <div class="col-sm-3">
             {{ form.distance_miles.label(class="form-label") }}
-            {{ form.distance_miles(class="form-control" + (" is-invalid" if form.distance_miles.errors else ""), placeholder="45.0") }}
+            {{ form.distance_miles(class="form-control" + (" is-invalid" if form.distance_miles.errors else ""), placeholder="45.0", **{'data-testid': 'club-ride-distance'}) }}
             {% for e in form.distance_miles.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
           </div>
           <div class="col-sm-3">
             {{ form.elevation_feet.label(class="form-label") }}
-            {{ form.elevation_feet(class="form-control" + (" is-invalid" if form.elevation_feet.errors else ""), placeholder="2500") }}
+            {{ form.elevation_feet(class="form-control" + (" is-invalid" if form.elevation_feet.errors else ""), placeholder="2500", **{'data-testid': 'club-ride-elevation'}) }}
             {% for e in form.elevation_feet.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
           </div>
         </div>
 
         <div class="mb-3">
           <label class="form-label">Ride Leader</label>
-          <select name="leader_id" class="form-select mb-2" id="leader_select">
+          <select name="leader_id" class="form-select mb-2" id="leader_select" data-testid="club-ride-leader-select">
             <option value="">— None / enter manually below —</option>
             {% for m in members %}
             <option value="{{ m.user.id }}"
@@ -77,6 +77,7 @@
           </select>
           <input type="text" name="ride_leader_text" id="ride_leader_text"
                  class="form-control"
+                 data-testid="club-ride-leader-text"
                  placeholder="Non-member name (optional)"
                  value="{{ (ride.ride_leader or '') if (ride and not ride.leader_id) else '' }}">
           <div class="form-text">Select a club member, or type a non-member name in the text field.</div>
@@ -107,7 +108,7 @@
 
         <div class="mb-3">
           {{ form.description.label(class="form-label") }}
-          {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else ""), rows=4, placeholder="Route notes, what to bring, etc.") }}
+          {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else ""), rows=4, placeholder="Route notes, what to bring, etc.", **{'data-testid': 'club-ride-description'}) }}
           {% for e in form.description.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
         </div>
 
@@ -132,7 +133,7 @@
         </div>
 
         <div class="d-flex gap-2">
-          {{ form.submit(class="btn btn-paceline") }}
+          {{ form.submit(class="btn btn-paceline", **{'data-testid': 'club-ride-submit'}) }}
           <a href="{{ url_for('admin.club_rides', slug=club.slug) }}" class="btn btn-outline-secondary">Cancel</a>
         </div>
 

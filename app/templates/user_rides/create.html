@@ -16,6 +16,7 @@
   </div>
 
   <form method="post"
+        data-testid="personal-ride-form"
         action="{{ url_for('user_rides.edit', ride_id=ride.id) if ride else url_for('user_rides.create') }}">
     {{ form.hidden_tag() }}
 
@@ -24,56 +25,56 @@
 
       <div class="mb-3">
         {{ form.title.label(class="form-label fw-semibold") }}
-        {{ form.title(class="form-control" + (" is-invalid" if form.title.errors else "")) }}
+        {{ form.title(class="form-control" + (" is-invalid" if form.title.errors else ""), **{'data-testid': 'personal-ride-title'}) }}
         {% for e in form.title.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
       </div>
 
       <div class="row g-3 mb-3">
         <div class="col-md-6">
           {{ form.date.label(class="form-label fw-semibold") }}
-          {{ form.date(class="form-control" + (" is-invalid" if form.date.errors else ""),
-                       type="date") }}
+        {{ form.date(class="form-control" + (" is-invalid" if form.date.errors else ""),
+                       type="date", **{'data-testid': 'personal-ride-date'}) }}
           {% for e in form.date.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
         </div>
         <div class="col-md-6">
           {{ form.time.label(class="form-label fw-semibold") }}
-          {{ form.time(class="form-control" + (" is-invalid" if form.time.errors else ""),
-                       type="time") }}
+        {{ form.time(class="form-control" + (" is-invalid" if form.time.errors else ""),
+                       type="time", **{'data-testid': 'personal-ride-time'}) }}
           {% for e in form.time.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
         </div>
       </div>
 
       <div class="mb-3">
         {{ form.meeting_location.label(class="form-label fw-semibold") }}
-        {{ form.meeting_location(class="form-control" + (" is-invalid" if form.meeting_location.errors else "")) }}
+        {{ form.meeting_location(class="form-control" + (" is-invalid" if form.meeting_location.errors else ""), **{'data-testid': 'personal-ride-meeting-location'}) }}
         {% for e in form.meeting_location.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
       </div>
 
       <div class="row g-3 mb-3">
         <div class="col-md-4">
           {{ form.distance_miles.label(class="form-label fw-semibold") }}
-          {{ form.distance_miles(class="form-control" + (" is-invalid" if form.distance_miles.errors else ""),
-                                  step="0.1") }}
+        {{ form.distance_miles(class="form-control" + (" is-invalid" if form.distance_miles.errors else ""),
+                                  step="0.1", **{'data-testid': 'personal-ride-distance'}) }}
           {% for e in form.distance_miles.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
         </div>
         <div class="col-md-4">
           {{ form.elevation_feet.label(class="form-label fw-semibold") }}
-          {{ form.elevation_feet(class="form-control") }}
+        {{ form.elevation_feet(class="form-control", **{'data-testid': 'personal-ride-elevation'}) }}
         </div>
         <div class="col-md-4">
           {{ form.max_riders.label(class="form-label fw-semibold") }}
-          {{ form.max_riders(class="form-control", placeholder="No limit") }}
+        {{ form.max_riders(class="form-control", placeholder="No limit", **{'data-testid': 'personal-ride-max-riders'}) }}
         </div>
       </div>
 
       <div class="row g-3 mb-3">
         <div class="col-md-6">
           {{ form.pace_category.label(class="form-label fw-semibold") }}
-          {{ form.pace_category(class="form-select") }}
+        {{ form.pace_category(class="form-select", **{'data-testid': 'personal-ride-pace'}) }}
         </div>
         <div class="col-md-6">
           {{ form.ride_type.label(class="form-label fw-semibold") }}
-          {{ form.ride_type(class="form-select") }}
+        {{ form.ride_type(class="form-select", **{'data-testid': 'personal-ride-type'}) }}
         </div>
       </div>
 
@@ -112,14 +113,14 @@
 
       <div class="mb-3">
         {{ form.description.label(class="form-label fw-semibold") }}
-        {{ form.description(class="form-control", rows=4) }}
+        {{ form.description(class="form-control", rows=4, **{'data-testid': 'personal-ride-description'}) }}
       </div>
     </div>
 
     <div class="card border-0 shadow-sm p-4 mb-4">
       <h5 class="mb-3">Privacy</h5>
       <div class="form-check form-switch">
-        {{ form.is_private(class="form-check-input", role="switch") }}
+        {{ form.is_private(class="form-check-input", role="switch", **{'data-testid': 'personal-ride-private'}) }}
         {{ form.is_private.label(class="form-check-label fw-semibold") }}
       </div>
       <div class="text-muted small mt-2">
@@ -130,7 +131,7 @@
     </div>
 
     <div class="d-flex gap-2">
-      {{ form.submit(class="btn btn-paceline px-4") }}
+      {{ form.submit(class="btn btn-paceline px-4", **{'data-testid': 'personal-ride-submit'}) }}
       <a href="{{ url_for('user_rides.detail', ride_id=ride.id) if ride else url_for('user_rides.list_rides') }}"
          class="btn btn-outline-secondary">Cancel</a>
     </div>

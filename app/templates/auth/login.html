@@ -14,12 +14,12 @@
     <div class="text-center text-muted small mb-3">{{ _('or sign in with email') }}</div>
     {% endif %}
 
-    <form method="post" novalidate>
+    <form method="post" novalidate data-testid="login-form">
       {{ form.hidden_tag() }}
 
       <div class="mb-3">
         {{ form.email.label(class="form-label") }}
-        {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), placeholder="you@example.com") }}
+        {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), placeholder="you@example.com", **{'data-testid': 'login-email'}) }}
         {% for e in form.email.errors %}
         <div class="invalid-feedback">{{ e }}</div>
         {% endfor %}
@@ -27,19 +27,19 @@
 
       <div class="mb-3">
         {{ form.password.label(class="form-label") }}
-        {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else "")) }}
+        {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), **{'data-testid': 'login-password'}) }}
         {% for e in form.password.errors %}
         <div class="invalid-feedback">{{ e }}</div>
         {% endfor %}
       </div>
 
       <div class="mb-3 form-check">
-        {{ form.remember(class="form-check-input") }}
+        {{ form.remember(class="form-check-input", **{'data-testid': 'login-trust-browser'}) }}
         {{ form.remember.label(class="form-check-label") }}
         <div class="form-text">{{ _('Only use this on a private device. Otherwise, you will be signed out after 6 hours.') }}</div>
       </div>
 
-      {{ form.submit(class="btn btn-paceline w-100") }}
+      {{ form.submit(class="btn btn-paceline w-100", **{'data-testid': 'login-submit'}) }}
     </form>
 
     <p class="auth-switch mb-2"><a href="{{ url_for('auth.password_reset_request') }}">Forgot or need to set your password?</a></p>

@@ -1,5 +1,6 @@
 from functools import wraps
 import io
+import re
 import time
 import uuid
 from datetime import date, datetime, timedelta, timezone
@@ -10,9 +11,12 @@ import string
 from markupsafe import Markup, escape as html_escape
 from sqlalchemy import or_, func
 from ..extensions import db, bcrypt
-from ..models import (AdminAuditLog, Club, Ride, RideSignup, SiteFeedback, User,
-                      ClubMembership, ClubAdmin, ClubPost, ClubLeader, ClubSponsor,
-                      ClubInvite, ClubOwnershipTransfer)
+from ..models import (AdminAuditLog, AppErrorLog, BoardDigestItem, Club,
+                      ClubBoardPost, ClubBoardReaction, ClubBoardReply,
+                      ClubBoardSubscription, Ride, RideComment, RideMedia,
+                      RideSignup, SiteFeedback, User, UserEmailLog,
+                      ClubMembership, ClubMembershipPayment, ClubAdmin, ClubPost,
+                      ClubLeader, ClubSponsor, ClubInvite, ClubOwnershipTransfer)
 from ..forms import RideForm, ClubForm, ClubSettingsForm, ClubPostForm, ClubLeaderForm, ClubSponsorForm, ClubInviteForm, BulkImportForm
 from ..recurrence import generate_instances, delete_future_instances
 from ..geocoding import geocode_zip
@@ -77,6 +81,76 @@ def _find_user_by_email(email):
     if not email:
         return None
     return User.query.filter(func.lower(User.email) == email).first()
+
+
+def _is_deletable_test_user(user):
+    if user is None or user.is_admin:
+        return False
+    email = (user.email or '').lower()
+    username = (user.username or '').lower()
+    return (
+        re.fullmatch(r'audit_[a-z0-9_]+_\d{14}@example\.com', email) is not None
+        or email.endswith('@test.paceline.local')
+        or username.startswith('audit_')
+    )
+
+
+def _delete_test_user_records(user):
+    """Delete artifacts for an obvious test user.
+
+    This is intentionally narrower than a general user-delete feature. It is for
+    repeatable live smoke tests and refuses accounts that do not look generated.
+    """
+    owned_clubs = Club.query.filter_by(owner_id=user.id).all()
+    non_test_clubs = [club.slug for club in owned_clubs if not club.slug.startswith('audit-')]
+    if non_test_clubs:
+        return False, f'This test user still owns non-test clubs: {", ".join(non_test_clubs)}.'
+
+    deleted_clubs = 0
+    for club in owned_clubs:
+        db.session.delete(club)
+        deleted_clubs += 1
+
+    deleted_rides = 0
+    for ride in Ride.query.filter_by(owner_id=user.id).all():
+        db.session.delete(ride)
+        deleted_rides += 1
+
+    Ride.query.filter_by(leader_id=user.id).update({'leader_id': None}, synchronize_session=False)
+    Ride.query.filter_by(created_by=user.id).update({'created_by': None}, synchronize_session=False)
+    ClubMembership.query.filter_by(dues_confirmed_by_id=user.id).update({'dues_confirmed_by_id': None}, synchronize_session=False)
+    ClubPost.query.filter_by(author_id=user.id).update({'author_id': None}, synchronize_session=False)
+    ClubLeader.query.filter_by(user_id=user.id).update({'user_id': None}, synchronize_session=False)
+    BoardDigestItem.query.filter_by(actor_id=user.id).update({'actor_id': None}, synchronize_session=False)
+    ClubInvite.query.filter_by(used_by_user_id=user.id).update({'used_by_user_id': None}, synchronize_session=False)
+    AdminAuditLog.query.filter_by(actor_id=user.id).update({'actor_id': None}, synchronize_session=False)
+    AdminAuditLog.query.filter_by(target_user_id=user.id).update({'target_user_id': None}, synchronize_session=False)
+    SiteFeedback.query.filter_by(user_id=user.id).update({'user_id': None}, synchronize_session=False)
+    SiteFeedback.query.filter_by(read_by_id=user.id).update({'read_by_id': None}, synchronize_session=False)
+    AppErrorLog.query.filter_by(user_id=user.id).update({'user_id': None}, synchronize_session=False)
+
+    ClubMembershipPayment.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+    ClubOwnershipTransfer.query.filter(
+        or_(ClubOwnershipTransfer.from_user_id == user.id, ClubOwnershipTransfer.to_user_id == user.id)
+    ).delete(synchronize_session=False)
+    RideSignup.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+    RideMedia.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+    RideComment.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+    ClubBoardSubscription.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+    ClubBoardReaction.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+    ClubBoardReply.query.filter_by(author_id=user.id).delete(synchronize_session=False)
+    for post in ClubBoardPost.query.filter_by(author_id=user.id).all():
+        db.session.delete(post)
+    ClubInvite.query.filter_by(created_by=user.id).delete(synchronize_session=False)
+    BoardDigestItem.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+    UserEmailLog.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+
+    user_id = user.id
+    email = user.email
+    username = user.username
+    db.session.delete(user)
+    _audit('delete_test_user', details=f'user_id={user_id}; email={email}; username={username}; deleted_clubs={deleted_clubs}; deleted_rides={deleted_rides}')
+    return True, f'Deleted test user {username} and related test artifacts.'
 
 
 def _add_months(start_date, months):
@@ -362,7 +436,8 @@ def user_detail(user_id):
                       .limit(10).all())
     return render_template('admin/user_detail.html',
                            profile_user=profile_user,
-                           recent_signups=recent_signups)
+                           recent_signups=recent_signups,
+                           can_delete_test_user=_is_deletable_test_user(profile_user))
 
 
 @admin_bp.route('/users/<int:user_id>/reset-password', methods=['POST'])
@@ -421,6 +496,32 @@ def toggle_active(user_id):
     action = 'reactivated' if user.is_active else 'deactivated'
     flash(f'Account {action} for {user.username}.', 'success')
     return redirect(url_for('admin.user_detail', user_id=user_id))
+
+
+@admin_bp.route('/users/<int:user_id>/delete-test-user', methods=['POST'])
+@superadmin_required
+def delete_test_user(user_id):
+    user = User.query.get_or_404(user_id)
+    if user.id == current_user.id:
+        flash('You cannot delete your own account.', 'danger')
+        return redirect(url_for('admin.user_detail', user_id=user_id))
+    if not _is_deletable_test_user(user):
+        flash('Only generated test users can be permanently deleted from this action.', 'danger')
+        return redirect(url_for('admin.user_detail', user_id=user_id))
+
+    confirmation = (request.form.get('confirmation') or '').strip()
+    expected = f'DELETE TEST USER {user.email}'
+    if confirmation != expected:
+        flash(f'Type "{expected}" to permanently delete this generated test user.', 'danger')
+        return redirect(url_for('admin.user_detail', user_id=user_id))
+
+    ok, message = _delete_test_user_records(user)
+    if not ok:
+        flash(message, 'danger')
+        return redirect(url_for('admin.user_detail', user_id=user_id))
+    db.session.commit()
+    flash(message, 'success')
+    return redirect(url_for('admin.users', filter='inactive'))
 
 
 @admin_bp.route('/users/<int:user_id>/revoke-sessions', methods=['POST'])
