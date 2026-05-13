@@ -6,48 +6,14 @@
 <section class="paceline-hero">
   <div class="hero-overlay"></div>
   <div class="container hero-content">
-    <div class="row align-items-center g-5">
-      <div class="col-lg-6">
+    <div class="row align-items-center">
+      <div class="col-lg-7 col-xl-6">
         <p class="hero-eyebrow">{{ _('Group Cycling, Simplified') }}</p>
         <h1 class="hero-title">{{ _('Find your pack.') }}</h1>
         <p class="hero-sub">{{ _('Discover local cycling clubs, sign up for group rides, and keep your whole calendar in one place.') }}</p>
         <div class="hero-actions">
           <a href="{{ url_for('clubs.index') }}" class="btn btn-paceline btn-lg">{{ _('Find a Club') }}</a>
           <a href="{{ url_for('auth.register') }}" class="btn btn-paceline-outline btn-lg">{{ _('Create Account') }}</a>
-        </div>
-      </div>
-      <div class="col-lg-6">
-        <div class="hero-ride-board" aria-hidden="true">
-          <div class="hero-board-header">
-            <span class="hero-board-dot"></span>
-            <span class="hero-board-dot"></span>
-            <span class="hero-board-dot"></span>
-          </div>
-          <div class="hero-board-map">
-            <div class="hero-route-line"></div>
-            <span class="hero-map-pin hero-map-pin-a"></span>
-            <span class="hero-map-pin hero-map-pin-b"></span>
-            <span class="hero-map-pin hero-map-pin-c"></span>
-          </div>
-          <div class="hero-board-card hero-board-card-main">
-            <div>
-              <div class="hero-board-label">SAT</div>
-              <div class="hero-board-day">18</div>
-            </div>
-            <div>
-              <div class="hero-board-title">Northern Virginia B Ride</div>
-              <div class="hero-board-meta">38 miles · Road · 8:00 AM</div>
-            </div>
-            <span class="hero-board-badge">Open</span>
-          </div>
-          <div class="hero-board-card">
-            <div class="hero-board-title small">Greenway Gravel</div>
-            <div class="hero-board-meta">12 riders signed up</div>
-          </div>
-          <div class="hero-board-card">
-            <div class="hero-board-title small">Coffee Roll</div>
-            <div class="hero-board-meta">Beginner friendly</div>
-          </div>
         </div>
       </div>
     </div>
