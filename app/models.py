@@ -636,6 +636,24 @@ class SiteFeedback(db.Model):
     read_by = db.relationship('User', foreign_keys=[read_by_id])
 
 
+class PlatformPost(db.Model):
+    """Superadmin-authored homepage news or feature announcements."""
+    __tablename__ = 'platform_posts'
+
+    id = db.Column(db.Integer, primary_key=True)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    title = db.Column(db.String(200), nullable=False)
+    summary = db.Column(db.String(300), nullable=True)
+    body = db.Column(db.Text, nullable=False)
+    is_published = db.Column(db.Boolean, default=True, nullable=False)
+    published_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
+                           onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+    author = db.relationship('User', foreign_keys=[author_id])
+
+
 class EmailDeliveryLog(db.Model):
     """Aggregated local telemetry for transactional email sends."""
     __tablename__ = 'email_delivery_logs'

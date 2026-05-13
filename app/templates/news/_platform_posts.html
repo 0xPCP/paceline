@@ -1,0 +1,32 @@
+{% if platform_posts %}
+<section class="platform-news-section">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-end gap-3 flex-wrap mb-3">
+      <div>
+        <h2 class="section-label mb-1">{{ _('Latest from Paceline') }}</h2>
+        <p class="text-muted mb-0">{{ _('Product updates, site news, and new features.') }}</p>
+      </div>
+      <a href="{{ url_for('main.platform_news') }}" class="btn btn-paceline-outline btn-sm">{{ _('View All') }}</a>
+    </div>
+
+    <div class="platform-news-grid">
+      {% for post in platform_posts %}
+      <article class="platform-news-card {{ 'platform-news-card-featured' if loop.first else '' }}">
+        <div class="platform-news-date">{{ post.published_at | strftime('%b %-d, %Y') }}</div>
+        <h3 class="platform-news-title">
+          <a href="{{ url_for('main.platform_news_detail', post_id=post.id) }}">{{ post.title }}</a>
+        </h3>
+        <p class="platform-news-summary">
+          {% if post.summary %}
+            {{ post.summary }}
+          {% else %}
+            {% set preview = post.body | strip_markdown %}
+            {{ preview[:180] }}{% if preview|length > 180 %}…{% endif %}
+          {% endif %}
+        </p>
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}

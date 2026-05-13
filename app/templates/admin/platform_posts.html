@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Homepage Posts — Superadmin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Superadmin</a></li>
+        <li class="breadcrumb-item active">Homepage Posts</li>
+      </ol>
+    </nav>
+    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+      <div>
+        <h1>Homepage Posts</h1>
+        <p class="mb-0">Platform news and feature updates shown on the Paceline homepage.</p>
+      </div>
+      <a href="{{ url_for('admin.platform_post_new') }}" class="btn btn-paceline">New Post</a>
+    </div>
+  </div>
+</div>
+
+<div class="container py-4">
+  {% if posts %}
+  <div class="detail-card">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Published</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for post in posts %}
+          <tr>
+            <td>
+              <div class="fw-semibold">{{ post.title }}</div>
+              {% if post.summary %}<div class="text-muted small">{{ post.summary }}</div>{% endif %}
+            </td>
+            <td>
+              {% if post.is_published %}
+              <span class="badge bg-success">Published</span>
+              {% else %}
+              <span class="badge bg-secondary">Draft</span>
+              {% endif %}
+            </td>
+            <td class="text-muted small">{{ post.published_at | strftime('%b %-d, %Y') }}</td>
+            <td class="text-end">
+              <div class="d-inline-flex gap-2">
+                {% if post.is_published %}
+                <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('main.platform_news_detail', post_id=post.id) }}">View</a>
+                {% endif %}
+                <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin.platform_post_edit', post_id=post.id) }}">Edit</a>
+                <form method="post" action="{{ url_for('admin.platform_post_delete', post_id=post.id) }}"
+                      onsubmit="return confirm('Delete this homepage post?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-outline-danger btn-sm">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="detail-card text-center">
+    <h5 class="detail-card-title justify-content-center">No homepage posts yet</h5>
+    <p class="section-body">Create a short platform update when you want to announce new features, releases, or site news.</p>
+    <a href="{{ url_for('admin.platform_post_new') }}" class="btn btn-paceline">Create the First Post</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

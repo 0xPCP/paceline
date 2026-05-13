@@ -14,10 +14,10 @@ from ..extensions import db, bcrypt
 from ..models import (AdminAuditLog, AppErrorLog, BoardDigestItem, Club,
                       ClubBoardPost, ClubBoardReaction, ClubBoardReply,
                       ClubBoardSubscription, Ride, RideComment, RideMedia,
-                      RideSignup, SiteFeedback, User, UserEmailLog,
+                      RideSignup, PlatformPost, SiteFeedback, User, UserEmailLog,
                       ClubMembership, ClubMembershipPayment, ClubAdmin, ClubPost,
                       ClubLeader, ClubSponsor, ClubInvite, ClubOwnershipTransfer)
-from ..forms import RideForm, ClubForm, ClubSettingsForm, ClubPostForm, ClubLeaderForm, ClubSponsorForm, ClubInviteForm, BulkImportForm
+from ..forms import RideForm, ClubForm, ClubSettingsForm, ClubPostForm, PlatformPostForm, ClubLeaderForm, ClubSponsorForm, ClubInviteForm, BulkImportForm
 from ..recurrence import generate_instances, delete_future_instances
 from ..geocoding import geocode_zip
 from ..storage import get_storage
@@ -424,6 +424,67 @@ def feedback_mark_read(feedback_id):
         db.session.commit()
         flash('Feedback marked as read.', 'success')
     return redirect(url_for('admin.feedback', filter=request.args.get('filter', 'unread')))
+
+
+# ── Platform posts ────────────────────────────────────────────────────────────
+
+@admin_bp.route('/platform-posts/')
+@superadmin_required
+def platform_posts():
+    posts = (PlatformPost.query
+             .order_by(PlatformPost.published_at.desc(), PlatformPost.id.desc())
+             .all())
+    return render_template('admin/platform_posts.html', posts=posts)
+
+
+@admin_bp.route('/platform-posts/new', methods=['GET', 'POST'])
+@superadmin_required
+def platform_post_new():
+    form = PlatformPostForm()
+    if form.validate_on_submit():
+        post = PlatformPost(
+            author_id=current_user.id,
+            title=form.title.data.strip(),
+            summary=(form.summary.data or '').strip() or None,
+            body=form.body.data.strip(),
+            is_published=form.is_published.data,
+        )
+        db.session.add(post)
+        _audit('create_platform_post', details=f'title={post.title}; published={post.is_published}')
+        db.session.commit()
+        flash('Homepage post saved.', 'success')
+        return redirect(url_for('admin.platform_posts'))
+    return render_template('admin/platform_post_form.html', form=form, post=None, title='New Homepage Post')
+
+
+@admin_bp.route('/platform-posts/<int:post_id>/edit', methods=['GET', 'POST'])
+@superadmin_required
+def platform_post_edit(post_id):
+    post = PlatformPost.query.get_or_404(post_id)
+    form = PlatformPostForm(obj=post)
+    if form.validate_on_submit():
+        post.title = form.title.data.strip()
+        post.summary = (form.summary.data or '').strip() or None
+        post.body = form.body.data.strip()
+        post.is_published = form.is_published.data
+        post.updated_at = datetime.now(timezone.utc)
+        _audit('update_platform_post', details=f'post_id={post.id}; title={post.title}; published={post.is_published}')
+        db.session.commit()
+        flash('Homepage post updated.', 'success')
+        return redirect(url_for('admin.platform_posts'))
+    return render_template('admin/platform_post_form.html', form=form, post=post, title='Edit Homepage Post')
+
+
+@admin_bp.route('/platform-posts/<int:post_id>/delete', methods=['POST'])
+@superadmin_required
+def platform_post_delete(post_id):
+    post = PlatformPost.query.get_or_404(post_id)
+    title = post.title
+    db.session.delete(post)
+    _audit('delete_platform_post', details=f'post_id={post_id}; title={title}')
+    db.session.commit()
+    flash('Homepage post deleted.', 'info')
+    return redirect(url_for('admin.platform_posts'))
 
 
 @admin_bp.route('/users/<int:user_id>')

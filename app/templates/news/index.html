@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Paceline News{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <h1>Paceline News</h1>
+    <p class="mb-0">Product updates, site news, and new features.</p>
+  </div>
+</div>
+
+<div class="container py-4">
+  {% if posts %}
+  <div class="platform-news-list">
+    {% for post in posts %}
+    <article class="platform-news-list-item">
+      <div class="platform-news-date">{{ post.published_at | strftime('%B %-d, %Y') }}</div>
+      <h2 class="platform-news-title">
+        <a href="{{ url_for('main.platform_news_detail', post_id=post.id) }}">{{ post.title }}</a>
+      </h2>
+      <p class="platform-news-summary mb-0">
+        {% if post.summary %}
+          {{ post.summary }}
+        {% else %}
+          {% set preview = post.body | strip_markdown %}
+          {{ preview[:220] }}{% if preview|length > 220 %}…{% endif %}
+        {% endif %}
+      </p>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="detail-card text-center">
+    <h5 class="detail-card-title justify-content-center">No updates yet</h5>
+    <p class="section-body mb-0">Paceline news and feature updates will appear here.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
