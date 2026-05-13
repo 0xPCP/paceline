@@ -95,6 +95,12 @@ def ensure_runtime_schema():
     if club_columns and 'stripe_account_connected_at' not in club_columns:
         db.session.execute(text('ALTER TABLE clubs ADD COLUMN stripe_account_connected_at TIMESTAMP'))
         changed = True
+    if club_columns and 'is_featured' not in club_columns:
+        db.session.execute(text('ALTER TABLE clubs ADD COLUMN is_featured BOOLEAN NOT NULL DEFAULT FALSE'))
+        changed = True
+    if club_columns and 'featured_rank' not in club_columns:
+        db.session.execute(text('ALTER TABLE clubs ADD COLUMN featured_rank INTEGER'))
+        changed = True
 
     membership_columns = (
         {col['name'] for col in inspector.get_columns('club_memberships')}

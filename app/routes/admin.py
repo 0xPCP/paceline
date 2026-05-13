@@ -321,6 +321,26 @@ def dashboard():
                            error_report=report.get('errors', {}))
 
 
+@admin_bp.route('/clubs/<int:club_id>/feature', methods=['POST'])
+@superadmin_required
+def club_feature(club_id):
+    club = Club.query.get_or_404(club_id)
+    club.is_featured = bool(request.form.get('is_featured'))
+    rank_raw = (request.form.get('featured_rank') or '').strip()
+    if rank_raw:
+        try:
+            club.featured_rank = max(1, min(999, int(rank_raw)))
+        except ValueError:
+            flash('Featured rank must be a number.', 'danger')
+            return redirect(url_for('admin.dashboard') + '#clubs')
+    else:
+        club.featured_rank = None
+    _audit('update_featured_club', details=f'club={club.slug}; featured={club.is_featured}; rank={club.featured_rank}')
+    db.session.commit()
+    flash(f'Featured club settings updated for {club.name}.', 'success')
+    return redirect(url_for('admin.dashboard') + '#clubs')
+
+
 # ── Error log ─────────────────────────────────────────────────────────────────
 
 @admin_bp.route('/errors/')

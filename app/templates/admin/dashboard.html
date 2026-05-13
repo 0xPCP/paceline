@@ -436,7 +436,7 @@
   </div>
   {% endif %}
 
-  <div class="d-flex justify-content-between align-items-center mb-3">
+  <div id="clubs" class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0">All Clubs</h4>
     <a href="{{ url_for('admin.club_new') }}" class="btn btn-paceline btn-sm">+ New Club</a>
   </div>
@@ -449,6 +449,7 @@
           <th>Members</th>
           <th>Upcoming</th>
           <th>Status</th>
+          <th>Featured</th>
           <th>Created</th>
           <th></th>
         </tr>
@@ -468,6 +469,14 @@
             <span class="badge bg-secondary">Inactive</span>
             {% endif %}
             {% if club.is_private %}<span class="badge bg-dark ms-1">Private</span>{% endif %}
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('admin.club_feature', club_id=club.id) }}" class="d-flex align-items-center gap-1">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="checkbox" name="is_featured" value="1" class="form-check-input" aria-label="Feature {{ club.name }}" {% if club.is_featured %}checked{% endif %}>
+              <input type="number" name="featured_rank" value="{{ club.featured_rank or '' }}" min="1" max="999" class="form-control form-control-sm" style="width:70px" aria-label="Featured rank for {{ club.name }}" placeholder="#">
+              <button class="btn btn-outline-secondary btn-xs">Save</button>
+            </form>
           </td>
           <td class="text-muted small">{{ club.created_at.strftime('%b %Y') if club.created_at else '—' }}</td>
           <td class="d-flex gap-1">
@@ -497,6 +506,7 @@
         <span class="badge bg-secondary">Inactive</span>
         {% endif %}
         {% if club.is_private %}<span class="badge bg-dark">Private</span>{% endif %}
+        {% if club.is_featured %}<span class="badge bg-primary">Featured{% if club.featured_rank %} #{{ club.featured_rank }}{% endif %}</span>{% endif %}
       </div>
       <dl class="admin-club-card-stats">
         <div><dt>Members</dt><dd>{{ club.member_count }}</dd></div>
@@ -504,6 +514,12 @@
         <div><dt>Created</dt><dd>{{ club.created_at.strftime('%b %Y') if club.created_at else '—' }}</dd></div>
       </dl>
       <div class="admin-club-card-actions">
+        <form method="post" action="{{ url_for('admin.club_feature', club_id=club.id) }}" class="d-flex align-items-center gap-2 w-100">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="small mb-0"><input type="checkbox" name="is_featured" value="1" class="form-check-input me-1" {% if club.is_featured %}checked{% endif %}> Featured</label>
+          <input type="number" name="featured_rank" value="{{ club.featured_rank or '' }}" min="1" max="999" class="form-control form-control-sm" style="max-width:80px" placeholder="#">
+          <button class="btn btn-outline-secondary btn-sm ms-auto">Save</button>
+        </form>
         <a href="{{ url_for('admin.club_dashboard', slug=club.slug) }}" class="btn btn-outline-secondary btn-sm">Manage</a>
         <a href="{{ url_for('admin.club_settings', slug=club.slug) }}" class="btn btn-outline-secondary btn-sm">Settings</a>
         <a href="{{ url_for('admin.club_superadmin', slug=club.slug) }}" class="btn btn-outline-danger btn-sm">Super Admin</a>

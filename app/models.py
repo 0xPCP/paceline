@@ -199,6 +199,8 @@ class Club(db.Model):
     # Visibility
     is_hidden = db.Column(db.Boolean, default=True, nullable=False)
     is_verified = db.Column(db.Boolean, default=False, nullable=False)
+    is_featured = db.Column(db.Boolean, default=False, nullable=False)
+    featured_rank = db.Column(db.Integer, nullable=True)
 
     # Privacy
     is_private = db.Column(db.Boolean, default=False, nullable=False)

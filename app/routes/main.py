@@ -33,8 +33,20 @@ def index():
         return _user_dashboard(today, platform_posts)
 
     # Landing page for logged-out visitors: show club directory teaser
-    clubs = Club.query.filter_by(is_active=True, is_hidden=False).order_by(Club.name.asc()).all()
+    clubs = _homepage_featured_clubs()
     return render_template('index.html', clubs=clubs, today=today, platform_posts=platform_posts)
+
+
+def _homepage_featured_clubs(limit=10):
+    visible = Club.query.filter_by(is_active=True, is_hidden=False)
+    featured = (visible
+                .filter_by(is_featured=True)
+                .order_by(Club.featured_rank.is_(None), Club.featured_rank.asc(), Club.name.asc())
+                .limit(limit)
+                .all())
+    if len(featured) >= limit:
+        return featured
+    return visible.order_by(Club.name.asc()).limit(limit).all()
 
 
 def _published_platform_posts(limit=None):

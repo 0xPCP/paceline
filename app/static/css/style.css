@@ -403,6 +403,15 @@ body.club-page {
   transition: all .15s;
 }
 .btn-paceline-outline:hover { border-color: #fff; color: #fff; background: rgba(255,255,255,.1); }
+.btn-on-light {
+  border-color: var(--paceline-green);
+  color: var(--paceline-green);
+}
+.btn-on-light:hover {
+  border-color: var(--paceline-dark);
+  color: #fff;
+  background: var(--paceline-dark);
+}
 
 .btn-strava {
   background: #fc4c02;
@@ -419,7 +428,9 @@ body.club-page {
 /* ── Hero ────────────────────────────────────────────────────────────────── */
 .paceline-hero {
   position: relative;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #111827 100%);
+  background:
+    linear-gradient(135deg, rgba(15,23,42,.96) 0%, rgba(29,78,84,.92) 62%, rgba(17,24,39,.96) 100%),
+    url('/static/img/logo-icon.svg') right 8% center / min(42vw, 520px) no-repeat;
   min-height: 520px;
   display: flex;
   align-items: center;
@@ -460,6 +471,104 @@ body.club-page {
   max-width: 500px;
 }
 .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+.hero-ride-board {
+  position: relative;
+  max-width: 520px;
+  margin-left: auto;
+  padding: 1rem;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 8px;
+  background: rgba(255,255,255,.1);
+  box-shadow: 0 24px 70px rgba(0,0,0,.25);
+  backdrop-filter: blur(10px);
+}
+.hero-board-header {
+  display: flex;
+  gap: .4rem;
+  padding: .25rem .25rem .75rem;
+}
+.hero-board-dot {
+  width: .55rem;
+  height: .55rem;
+  border-radius: 50%;
+  background: rgba(255,255,255,.45);
+}
+.hero-board-map {
+  position: relative;
+  min-height: 210px;
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px),
+    linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px),
+    linear-gradient(135deg, rgba(45,106,79,.95), rgba(12,74,110,.88));
+  background-size: 34px 34px, 34px 34px, auto;
+  overflow: hidden;
+}
+.hero-route-line {
+  position: absolute;
+  left: 12%;
+  right: 14%;
+  top: 48%;
+  height: 5px;
+  border-radius: 999px;
+  background: #ffb703;
+  transform: rotate(-12deg);
+  box-shadow: 0 0 0 3px rgba(255,183,3,.15);
+}
+.hero-map-pin {
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: #fff;
+  border: 4px solid #ffb703;
+  box-shadow: 0 5px 16px rgba(0,0,0,.28);
+}
+.hero-map-pin-a { left: 13%; top: 58%; }
+.hero-map-pin-b { left: 48%; top: 39%; }
+.hero-map-pin-c { right: 15%; top: 29%; }
+.hero-board-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .9rem;
+  margin-top: .75rem;
+  padding: .8rem .9rem;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--paceline-dark);
+}
+.hero-board-card-main { align-items: center; }
+.hero-board-label {
+  font-size: .68rem;
+  font-weight: 700;
+  color: var(--paceline-green);
+  line-height: 1;
+}
+.hero-board-day {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: .95;
+}
+.hero-board-title {
+  font-weight: 700;
+  line-height: 1.2;
+}
+.hero-board-title.small { font-size: .95rem; }
+.hero-board-meta {
+  color: var(--paceline-gray);
+  font-size: .84rem;
+}
+.hero-board-badge {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+  font-size: .72rem;
+  font-weight: 700;
+  padding: .25rem .55rem;
+}
 
 /* ── Sections ────────────────────────────────────────────────────────────── */
 .section-light { background: var(--paceline-light); }
@@ -499,8 +608,8 @@ body.club-page {
 
 /* ── Platform news ───────────────────────────────────────────────────────── */
 .platform-news-section {
-  background: #fff;
-  border-bottom: 1px solid var(--paceline-border);
+  background: var(--paceline-light);
+  border-top: 1px solid var(--paceline-border);
   padding: 2.25rem 0;
 }
 .platform-news-grid {
@@ -642,6 +751,11 @@ body.club-page {
   color: var(--paceline-dark);
 }
 .stat-label { font-size: .85rem; color: var(--paceline-gray); }
+
+.featured-club-grid .featured-club-card {
+  min-height: 150px;
+  border-top: 4px solid var(--paceline-green);
+}
 
 /* ── Verified club badge ─────────────────────────────────────────────────── */
 .verified-badge {
@@ -1491,6 +1605,17 @@ a:hover { color: var(--paceline-green-dark); }
     gap: .75rem;
     justify-content: flex-start;
   }
+
+  /* Next ride card: tighten gap */
+  .paceline-hero { min-height: auto; }
+  .hero-content { padding: 3.5rem 0; }
+  .hero-title { font-size: 3rem; }
+  .hero-sub { font-size: 1rem; }
+  .hero-actions .btn { width: 100%; }
+  .hero-ride-board { margin: 1.5rem 0 0; }
+  .hero-board-map { min-height: 150px; }
+  .hero-board-card { align-items: flex-start; }
+  .hero-board-card-main { flex-wrap: wrap; }
 
   /* Next ride card: tighten gap */
   .next-ride-card { gap: 1rem; padding: 1rem; }
