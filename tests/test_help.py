@@ -34,6 +34,11 @@ def test_club_manager_help_page(client):
     assert b'club news emails are sent right away' in resp.data
     assert b'accidental high-volume email sends' in resp.data
     assert b'does not hold club dues' in resp.data
+    assert b'direct charges' in resp.data
+    assert b'$1 platform fee' in resp.data
+    assert b'is not refunded' in resp.data
+    assert b'Clubs handle their own refunds' in resp.data
+    assert b'future club store feature' in resp.data
     assert b'img/help/club-create.png' in resp.data
     assert b'img/help/club-settings.png' in resp.data
     assert b'img/help/club-dues-settings.png' in resp.data

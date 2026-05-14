@@ -195,14 +195,24 @@
         <p class="section-body">
           <strong>Phase 2</strong> connects your club's Stripe account to Paceline.
           Club admins complete Stripe-hosted onboarding from club settings. Paceline
-          then sends riders to Stripe Checkout for the dues amount you configure.
-          Stripe deposits funds into your connected club account, and Paceline receives
-          a payment-success notification that activates the rider automatically.
+          uses direct charges, which means dues are processed on your connected Stripe
+          account and your club remains responsible for its own payments. Paceline then
+          sends riders to Stripe Checkout for the dues amount you configure. Stripe
+          deposits funds into your connected club account, and Paceline receives a
+          payment-success notification that activates the rider automatically.
         </p>
         <p class="section-body">
-          Paceline does not hold club dues or take a cut of this money in either workflow.
-          The duration setting controls how long each confirmed or automatically paid
-          membership stays active.
+          Paceline does not hold club dues. For Stripe Connect payments, Paceline adds
+          a transparent <strong>$1 platform fee</strong> to each paid membership
+          transaction. That fee helps cover hosting, email delivery, storage, monitoring,
+          and continued development. The $1 Paceline platform fee is not refunded if a
+          club later refunds a member's dues. Clubs handle their own refunds, payment
+          questions, and disputes through their Stripe account.
+        </p>
+        <p class="section-body">
+          In Phase 1, Paceline does not process the payment and does not add the $1
+          platform fee. The duration setting controls how long each manually confirmed
+          or automatically paid membership stays active.
         </p>
         <figure class="mb-4">
           <img class="img-fluid rounded border shadow-sm"
@@ -230,6 +240,12 @@
         <p class="section-body">
           When importing an existing roster, add a paid-through date for the whole batch
           or add dates per row using <code>rider@example.com, 2026-12-31</code>.
+        </p>
+        <p class="section-body">
+          A future club store feature is planned after membership dues are complete. The
+          store will let clubs list items such as jerseys and T-shirts, with payment
+          completed through the club's connected Stripe account instead of Paceline
+          directly managing club merchandise money.
         </p>
       </div>
 

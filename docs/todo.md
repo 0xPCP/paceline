@@ -10,6 +10,9 @@ with that model.
 
 ### Before Production Cutover
 
+- Finish Stripe Connect dues with direct charges, Stripe-hosted onboarding,
+  a transparent $1 Paceline platform fee, signed webhooks, and club-owned
+  refund/dispute handling.
 - Add DigitalOcean Spaces support for ride photo uploads.
 - Keep local filesystem media storage for tests and local/TrueNAS dev.
 - Preserve private-club media access checks when serving media from Spaces.
@@ -31,3 +34,9 @@ with that model.
 
 When designing new features, treat the app server as disposable. Store durable
 customer data in PostgreSQL or object storage, not in the app container.
+
+### Post-Dues Product Backlog
+
+- Add a club store after Stripe Connect dues are complete. Clubs should be able
+  to list jerseys, T-shirts, and similar items while payments run through the
+  club's connected Stripe account.
