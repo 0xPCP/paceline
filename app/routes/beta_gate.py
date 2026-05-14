@@ -43,6 +43,8 @@ _PAGE = """<!doctype html>
 
 
 def register_beta_gate(app):
+    if app.config.get('TESTING'):
+        return  # never gate during test runs
     password = os.environ.get('BETA_PASSWORD', '').strip()
     if not password:
         return  # gate is disabled — nothing registered

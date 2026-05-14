@@ -370,13 +370,13 @@ class TestPrivateAccess:
 class TestDiscover:
     def test_discover_includes_public_user_rides(self, client, db, regular_user, mock_weather):
         ride = _make_ride(db, regular_user, is_private=False, title='Public User Ride')
-        rv = client.get('/discover/')
+        rv = client.get('/discover/?source=all')
         assert rv.status_code == 200
         assert b'Public User Ride' in rv.data
 
     def test_discover_excludes_private_user_rides(self, client, db, regular_user, mock_weather):
         ride = _make_ride(db, regular_user, is_private=True, title='Secret Ride')
-        rv = client.get('/discover/')
+        rv = client.get('/discover/?source=all')
         assert rv.status_code == 200
         assert b'Secret Ride' not in rv.data
 

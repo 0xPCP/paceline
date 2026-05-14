@@ -77,6 +77,7 @@ def server_info():
             join_approval='auto', require_membership=True,
             theme_primary='#2d6a4f', theme_accent='#e76f51',
             description='A community cycling club for all abilities.',
+            is_hidden=False,
         )
         _db.session.add(auto_club)
         _db.session.flush()
@@ -129,6 +130,7 @@ def server_info():
             join_approval='manual', require_membership=True,
             is_private=True,
             theme_primary='#1a5276', theme_accent='#f39c12',
+            is_hidden=False,
         )
         _db.session.add(manual_club)
         _db.session.flush()

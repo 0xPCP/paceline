@@ -56,6 +56,7 @@ def server_info():
             name='Browser Test Club',
             city='Reston', state='VA',
             lat=38.9376, lng=-77.3476,
+            is_hidden=False,
         )
         _db.session.add(club)
         _db.session.flush()
