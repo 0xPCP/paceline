@@ -453,6 +453,7 @@ def username_setup():
 
 
 @auth_bp.route('/mfa', methods=['GET', 'POST'])
+@limiter.limit('5 per minute; 20 per hour')
 def mfa_verify():
     user_id = session.get('_pending_mfa_user_id')
     if not user_id:
@@ -554,11 +555,14 @@ def profile():
         for key, field_name in pref_fields.items():
             getattr(form, field_name).data = prefs.get(key, DEFAULT_EMAIL_PREFERENCES.get(key, True))
     if form.validate_on_submit():
+        email_changed = False
         if form.email.data.lower() != current_user.email:
             if User.query.filter_by(email=form.email.data.lower()).first():
                 flash(_('An account with that email already exists.'), 'danger')
                 return redirect(url_for('auth.profile'))
+            email_changed = True
 
+        old_email = current_user.email
         current_user.email     = form.email.data.lower()
         current_user.gender    = form.gender.data or None
         current_user.bio       = (form.bio.data or '').strip() or None
@@ -594,7 +598,18 @@ def profile():
                 else:
                     flash(_('Zip code saved but could not be geocoded.'), 'warning')
 
+        if email_changed:
+            db.session.add(AdminAuditLog(
+                actor_id=current_user.id,
+                target_user_id=current_user.id,
+                action='email_changed',
+                details=f'Changed from {old_email} to {current_user.email}',
+            ))
+            current_user.revoke_sessions()
         db.session.commit()
+        if email_changed:
+            login_user(current_user)
+            _mark_interactive_login()
         refresh_locale()
         flash(_('Profile updated.'), 'success')
         return redirect(url_for('auth.profile'))
@@ -661,6 +676,11 @@ def mfa_setup():
             current_user.mfa_backup_codes = _hash_backup_codes(backup_codes)
             current_user.mfa_enabled = True
             current_user.revoke_sessions()
+            db.session.add(AdminAuditLog(
+                actor_id=current_user.id,
+                target_user_id=current_user.id,
+                action='mfa_enabled',
+            ))
             db.session.commit()
             session.pop('_mfa_setup_secret', None)
             login_user(current_user)
@@ -691,6 +711,11 @@ def mfa_disable():
     current_user.mfa_secret = None
     current_user.mfa_backup_codes = None
     current_user.revoke_sessions()
+    db.session.add(AdminAuditLog(
+        actor_id=current_user.id,
+        target_user_id=current_user.id,
+        action='mfa_disabled',
+    ))
     db.session.commit()
     login_user(current_user)
     _mark_interactive_login()
