@@ -60,7 +60,9 @@ Set these in App Platform's environment variable panel (encrypted at rest):
 | `MAIL_DEFAULT_SENDER` | `Paceline <noreply@paceline.club>` |
 | `DONATE_URL` | Stripe payment link |
 | `STRIPE_SECRET_KEY` | Paceline Stripe platform key, if Stripe Connect dues are enabled |
+| `STRIPE_PUBLISHABLE_KEY` | Paceline Stripe publishable key, if Stripe Checkout/client flows are enabled |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret for `/stripe/webhook` |
+| `STRIPE_PLATFORM_FEE_CENTS` | `100` for the $1 Paceline platform fee on Stripe Connect dues |
 | `SPACES_BUCKET` | `paceline-media` |
 | `SPACES_REGION` | `nyc3` |
 | `SPACES_ENDPOINT` | `https://nyc3.digitaloceanspaces.com` |
