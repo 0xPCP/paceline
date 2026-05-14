@@ -46,7 +46,7 @@ services:
         value: "https://nyc3.digitaloceanspaces.com"
         scope: RUN_TIME
       - key: SPACES_PUBLIC_BASE_URL
-        value: ""
+        value: "https://paceline-media.nyc3.cdn.digitaloceanspaces.com"
         scope: RUN_TIME
       - key: BETA_PASSWORD
         value: "set-in-DO-console"
