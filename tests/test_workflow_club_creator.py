@@ -54,6 +54,7 @@ def _make_user(db, username, email, password='TestPass1!'):
 
 
 def _make_club(db, slug, name, **kwargs):
+    kwargs.setdefault('is_hidden', False)
     club = Club(
         slug=slug, name=name,
         city='Reston', state='VA', zip_code='20191',
@@ -168,9 +169,9 @@ def test_branch_a_create_club_via_wizard(client, db):
     m = ClubMembership.query.filter_by(user_id=user.id, club_id=club.id).first()
     assert m is not None and m.status == 'active', 'Creator should be an active member'
 
-    # Step 6: Club appears in directory
+    # Step 6: Club is hidden by default — not yet in public directory
     resp = client.get('/clubs/')
-    assert b'Blue Ridge Cyclists' in resp.data
+    assert b'Blue Ridge Cyclists' not in resp.data, 'New club should be hidden until admin publishes it'
 
     # Step 7: Admin dashboard accessible
     resp = client.get(f'/admin/clubs/{club.slug}/')

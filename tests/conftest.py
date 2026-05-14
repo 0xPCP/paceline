@@ -35,6 +35,8 @@ class TestConfig:
     STRAVA_CLUB_REFRESH_TOKEN = None
     UPLOAD_FOLDER = '/tmp/paceline_test_uploads'
     SPACES_BUCKET = ''
+    SERVER_NAME = 'localhost'
+    PREFERRED_URL_SCHEME = 'http'
 
 
 # ── Core fixtures ─────────────────────────────────────────────────────────────

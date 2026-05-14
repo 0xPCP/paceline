@@ -52,6 +52,7 @@ def _make_user(db, username, email, password='TestPass1!'):
 
 
 def _make_club(db, slug, name, **kwargs):
+    kwargs.setdefault('is_hidden', False)
     club = Club(
         slug=slug, name=name,
         city='Reston', state='VA', zip_code='20191',

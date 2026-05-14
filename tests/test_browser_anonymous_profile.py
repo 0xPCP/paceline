@@ -99,6 +99,7 @@ def server_info():
             join_approval='auto', require_membership=True,
             description='A test club for browser workflow tests.',
             theme_primary='#2d6a4f', theme_accent='#e76f51',
+            is_hidden=False,
         )
         _db.session.add(club)
         _db.session.flush()
