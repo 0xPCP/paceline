@@ -353,7 +353,7 @@ def test_invite_email(app, sample_club, admin_user):
     )
     db.session.add(invite)
     db.session.commit()
-    with patch('app.email.mail') as mock_mail:
+    with patch('app.email.mail') as mock_mail, app.test_request_context('/'):
         from app.email import send_invite_email
         send_invite_email(invite)
     msg = mock_mail.send.call_args.args[0]
@@ -374,7 +374,7 @@ def test_import_welcome_email(app, sample_club, admin_user):
     )
     db.session.add(invite)
     db.session.commit()
-    with patch('app.email.mail') as mock_mail:
+    with patch('app.email.mail') as mock_mail, app.test_request_context('/'):
         from app.email import send_import_welcome_email
         send_import_welcome_email(invite)
     msg = mock_mail.send.call_args.args[0]
@@ -394,7 +394,7 @@ def test_import_invite_email(app, sample_club, admin_user):
     )
     db.session.add(invite)
     db.session.commit()
-    with patch('app.email.mail') as mock_mail:
+    with patch('app.email.mail') as mock_mail, app.test_request_context('/'):
         from app.email import send_import_invite_email
         send_import_invite_email(invite)
     msg = mock_mail.send.call_args.args[0]

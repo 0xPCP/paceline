@@ -151,8 +151,13 @@ def test_board_activity_is_queued_and_sent_as_digest(app, db, sample_club, regul
         sent.extend(recipients)
         return True
     monkeypatch.setattr('app.email._send', fake_send)
-
+    # url_for(_external=True) in the email template needs a SERVER_NAME when
+    # there is no active request context (scheduler runs outside HTTP requests).
+    app.config['SERVER_NAME'] = 'localhost'
+    app.config['PREFERRED_URL_SCHEME'] = 'http'
     send_board_activity_digests(app)
+    app.config.pop('SERVER_NAME', None)
+    app.config.pop('PREFERRED_URL_SCHEME', None)
 
     assert sent == [second_user.email]
     item = BoardDigestItem.query.first()
