@@ -59,6 +59,12 @@ import random
 import requests as _requests
 from locust import HttpUser, between, events, task
 
+# Cloudflare bot protection blocks python-requests UA; spoof a browser.
+_BROWSER_UA = (
+    'Mozilla/5.0 (X11; Linux x86_64) '
+    'AppleWebKit/537.36 (KHTML, like Gecko) '
+    'Chrome/124.0.0.0 Safari/537.36'
+)
 
 # ── Runtime config ────────────────────────────────────────────────────────────
 
@@ -105,7 +111,7 @@ def _discover_urls(environment, **kwargs):
     """
     host = environment.host or 'http://localhost:8000'
     s = _requests.Session()
-    s.headers['User-Agent'] = 'Paceline-Locust/1.0 (stress test)'
+    s.headers['User-Agent'] = _BROWSER_UA
 
     # Unlock beta gate once so the discovery requests can get through
     if BETA_PASSWORD:
@@ -186,6 +192,7 @@ class AnonBrowser(HttpUser):
     wait_time = between(2, 8)
 
     def on_start(self):
+        self.client.headers.update({'User-Agent': _BROWSER_UA})
         _beta_unlock(self.client)
 
     @task(4)
@@ -241,6 +248,7 @@ class AuthRider(HttpUser):
     wait_time = between(3, 10)
 
     def on_start(self):
+        self.client.headers.update({'User-Agent': _BROWSER_UA})
         _beta_unlock(self.client)
         email, pw = random.choice(_RIDER_CREDS)
         _login(self.client, email, pw)
@@ -290,6 +298,7 @@ class ClubAdminUser(HttpUser):
     wait_time = between(5, 15)
 
     def on_start(self):
+        self.client.headers.update({'User-Agent': _BROWSER_UA})
         _beta_unlock(self.client)
         # Rotate through admin accounts; each admin manages one club
         entry = random.choice(_ADMIN_MAP)
