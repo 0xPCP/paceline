@@ -1,4 +1,5 @@
 {% extends "email/_base.html" %}
+{% block preheader %}Ride cancelled: {{ ride.title }} on {{ ride.date.strftime('%A, %B %-d') }}{% endblock %}
 {% block body %}
 <div class="club-tag">{{ ride.club.name }}</div>
 <h1>Ride Cancelled: {{ ride.title }}</h1>
@@ -16,9 +17,7 @@
   <tr><td>Pace</td><td>{{ ride.pace_label }}</td></tr>
 </table>
 
-<p style="font-size:.9rem;color:#495057">
-  Keep an eye on the club calendar for any rescheduled or alternative rides.
-</p>
+<p>Keep an eye on the club calendar for any rescheduled or alternative rides.</p>
 
 <a href="https://paceline.club/clubs/{{ ride.club.slug }}/rides/" class="cta">View Club Calendar</a>
 {% endblock %}
