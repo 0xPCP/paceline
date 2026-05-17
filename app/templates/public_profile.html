@@ -115,6 +115,38 @@
         <p class="text-muted small mb-0">No public ride history yet.</p>
         {% endif %}
       </div>
+
+      {% if friends_rides %}
+      <div class="detail-card mt-4">
+        <h5 class="detail-card-title">Friends Riding Soon</h5>
+        <ul class="list-unstyled mb-0">
+          {% for friend_user, ride in friends_rides %}
+          <li class="mb-2 pb-2 border-bottom">
+            <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+              <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
+              {% if ride.is_virtual %}<span class="badge bg-info text-dark" style="font-size:.65rem">Virtual</span>{% endif %}
+              <span class="text-muted small">
+                <a href="{{ url_for('main.public_profile', username=friend_user.username) }}"
+                   class="text-muted text-decoration-none">@{{ friend_user.username }}</a> is going
+              </span>
+            </div>
+            {% if ride.owner_id %}
+              <a href="{{ url_for('user_rides.detail', ride_id=ride.id) }}"
+                 class="fw-semibold small text-decoration-none">{{ ride.title }}</a>
+            {% else %}
+              <a href="{{ url_for('clubs.ride_detail', slug=ride.club.slug, ride_id=ride.id) }}"
+                 class="fw-semibold small text-decoration-none">{{ ride.title }}</a>
+            {% endif %}
+            <div class="text-muted" style="font-size:.8rem">
+              {{ ride.date | strftime('%b %-d') }} &bull; {{ ride.time.strftime('%I:%M %p').lstrip('0') }}
+              &bull; {{ ride.distance_miles }} mi
+              {% if not ride.owner_id and ride.club %}&bull; {{ ride.club.name }}{% endif %}
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
     </div>
 
   </div>
