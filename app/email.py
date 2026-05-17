@@ -30,6 +30,7 @@ DEFAULT_EMAIL_PREFERENCES = {
     'club_news': True,
     'weekly_digest': True,
     'board_digest': True,
+    'friend_ride_signup': True,
 }
 
 
@@ -458,6 +459,48 @@ def send_board_digest(user, items):
     text = render_template('email/board_digest.txt', user=user, grouped=grouped)
     subject = 'Your Paceline board activity digest'
     return _send_to_users('board_digest', subject, [user], html, text)
+
+
+def send_friend_ride_notification(recipient, signer, ride):
+    """Notify a user that an accepted friend just signed up for a ride they can see.
+
+    recipient — the friend who should receive the notification
+    signer    — the user who just signed up
+    ride      — the Ride object
+    """
+    if not user_allows_email(recipient, 'friend_ride_signup'):
+        return
+    if not recipient.email:
+        return
+    try:
+        from flask import url_for
+        if ride.owner_id and not ride.club_id:
+            ride_url = url_for('user_rides.detail', ride_id=ride.id, _external=True)
+        elif ride.club_id:
+            ride_url = url_for('clubs.ride_detail', slug=ride.club.slug, ride_id=ride.id, _external=True)
+        else:
+            ride_url = url_for('main.discover', _external=True)
+        subject = f'@{signer.username} signed up for {ride.title}'
+        date_str = ride.date.strftime('%B %-d')
+        text = (
+            f'Hi @{recipient.username},\n\n'
+            f'Your friend @{signer.username} just signed up for "{ride.title}" on {date_str}.\n\n'
+            f'View the ride: {ride_url}\n\n'
+            f'To stop receiving these notifications, update your preferences: '
+            f'{url_for("auth.profile", _external=True)}#notifications\n\n'
+            f'— Paceline'
+        )
+        html = (
+            f'<p>Hi @{recipient.username},</p>'
+            f'<p>Your friend <strong>@{signer.username}</strong> just signed up for '
+            f'<strong>{ride.title}</strong> on {date_str}.</p>'
+            f'<p><a href="{ride_url}">View the ride →</a></p>'
+            f'<p style="color:#888;font-size:.9em">To stop receiving these notifications, '
+            f'<a href="{url_for("auth.profile", _external=True)}#notifications">update your preferences</a>.</p>'
+        )
+        _send(subject, [recipient.email], html, text)
+    except Exception:
+        logger.exception('Failed to send friend ride notification to user %d', recipient.id)
 
 
 def send_feedback_notification(feedback):

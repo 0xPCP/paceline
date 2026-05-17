@@ -164,6 +164,44 @@ class User(db.Model, UserMixin):
             Ride.date <= week_end,
         ).count()
 
+    def friend_status(self, other_user):
+        """Return 'none' | 'pending_sent' | 'pending_received' | 'accepted' | 'declined'."""
+        row = UserFriend.query.filter(
+            db.or_(
+                db.and_(UserFriend.requester_id == self.id, UserFriend.addressee_id == other_user.id),
+                db.and_(UserFriend.requester_id == other_user.id, UserFriend.addressee_id == self.id),
+            )
+        ).first()
+        if not row:
+            return 'none'
+        if row.status == 'accepted':
+            return 'accepted'
+        if row.status == 'pending':
+            return 'pending_sent' if row.requester_id == self.id else 'pending_received'
+        return 'declined'
+
+    def friend_request_row(self, other_user):
+        """Return the UserFriend row between self and other_user, or None."""
+        return UserFriend.query.filter(
+            db.or_(
+                db.and_(UserFriend.requester_id == self.id, UserFriend.addressee_id == other_user.id),
+                db.and_(UserFriend.requester_id == other_user.id, UserFriend.addressee_id == self.id),
+            )
+        ).first()
+
+    def accepted_friend_ids(self):
+        """Return set of user IDs who are accepted friends."""
+        rows = UserFriend.query.filter(
+            db.or_(
+                db.and_(UserFriend.requester_id == self.id, UserFriend.status == 'accepted'),
+                db.and_(UserFriend.addressee_id == self.id, UserFriend.status == 'accepted'),
+            )
+        ).all()
+        return {
+            r.addressee_id if r.requester_id == self.id else r.requester_id
+            for r in rows
+        }
+
 
 class Club(db.Model):
     __tablename__ = 'clubs'
@@ -845,6 +883,32 @@ class UserRideInvite(db.Model):
     user = db.relationship('User', foreign_keys=[user_id])
 
     __table_args__ = (db.UniqueConstraint('ride_id', 'user_id', name='uq_user_ride_invite'),)
+
+
+class UserFriend(db.Model):
+    """Bidirectional friendship with accept/decline lifecycle.
+
+    status: 'pending' | 'accepted' | 'declined'
+    Only one row per pair: requester → addressee is the canonical direction.
+    """
+    __tablename__ = 'user_friends'
+
+    id           = db.Column(db.Integer, primary_key=True)
+    requester_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    addressee_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    status       = db.Column(db.String(20), default='pending', nullable=False)
+    created_at   = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at   = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
+                              onupdate=lambda: datetime.now(timezone.utc))
+
+    requester = db.relationship('User', foreign_keys=[requester_id],
+                                backref=db.backref('sent_friend_requests', lazy=True,
+                                                   cascade='all, delete-orphan'))
+    addressee = db.relationship('User', foreign_keys=[addressee_id],
+                                backref=db.backref('received_friend_requests', lazy=True,
+                                                   cascade='all, delete-orphan'))
+
+    __table_args__ = (db.UniqueConstraint('requester_id', 'addressee_id', name='uq_friend_request'),)
 
 
 class AppErrorLog(db.Model):

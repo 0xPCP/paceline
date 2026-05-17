@@ -33,6 +33,36 @@ def _get_club_or_404(slug):
     return Club.query.filter_by(slug=slug, is_active=True, is_hidden=False).first_or_404()
 
 
+def _notify_friends_of_signup(signer, ride, club):
+    """Send friend-ride-signup notifications in the background (fire-and-forget)."""
+    from ..email import send_friend_ride_notification
+    from ..models import User, ClubMembership
+    try:
+        signer_id = signer.id
+        friend_ids = signer.accepted_friend_ids()
+        if not friend_ids:
+            return
+        # Reload signer as a plain model instance (signer may be a proxy)
+        signer_user = db.session.get(User, signer_id)
+        if not signer_user:
+            return
+        friends = User.query.filter(User.id.in_(friend_ids), User.is_active == True).all()  # noqa: E712
+        member_ids = set()
+        if club.is_private:
+            member_ids = {
+                m.user_id for m in
+                ClubMembership.query.filter_by(club_id=club.id, status='active').all()
+            }
+        for friend in friends:
+            # Check if this friend can see the ride
+            if club.is_private and friend.id not in member_ids:
+                continue
+            send_friend_ride_notification(friend, signer_user, ride)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception('Error notifying friends for ride %d', ride.id)
+
+
 # ── Club directory ────────────────────────────────────────────────────────────
 
 @clubs_bp.route('/')
@@ -683,6 +713,8 @@ def ride_signup(slug, ride_id):
             flash(f"The ride is full — you've been added to the waitlist (#{ride.waitlist_count}).", 'info')
         else:
             flash("You're signed up! See you on the road.", 'success')
+            if not is_anon:
+                _notify_friends_of_signup(current_user, ride, club)
     except IntegrityError:
         db.session.rollback()
         flash('You are already signed up for this ride.', 'info')

@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, curren
 from flask_login import current_user, login_required
 from sqlalchemy import or_, and_, text
 from ..forms import FeedbackForm
-from ..models import Club, Ride, RideSignup, ClubMembership, PlatformPost, SiteFeedback, User
+from ..models import Club, Ride, RideSignup, ClubMembership, PlatformPost, SiteFeedback, User, UserFriend
 from ..extensions import db
 from ..email import send_feedback_notification
 from ..weather import get_weather_for_rides
@@ -93,7 +93,13 @@ def _user_dashboard(today, platform_posts=None):
                                .order_by(Ride.date.asc(), Ride.time.asc())
                                .limit(10).all())
 
-    all_display_rides = list({r.id: r for r in my_rides + upcoming_club_rides}.values())
+    # Friends' upcoming rides (rides their accepted friends signed up for that this user can see)
+    friends_rides = _friends_upcoming_rides(
+        current_user, today, signed_up_ride_ids, club_ids
+    )
+
+    all_display_rides = list({r.id: r for r in my_rides + upcoming_club_rides
+                              + [r for _, r in friends_rides]}.values())
     weather = get_weather_for_rides(all_display_rides)
 
     # Clubs user hasn't joined yet (for discovery)
@@ -116,16 +122,81 @@ def _user_dashboard(today, platform_posts=None):
                 'waiver_ok': current_user.has_signed_waiver(club),
             }
 
+    # Pending friend requests addressed to the current user
+    pending_friend_requests = (
+        UserFriend.query
+        .filter_by(addressee_id=current_user.id, status='pending')
+        .all()
+    )
+
     return render_template('dashboard.html',
                            my_rides=my_rides,
                            upcoming_club_rides=upcoming_club_rides,
+                           friends_rides=friends_rides,
                            weather=weather,
                            today=today,
                            my_clubs=my_clubs,
                            suggested_clubs=suggested_clubs,
                            signed_up_ride_ids=signed_up_ride_ids,
                            signup_eligible=signup_eligible,
-                           platform_posts=platform_posts or [])
+                           platform_posts=platform_posts or [],
+                           pending_friend_requests=pending_friend_requests)
+
+
+def _friends_upcoming_rides(viewer, today, viewer_signup_ids, viewer_club_ids):
+    """Return up to 10 (friend_user, ride) pairs for upcoming rides friends have signed up for.
+
+    Visibility rules:
+    - Virtual rides: always visible
+    - Personal public rides (owner_id, no club_id): visible if is_private=False
+    - Club rides: visible if club is not private, OR viewer is a member of that club
+    """
+    friend_ids = viewer.accepted_friend_ids()
+    if not friend_ids:
+        return []
+
+    viewer_club_set = set(viewer_club_ids)
+    friend_signups = (
+        RideSignup.query
+        .filter(
+            RideSignup.user_id.in_(friend_ids),
+            RideSignup.is_waitlist == False,   # noqa: E712
+            RideSignup.is_anonymous == False,  # noqa: E712
+        )
+        .join(Ride, RideSignup.ride_id == Ride.id)
+        .filter(
+            Ride.date >= today,
+            Ride.is_cancelled == False,        # noqa: E712
+            ~Ride.id.in_(viewer_signup_ids),
+        )
+        .order_by(Ride.date.asc(), Ride.time.asc())
+        .limit(50)
+        .all()
+    )
+
+    result = []
+    seen_ride_ids = set()
+    for signup in friend_signups:
+        ride = signup.ride
+        if ride.id in seen_ride_ids:
+            continue
+        if ride.is_virtual:
+            pass  # always visible
+        elif ride.owner_id and not ride.club_id:
+            if ride.is_private:
+                continue
+        elif ride.club_id:
+            club = ride.club
+            if club.is_private and ride.club_id not in viewer_club_set:
+                continue
+        else:
+            continue
+        result.append((User.query.get(signup.user_id), ride))
+        seen_ride_ids.add(ride.id)
+        if len(result) >= 10:
+            break
+
+    return result
 
 
 @main_bp.route('/news/')
@@ -222,9 +293,16 @@ def public_profile(username):
                       .order_by(Ride.date.desc())
                       .limit(20)
                       .all())
+    friend_status = None
+    friend_row = None
+    if profile_user.id != current_user.id:
+        friend_row = current_user.friend_request_row(profile_user)
+        friend_status = current_user.friend_status(profile_user)
     return render_template('public_profile.html',
                            profile_user=profile_user,
-                           public_signups=public_signups)
+                           public_signups=public_signups,
+                           friend_status=friend_status,
+                           friend_row=friend_row)
 
 
 @main_bp.route('/discover/')

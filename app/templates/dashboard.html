@@ -55,6 +55,44 @@
         </div>
       {% endif %}
 
+      <!-- Friends' upcoming rides -->
+      {% if friends_rides %}
+      <h5 class="mt-4 mb-3">Friends Riding Soon</h5>
+        {% for friend_user, ride in friends_rides %}
+        {% set w = weather.get(ride.id) %}
+        <div class="ride-card mb-2">
+          <div class="d-flex gap-3 align-items-start">
+            <div class="ride-date-block">
+              <div class="rdb-month">{{ ride.date.strftime('%b') }}</div>
+              <div class="rdb-day">{{ ride.date.day }}</div>
+            </div>
+            <div class="flex-grow-1">
+              <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
+                <span class="text-muted small">
+                  <a href="{{ url_for('main.public_profile', username=friend_user.username) }}" class="text-muted text-decoration-none">@{{ friend_user.username }}</a>
+                  is going
+                </span>
+                {% if ride.is_virtual %}<span class="badge bg-info text-dark" style="font-size:.65rem">Virtual</span>{% endif %}
+                {% if w %}{% include '_weather_chip.html' with context %}{% endif %}
+              </div>
+              {% if ride.owner_id %}
+                <a href="{{ url_for('user_rides.detail', ride_id=ride.id) }}" class="ride-title">{{ ride.title }}</a>
+              {% else %}
+                <a href="{{ url_for('clubs.ride_detail', slug=ride.club.slug, ride_id=ride.id) }}" class="ride-title">{{ ride.title }}</a>
+              {% endif %}
+              <p class="ride-meta mb-0">
+                {{ ride.time.strftime('%I:%M %p').lstrip('0') }} &bull;
+                {{ ride.distance_miles }} mi
+                {% if ride.elevation_feet %}&bull; {{ ride.elevation_feet }} ft{% endif %}
+                {% if not ride.owner_id and ride.club %}&bull; {{ ride.club.name }}{% endif %}
+              </p>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      {% endif %}
+
       <!-- Upcoming from subscribed clubs not yet signed up -->
       {% if upcoming_club_rides %}
       <h5 class="mt-4 mb-3">{{ _('Upcoming from Your Clubs') }}</h5>
@@ -111,6 +149,28 @@
 
     <!-- Sidebar -->
     <div class="col-lg-4">
+
+      {% if pending_friend_requests %}
+      <div class="detail-card mb-4">
+        <h5 class="detail-card-title">Friend Requests</h5>
+        {% for row in pending_friend_requests %}
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <a href="{{ url_for('main.public_profile', username=row.requester.username) }}"
+             class="fw-semibold text-decoration-none small">@{{ row.requester.username }}</a>
+          <div class="d-flex gap-1">
+            <form method="post" action="{{ url_for('friends.accept_request', request_id=row.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button class="btn btn-paceline-sm">Accept</button>
+            </form>
+            <form method="post" action="{{ url_for('friends.decline_request', request_id=row.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button class="btn btn-sm btn-outline-secondary">Decline</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
 
       {% if platform_posts %}
       <div class="detail-card mb-4">

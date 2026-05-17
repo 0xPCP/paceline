@@ -549,6 +549,7 @@ def profile():
         'club_news': 'notify_club_news',
         'weekly_digest': 'notify_weekly_digest',
         'board_digest': 'notify_board_digest',
+        'friend_ride_signup': 'notify_friend_ride_signup',
     }
     if request.method == 'GET':
         prefs = email_preferences_for(current_user)
