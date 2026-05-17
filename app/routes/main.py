@@ -102,6 +102,7 @@ def _user_dashboard(today, platform_posts=None):
     all_display_rides = list({r.id: r for r in my_rides + upcoming_club_rides
                               + [r for _, r in friends_rides]}.values())
     weather = get_weather_for_rides(all_display_rides)
+    friend_counts = _friend_counts_for_rides(current_user, [r.id for r in all_display_rides])
 
     # Clubs user hasn't joined yet (for discovery)
     joined_ids = set(club_ids)
@@ -141,7 +142,8 @@ def _user_dashboard(today, platform_posts=None):
                            signed_up_ride_ids=signed_up_ride_ids,
                            signup_eligible=signup_eligible,
                            platform_posts=platform_posts or [],
-                           pending_friend_requests=pending_friend_requests)
+                           pending_friend_requests=pending_friend_requests,
+                           friend_counts=friend_counts)
 
 
 def _friends_upcoming_rides(viewer, today, viewer_signup_ids, viewer_club_ids):
@@ -198,6 +200,25 @@ def _friends_upcoming_rides(viewer, today, viewer_signup_ids, viewer_club_ids):
             break
 
     return result
+
+
+def _friend_counts_for_rides(user, ride_ids):
+    """Return {ride_id: count} of accepted friends signed up for each ride."""
+    if not ride_ids:
+        return {}
+    friend_ids = user.accepted_friend_ids()
+    if not friend_ids:
+        return {}
+    rows = (RideSignup.query
+            .filter(RideSignup.user_id.in_(friend_ids),
+                    RideSignup.ride_id.in_(ride_ids),
+                    RideSignup.is_waitlist == False,   # noqa: E712
+                    RideSignup.is_anonymous == False)  # noqa: E712
+            .all())
+    counts = {}
+    for r in rows:
+        counts[r.ride_id] = counts.get(r.ride_id, 0) + 1
+    return counts
 
 
 @main_bp.route('/news/')
@@ -477,6 +498,9 @@ def discover():
         rides = filtered
 
     weather = get_weather_for_rides(rides)
+    friend_counts = {}
+    if current_user.is_authenticated:
+        friend_counts = _friend_counts_for_rides(current_user, [r.id for r in rides])
     ride_types = ['road', 'gravel', 'social', 'training', 'event', 'night', 'virtual']
     return render_template(
         'discover.html',
@@ -494,4 +518,5 @@ def discover():
         geo_error=geo_error,
         ride_types=ride_types,
         today=today,
+        friend_counts=friend_counts,
     )

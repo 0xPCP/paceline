@@ -65,6 +65,7 @@
               <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
               {% if ride.ride_type %}<span class="badge bg-secondary fw-normal">{{ ride.ride_type | capitalize }}</span>{% endif %}
               {% if ride.is_cancelled %}<span class="badge bg-danger">Cancelled</span>{% endif %}
+              {% if friend_counts.get(ride.id) %}<span class="badge" style="background:var(--paceline-green,#2d6a4f);font-size:.65rem">{{ friend_counts[ride.id] }} friend{{ 's' if friend_counts[ride.id] != 1 }} going</span>{% endif %}
               <span class="ride-row-time">{{ ride.time.strftime('%I:%M %p') }}</span>
               {% if w and w.warning %}<span class="weather-warn-badge">⚠️ Weather Warning</span>{% endif %}
             </div>
@@ -128,6 +129,7 @@
                     <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
                     {% if ride.ride_type %}<span class="badge bg-secondary fw-normal">{{ ride.ride_type | capitalize }}</span>{% endif %}
                     {% if ride.is_cancelled %}<span class="badge bg-danger">Cancelled</span>{% endif %}
+                    {% if friend_counts.get(ride.id) %}<span class="badge" style="background:var(--paceline-green,#2d6a4f);font-size:.65rem">{{ friend_counts[ride.id] }} friend{{ 's' if friend_counts[ride.id] != 1 }} going</span>{% endif %}
                     <span class="ride-row-time">{{ ride.time.strftime('%I:%M %p') }}</span>
                     {% if w and w.warning %}<span class="weather-warn-badge">⚠️ Weather Warning</span>{% endif %}
                   </div>
