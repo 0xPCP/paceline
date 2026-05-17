@@ -297,13 +297,25 @@ def profile_photo(username):
 def public_profile(username):
     profile_user = User.query.filter_by(username=username).first_or_404()
     today = date.today()
-    public_signups = (RideSignup.query
-                      .filter_by(user_id=profile_user.id, is_waitlist=False, is_anonymous=False)
-                      .join(Ride, RideSignup.ride_id == Ride.id)
-                      .filter(Ride.date < today, Ride.is_cancelled == False)
-                      .order_by(Ride.date.desc())
-                      .limit(15)
-                      .all())
+
+    # Past rides (ride history)
+    past_signups = (RideSignup.query
+                    .filter_by(user_id=profile_user.id, is_waitlist=False, is_anonymous=False)
+                    .join(Ride, RideSignup.ride_id == Ride.id)
+                    .filter(Ride.date < today, Ride.is_cancelled == False)
+                    .order_by(Ride.date.desc())
+                    .limit(15)
+                    .all())
+
+    # Upcoming rides (what the user has signed up for)
+    upcoming_signups = (RideSignup.query
+                        .filter_by(user_id=profile_user.id, is_waitlist=False, is_anonymous=False)
+                        .join(Ride, RideSignup.ride_id == Ride.id)
+                        .filter(Ride.date >= today, Ride.is_cancelled == False)
+                        .order_by(Ride.date.asc(), Ride.time.asc())
+                        .limit(10)
+                        .all())
+
     friend_status = None
     friend_row = None
     friends_rides = []
@@ -328,7 +340,8 @@ def public_profile(username):
 
     return render_template('public_profile.html',
                            profile_user=profile_user,
-                           public_signups=public_signups if can_view else [],
+                           past_signups=past_signups if can_view else [],
+                           upcoming_signups=upcoming_signups if can_view else [],
                            friend_status=friend_status,
                            friend_row=friend_row,
                            friends_rides=friends_rides,
