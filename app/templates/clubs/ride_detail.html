@@ -71,6 +71,7 @@
           <dd>{{ ride.ride_leader }}</dd>
           {% endif %}
 
+          {% if not ride.is_virtual %}
           <dt id="groupride">Garmin GroupRide</dt>
           <dd>
             {% if ride.garmin_groupride_code %}
@@ -94,6 +95,7 @@
             </form>
             {% endif %}
           </dd>
+          {% endif %}
 
           {% if ride.route_url %}
           <dt>Route</dt>

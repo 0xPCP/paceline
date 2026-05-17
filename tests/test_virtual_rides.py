@@ -239,3 +239,28 @@ class TestUserVirtualRide:
     def test_virtual_user_ride_no_meeting_location_label(self, client, virtual_user_ride):
         resp = client.get(f'/my-rides/{virtual_user_ride.id}')
         assert b'Meeting Location' not in resp.data
+
+    def test_virtual_user_ride_no_garmin_section(self, client, virtual_user_ride):
+        resp = client.get(f'/my-rides/{virtual_user_ride.id}')
+        assert b'Garmin GroupRide' not in resp.data
+
+    def test_garmin_code_endpoint_returns_404_for_virtual_user_ride(
+            self, client, virtual_user_ride, regular_user):
+        login(client)
+        resp = client.post(f'/my-rides/{virtual_user_ride.id}/groupride-code',
+                           data={'garmin_groupride_code': '123456'})
+        assert resp.status_code == 404
+
+
+class TestVirtualClubRideNoGarmin:
+    def test_virtual_club_ride_no_garmin_section(self, client, sample_club, virtual_club_ride, mock_weather):
+        resp = client.get(f'/clubs/test-club/rides/{virtual_club_ride.id}')
+        assert b'Garmin GroupRide' not in resp.data
+
+    def test_garmin_code_endpoint_returns_404_for_virtual_club_ride(
+            self, client, sample_club, virtual_club_ride, regular_user, mock_weather):
+        login(client)
+        resp = client.post(
+            f'/clubs/test-club/rides/{virtual_club_ride.id}/groupride-code',
+            data={'garmin_groupride_code': '123456'})
+        assert resp.status_code == 404

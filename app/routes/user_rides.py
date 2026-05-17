@@ -163,6 +163,8 @@ def groupride_code(ride_id):
     ride = Ride.query.filter(
         Ride.id == ride_id, Ride.owner_id.isnot(None)
     ).first_or_404()
+    if ride.is_virtual:
+        abort(404)
     access = _access_level(ride)
     signup = RideSignup.query.filter_by(ride_id=ride.id, user_id=current_user.id).first()
     can_manage = access == 'owner'

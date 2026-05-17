@@ -102,11 +102,22 @@
           <div class="form-text">Select a club member, or type a non-member name in the text field.</div>
         </div>
 
-        <div class="mb-3">
-          {{ form.route_url.label(class="form-label") }}
-          {{ form.route_url(class="form-control" + (" is-invalid" if form.route_url.errors else ""), placeholder="https://ridewithgps.com/routes/12345678") }}
-          <div class="form-text">RideWithGPS links automatically display an interactive route map on the ride page.</div>
-          {% for e in form.route_url.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+        <div id="phys-only-fields">
+          <div class="mb-3">
+            {{ form.route_url.label(class="form-label") }}
+            {{ form.route_url(class="form-control" + (" is-invalid" if form.route_url.errors else ""), placeholder="https://ridewithgps.com/routes/12345678") }}
+            <div class="form-text">RideWithGPS links automatically display an interactive route map on the ride page.</div>
+            {% for e in form.route_url.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="mb-3">
+            {{ form.garmin_groupride_code.label(class="form-label") }}
+            <span class="text-muted"
+                  title="Garmin GroupRide lets compatible Edge users join a shared ride session for live rider locations, messaging, and shared course access. Create the GroupRide on a Garmin Edge/Garmin Connect, then paste the 6-digit code here.">ⓘ</span>
+            {{ form.garmin_groupride_code(class="form-control" + (" is-invalid" if form.garmin_groupride_code.errors else ""), placeholder="123456", maxlength="6", inputmode="numeric", pattern="[0-9]{6}", style="max-width:160px") }}
+            <div class="form-text">Optional. Leave blank if this ride is not using Garmin GroupRide.</div>
+            {% for e in form.garmin_groupride_code.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          </div>
         </div>
 
         <div class="mb-3">
@@ -114,15 +125,6 @@
           {{ form.video_url(class="form-control" + (" is-invalid" if form.video_url.errors else ""), placeholder="https://www.youtube.com/watch?v=...") }}
           <div class="form-text">Paste a YouTube or Vimeo URL — it will be embedded automatically.</div>
           {% for e in form.video_url.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
-        </div>
-
-        <div class="mb-3">
-          {{ form.garmin_groupride_code.label(class="form-label") }}
-          <span class="text-muted"
-                title="Garmin GroupRide lets compatible Edge users join a shared ride session for live rider locations, messaging, and shared course access. Create the GroupRide on a Garmin Edge/Garmin Connect, then paste the 6-digit code here.">ⓘ</span>
-          {{ form.garmin_groupride_code(class="form-control" + (" is-invalid" if form.garmin_groupride_code.errors else ""), placeholder="123456", maxlength="6", inputmode="numeric", pattern="[0-9]{6}", style="max-width:160px") }}
-          <div class="form-text">Optional. Leave blank if this ride is not using Garmin GroupRide.</div>
-          {% for e in form.garmin_groupride_code.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
         </div>
 
         <div class="mb-3">
@@ -174,10 +176,13 @@
     const vCb = document.getElementById('is_virtual_cb');
     const vFields = document.getElementById('virtual-fields');
     const locField = document.getElementById('location-field');
+    const physOnly = document.getElementById('phys-only-fields');
     function toggleVirtual() {
-      vFields.style.display = vCb.checked ? '' : 'none';
-      locField.querySelector('label').textContent = vCb.checked
-        ? 'Physical location (optional — e.g. a group watch party)'
+      const v = vCb.checked;
+      vFields.style.display = v ? '' : 'none';
+      physOnly.style.display = v ? 'none' : '';
+      locField.querySelector('label').textContent = v
+        ? 'Watch Party Location (optional)'
         : 'Meeting Location *';
     }
     vCb.addEventListener('change', toggleVirtual);

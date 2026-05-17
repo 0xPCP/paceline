@@ -541,6 +541,8 @@ def ride_detail(slug, ride_id):
 def ride_groupride_code(slug, ride_id):
     club = _get_club_or_404(slug)
     ride = Ride.query.filter_by(id=ride_id, club_id=club.id).first_or_404()
+    if ride.is_virtual:
+        abort(404)
     signup = RideSignup.query.filter_by(ride_id=ride.id, user_id=current_user.id).first()
     can_manage = (
         current_user.can_manage_rides(club)
