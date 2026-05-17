@@ -208,6 +208,9 @@ function renderWidget(data) {
   const gearHtml = data.gear.map(g =>
     `<li class="wtw-gear-item"><span class="wtw-gear-icon">${g.icon}</span>${g.label}</li>`
   ).join('');
+  const notesHtml = (data.notes || []).map(n =>
+    `<div class="alert alert-warning py-1 px-2 mb-1 small">💡 ${n}</div>`
+  ).join('');
   document.getElementById('wtw-body').innerHTML = `
     <div class="wtw-conditions">
       <span class="wtw-emoji">${data.emoji}</span>
@@ -220,6 +223,7 @@ function renderWidget(data) {
     </div>
     <div class="wtw-verdict alert-${cls} mb-2">${data.verdict_text}</div>
     <ul class="wtw-gear-list">${gearHtml}</ul>
+    ${notesHtml}
   `;
 }
 

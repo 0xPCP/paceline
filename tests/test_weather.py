@@ -42,6 +42,7 @@ def _fake_response(rides_dates, code=2, temp_f=68, wind_mph=10, precip_prob=10, 
         'hourly': {
             'time': times,
             'temperature_2m': temp_list,
+            'apparent_temperature': temp_list,
             'precipitation_probability': precip_prob_list,
             'precipitation': precip_list,
             'wind_speed_10m': wind_list,
@@ -79,6 +80,8 @@ def _make_ride(ride_id, days_ahead, hour=17):
     ride.id = ride_id
     ride.date = date.today() + timedelta(days=days_ahead)
     ride.time = time(hour, 0)
+    ride.distance_miles = None
+    ride.pace_category = None
     return ride
 
 

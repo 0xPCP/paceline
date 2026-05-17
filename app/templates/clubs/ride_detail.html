@@ -143,7 +143,14 @@
           <div>
             <div class="wd-desc">{{ ride_weather.description }}</div>
             <div class="wd-stats">
-              {{ ride_weather.temp_f }}°F &bull; {{ ride_weather.wind_mph }} mph &bull; {{ ride_weather.precip_prob }}% rain
+              {{ ride_weather.temp_f }}°F
+              {% if ride_weather.feels_like_f and ride_weather.feels_like_f != ride_weather.temp_f %}
+                <span class="text-muted">(feels {{ ride_weather.feels_like_f }}°F)</span>
+              {% endif %}
+              &bull; {{ ride_weather.wind_mph }} mph &bull; {{ ride_weather.precip_prob }}% rain
+              {% if ride_weather.end_temp_f and ride_weather.duration_hours %}
+                &bull; ends ~{{ ride_weather.end_temp_f }}°F
+              {% endif %}
               {% if ride_weather.aqi is defined and ride_weather.aqi is not none %}&bull; AQI {{ ride_weather.aqi }} {{ ride_weather.aqi_label }}{% endif %}
             </div>
           </div>
@@ -157,6 +164,36 @@
         <div class="weather-caution-block mt-2">⚠️ Conditions may be challenging.</div>
         {% endif %}
       </div>
+
+      {% if ride_gear %}
+      <div class="detail-card mb-3">
+        <h5 class="detail-card-title">What to Wear</h5>
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="badge bg-{{ ride_gear.verdict_class }}">{{ ride_gear.verdict_text }}</span>
+          {% if ride_gear.duration_hours %}
+          <span class="text-muted small">~{{ ride_gear.duration_hours | round(1) }} hr ride</span>
+          {% endif %}
+          {% if ride_gear.end_temp_f %}
+          <span class="text-muted small">· ends ~{{ ride_gear.end_temp_f }}°F</span>
+          {% endif %}
+        </div>
+        {% if ride_gear.gear_list %}
+        <ul class="list-unstyled mb-2 wtw-gear-list">
+          {% for item in ride_gear.gear_list %}
+          <li class="wtw-gear-item"><span class="wtw-gear-icon">{{ item.icon }}</span>{{ item.label }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        {% for note in ride_gear.notes %}
+        <div class="alert alert-warning py-1 px-2 mb-1 small">💡 {{ note }}</div>
+        {% endfor %}
+        {% if not current_user.is_authenticated or not current_user.gear_inventory %}
+        <p class="text-muted small mb-0 mt-1">
+          <a href="{{ url_for('auth.profile') }}">Set your gear inventory</a> to filter recommendations to what you own.
+        </p>
+        {% endif %}
+      </div>
+      {% endif %}
       {% endif %}
 
       <div class="signup-card">

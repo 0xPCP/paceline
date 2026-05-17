@@ -5,7 +5,7 @@ Results cached for 30 minutes.
 """
 import time
 import requests
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 # All RBC rides are within a ~5-mile radius — one forecast point covers everything.
 # Reston, VA centroid.
@@ -58,7 +58,7 @@ def _fetch_hourly(lat, lng, forecast_days):
             params={
                 'latitude':        lat,
                 'longitude':       lng,
-                'hourly':          'temperature_2m,precipitation_probability,precipitation,wind_speed_10m,weather_code',
+                'hourly':          'temperature_2m,apparent_temperature,precipitation_probability,precipitation,wind_speed_10m,weather_code',
                 'temperature_unit':'fahrenheit',
                 'wind_speed_unit': 'mph',
                 'forecast_days':   forecast_days,
@@ -71,16 +71,18 @@ def _fetch_hourly(lat, lng, forecast_days):
         return {}
     hourly = {}
     for i, t in enumerate(data['hourly']['time']):
-        temp   = data['hourly']['temperature_2m'][i]
-        wind   = data['hourly']['wind_speed_10m'][i]
+        temp      = data['hourly']['temperature_2m'][i]
+        wind      = data['hourly']['wind_speed_10m'][i]
+        feels     = data['hourly']['apparent_temperature'][i]
         if temp is None or wind is None:
             continue
         hourly[t] = {
-            'temp_f':      round(temp),
-            'precip_prob': data['hourly']['precipitation_probability'][i] or 0,
-            'precip_mm':   data['hourly']['precipitation'][i] or 0,
-            'wind_mph':    round(wind),
-            'code':        data['hourly']['weather_code'][i],
+            'temp_f':       round(temp),
+            'feels_like_f': round(feels) if feels is not None else round(temp),
+            'precip_prob':  data['hourly']['precipitation_probability'][i] or 0,
+            'precip_mm':    data['hourly']['precipitation'][i] or 0,
+            'wind_mph':     round(wind),
+            'code':         data['hourly']['weather_code'][i],
         }
     _cache[cache_key] = {'hourly': hourly, '_ts': now}
     return hourly
@@ -158,6 +160,8 @@ def get_weather_for_rides(rides, lat=None, lng=None):
         return {}
     hourly_aqi = _fetch_hourly_aqi(lat, lng, forecast_days)
 
+    from .gear import _PACE_MPH  # local import avoids circular dependency
+
     result = {}
     for ride in in_window:
         key = f"{ride.date.isoformat()}T{ride.time.hour:02d}:00"
@@ -191,17 +195,36 @@ def get_weather_for_rides(rides, lat=None, lng=None):
         else:
             sev = max(code_sev, aqi_sev)
 
+        # Estimate end-of-ride temperature using distance + pace
+        end_temp_f = None
+        duration_hours = None
+        distance = getattr(ride, 'distance_miles', None)
+        pace = getattr(ride, 'pace_category', None)
+        if distance and pace:
+            mph = _PACE_MPH.get((pace or '').upper(), 18)
+            duration_hours = round(distance / mph, 1)
+            start_dt = datetime.strptime(key, '%Y-%m-%dT%H:%M')
+            end_dt = (start_dt + timedelta(hours=duration_hours)).replace(minute=0)
+            end_key = end_dt.strftime('%Y-%m-%dT%H:%M')
+            end_h = hourly.get(end_key)
+            if end_h:
+                end_temp_f = end_h['temp_f']
+
         result[ride.id] = {
-            'description':    desc,
-            'emoji':          emoji,
-            'severity':       sev,
-            'temp_f':         h['temp_f'],
-            'wind_mph':       h['wind_mph'],
-            'precip_prob':    h['precip_prob'],
-            'aqi':            aqi,
-            'aqi_label':      aqi_label,
-            'warning':        bool(warnings),
-            'warning_reasons': warnings,
+            'description':      desc,
+            'emoji':            emoji,
+            'severity':         sev,
+            'weather_code':     h['code'],
+            'temp_f':           h['temp_f'],
+            'feels_like_f':     h['feels_like_f'],
+            'wind_mph':         h['wind_mph'],
+            'precip_prob':      h['precip_prob'],
+            'aqi':              aqi,
+            'aqi_label':        aqi_label,
+            'warning':          bool(warnings),
+            'warning_reasons':  warnings,
+            'end_temp_f':       end_temp_f,
+            'duration_hours':   duration_hours,
         }
 
     return result
