@@ -9,7 +9,7 @@ from app import create_app
 from app.extensions import db, bcrypt
 from app.models import (User, Club, ClubMembership, ClubAdmin, ClubWaiver,
                          WaiverSignature, Ride, RideSignup, UserRideInvite,
-                         ClubSponsor, ClubPost, ClubLeader)
+                         ClubSponsor, ClubPost, ClubLeader, UserFriend)
 
 app = create_app()
 
@@ -878,6 +878,45 @@ with app.app_context():
 
     db.session.commit()
     print("Created signups")
+
+    # ── Demo riders (labelled fake — for demoing friends/follow feature) ───────
+    DEMO_TAG = '[Demo Account]'
+    demo_pw = bcrypt.generate_password_hash('DemoRider2026!').decode()
+
+    alex_demo   = User(username='alex_demo',   email='alex.demo@demo.paceline.club',   password_hash=demo_pw, zip_code='20148', profile_is_public=True, bio=f'{DEMO_TAG} Alex — weekend warrior, loves long Saturday rides')
+    jordan_demo = User(username='jordan_demo', email='jordan.demo@demo.paceline.club', password_hash=demo_pw, zip_code='20191', profile_is_public=True, bio=f'{DEMO_TAG} Jordan — gravel enthusiast and Tuesday Worlds regular')
+    casey_demo  = User(username='casey_demo',  email='casey.demo@demo.paceline.club',  password_hash=demo_pw, zip_code='20194', profile_is_public=True, bio=f'{DEMO_TAG} Casey — B-group staple, never misses a Wednesday ramble')
+    riley_demo  = User(username='riley_demo',  email='riley.demo@demo.paceline.club',  password_hash=demo_pw, zip_code='22030', profile_is_public=True, bio=f'{DEMO_TAG} Riley — new to the club, signed up for everything')
+
+    db.session.add_all([alex_demo, jordan_demo, casey_demo, riley_demo])
+    db.session.flush()
+
+    # Members of RBC for demo ride access
+    join(rbc, alex_demo, jordan_demo, casey_demo, riley_demo)
+
+    # Accepted friendships with testadmin so their signups appear in its "Friends Riding Soon"
+    for demo_user in [alex_demo, jordan_demo, casey_demo, riley_demo]:
+        db.session.add(UserFriend(requester_id=testadmin.id, addressee_id=demo_user.id,
+                                  status='accepted', follow_rides=True))
+
+    db.session.flush()
+
+    # Sign demo riders up for upcoming RBC rides (week 4+) so the feed is populated
+    today = date.today()
+    upcoming_rbc = [r for r in rbc_rides if r.date >= today]
+    upcoming_rbc.sort(key=lambda r: (r.date, r.time))
+
+    if len(upcoming_rbc) >= 1:
+        signup(upcoming_rbc[0], alex_demo, jordan_demo)
+    if len(upcoming_rbc) >= 2:
+        signup(upcoming_rbc[1], jordan_demo, casey_demo)
+    if len(upcoming_rbc) >= 3:
+        signup(upcoming_rbc[2], casey_demo, riley_demo)
+    if len(upcoming_rbc) >= 4:
+        signup(upcoming_rbc[3], alex_demo, riley_demo)
+
+    db.session.commit()
+    print("Created 4 demo riders (alex_demo, jordan_demo, casey_demo, riley_demo)")
 
     # ── User-owned rides ──────────────────────────────────────────────────────
     from datetime import timedelta
