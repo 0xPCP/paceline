@@ -113,6 +113,7 @@ class ProfileForm(FlaskForm):
     notify_weekly_digest = BooleanField('Weekly club digest')
     notify_board_digest = BooleanField('Daily message board digest')
     notify_friend_ride_signup = BooleanField('When a friend signs up for a ride')
+    profile_is_public = BooleanField('Make my profile visible to everyone (not just friends)')
     submit   = SubmitField('Save Changes')
 
 

@@ -296,20 +296,33 @@ def public_profile(username):
     friend_status = None
     friend_row = None
     friends_rides = []
-    if profile_user.id == current_user.id:
-        # Own profile — show friends' upcoming rides at the bottom
+    is_own_profile = (profile_user.id == current_user.id)
+
+    if is_own_profile:
         signed_up_ids = {s.ride_id for s in RideSignup.query.filter_by(user_id=current_user.id).all()}
         viewer_club_ids = [m.club_id for m in current_user.club_memberships if m.status == 'active']
         friends_rides = _friends_upcoming_rides(current_user, today, signed_up_ids, viewer_club_ids)
     else:
         friend_row = current_user.friend_request_row(profile_user)
         friend_status = current_user.friend_status(profile_user)
+
+    # Privacy gate: private profiles are visible only to the user and accepted friends
+    is_private = not profile_user.profile_is_public
+    can_view = (
+        is_own_profile
+        or current_user.is_admin
+        or not is_private
+        or friend_status == 'accepted'
+    )
+
     return render_template('public_profile.html',
                            profile_user=profile_user,
-                           public_signups=public_signups,
+                           public_signups=public_signups if can_view else [],
                            friend_status=friend_status,
                            friend_row=friend_row,
-                           friends_rides=friends_rides)
+                           friends_rides=friends_rides,
+                           is_own_profile=is_own_profile,
+                           can_view=can_view)
 
 
 @main_bp.route('/discover/')

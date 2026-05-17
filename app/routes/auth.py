@@ -552,6 +552,7 @@ def profile():
         'friend_ride_signup': 'notify_friend_ride_signup',
     }
     if request.method == 'GET':
+        form.profile_is_public.data = current_user.profile_is_public
         prefs = email_preferences_for(current_user)
         for key, field_name in pref_fields.items():
             getattr(form, field_name).data = prefs.get(key, DEFAULT_EMAIL_PREFERENCES.get(key, True))
@@ -577,6 +578,7 @@ def profile():
         current_user.language  = form.language.data or None
         current_user.emergency_contact_name  = (form.emergency_contact_name.data or '').strip() or None
         current_user.emergency_contact_phone = (form.emergency_contact_phone.data or '').strip() or None
+        current_user.profile_is_public = bool(form.profile_is_public.data)
         current_user.email_preferences = {
             key: bool(getattr(form, field_name).data)
             for key, field_name in pref_fields.items()

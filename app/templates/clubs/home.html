@@ -38,7 +38,7 @@
         {# Meta #}
         <p class="club-hero-meta mb-3">
           {% if club.city %}📍 {{ club.city }}, {{ club.state }} &bull; {% endif %}
-          {{ club.member_count }} member{{ 's' if club.member_count != 1 else '' }}
+          <a href="{{ url_for('clubs.club_members', slug=club.slug) }}" class="text-decoration-none" style="color:inherit">{{ club.member_count }} member{{ 's' if club.member_count != 1 else '' }}</a>
           {% if club_stats.founded %} &bull; Est. {{ club_stats.founded }}{% endif %}
         </p>
 

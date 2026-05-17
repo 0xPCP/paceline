@@ -53,6 +53,7 @@ class User(db.Model, UserMixin):
     gear_inventory = db.Column(db.JSON, nullable=True)
 
     # Public profile
+    profile_is_public = db.Column(db.Boolean, default=False, nullable=False, server_default='false')
     gender   = db.Column(db.String(10), nullable=True)  # 'male' | 'female' | 'nonbinary'
     bio      = db.Column(db.Text, nullable=True)
     language = db.Column(db.String(5), nullable=True)   # preferred UI language code
