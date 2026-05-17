@@ -280,6 +280,45 @@ class TestDashboardFriendsRides:
         assert b'rider' in resp.data  # requester username
 
 
+# ── Profile page: Friends Riding Soon ────────────────────────────────────────
+
+class TestProfileFriendsRides:
+    def _sign_up(self, db, user, ride):
+        db.session.add(RideSignup(ride_id=ride.id, user_id=user.id))
+        db.session.commit()
+
+    def test_own_profile_shows_friends_rides(
+            self, client, db, regular_user, second_user, sample_club, club_ride,
+            accepted_friendship):
+        from app.models import ClubMembership
+        db.session.add(ClubMembership(user_id=regular_user.id, club_id=sample_club.id, status='active'))
+        self._sign_up(db, second_user, club_ride)
+        login(client)
+        resp = client.get(f'/users/{regular_user.username}')
+        assert b'Friends Riding Soon' in resp.data
+        assert b'Saturday Spin' in resp.data
+
+    def test_own_profile_no_section_without_friends(
+            self, client, db, regular_user, second_user, sample_club, club_ride):
+        from app.models import ClubMembership
+        db.session.add(ClubMembership(user_id=regular_user.id, club_id=sample_club.id, status='active'))
+        self._sign_up(db, second_user, club_ride)
+        login(client)
+        resp = client.get(f'/users/{regular_user.username}')
+        assert b'Friends Riding Soon' not in resp.data
+
+    def test_other_profile_never_shows_section(
+            self, client, db, regular_user, second_user, sample_club, club_ride,
+            accepted_friendship):
+        from app.models import ClubMembership
+        db.session.add(ClubMembership(user_id=regular_user.id, club_id=sample_club.id, status='active'))
+        self._sign_up(db, second_user, club_ride)
+        login(client)
+        # Viewing second_user's profile — should not see the section
+        resp = client.get(f'/users/{second_user.username}')
+        assert b'Friends Riding Soon' not in resp.data
+
+
 # ── Notification preference ───────────────────────────────────────────────────
 
 class TestFriendRideSignupNotification:
