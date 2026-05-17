@@ -106,11 +106,23 @@
     <div class="card border-0 shadow-sm p-4 mb-4">
       <h5 class="mb-3">Route &amp; Media</h5>
 
-      <div class="mb-3">
-        {{ form.route_url.label(class="form-label fw-semibold") }}
-        {{ form.route_url(class="form-control" + (" is-invalid" if form.route_url.errors else ""),
-                          placeholder="https://ridewithgps.com/routes/...") }}
-        {% for e in form.route_url.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+      <div id="ur-phys-only-fields">
+        <div class="mb-3">
+          {{ form.route_url.label(class="form-label fw-semibold") }}
+          {{ form.route_url(class="form-control" + (" is-invalid" if form.route_url.errors else ""),
+                            placeholder="https://ridewithgps.com/routes/...") }}
+          {% for e in form.route_url.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+        </div>
+
+        <div class="mb-3">
+          {{ form.garmin_groupride_code.label(class="form-label fw-semibold") }}
+          <span class="text-muted"
+                title="Garmin GroupRide lets compatible Edge users join a shared ride session for live rider locations, messaging, and shared course access. Create the GroupRide on a Garmin Edge/Garmin Connect, then paste the 6-digit code here.">ⓘ</span>
+          {{ form.garmin_groupride_code(class="form-control" + (" is-invalid" if form.garmin_groupride_code.errors else ""),
+                                        placeholder="123456", maxlength="6", inputmode="numeric", pattern="[0-9]{6}", style="max-width:160px") }}
+          <div class="form-text">Optional. Leave blank if this ride is not using Garmin GroupRide.</div>
+          {% for e in form.garmin_groupride_code.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+        </div>
       </div>
 
       <div class="mb-3">
@@ -118,16 +130,6 @@
         {{ form.video_url(class="form-control" + (" is-invalid" if form.video_url.errors else ""),
                           placeholder="https://youtube.com/watch?v=...") }}
         {% for e in form.video_url.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
-      </div>
-
-      <div class="mb-3">
-        {{ form.garmin_groupride_code.label(class="form-label fw-semibold") }}
-        <span class="text-muted"
-              title="Garmin GroupRide lets compatible Edge users join a shared ride session for live rider locations, messaging, and shared course access. Create the GroupRide on a Garmin Edge/Garmin Connect, then paste the 6-digit code here.">ⓘ</span>
-        {{ form.garmin_groupride_code(class="form-control" + (" is-invalid" if form.garmin_groupride_code.errors else ""),
-                                      placeholder="123456", maxlength="6", inputmode="numeric", pattern="[0-9]{6}", style="max-width:160px") }}
-        <div class="form-text">Optional. Leave blank if this ride is not using Garmin GroupRide.</div>
-        {% for e in form.garmin_groupride_code.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
       </div>
 
       <div class="mb-3">
@@ -164,10 +166,13 @@
     const cb = document.getElementById('ur_is_virtual');
     const vf = document.getElementById('ur-virtual-fields');
     const lbl = document.getElementById('ur-location-label');
+    const physOnly = document.getElementById('ur-phys-only-fields');
     function toggle() {
-      vf.style.display = cb.checked ? '' : 'none';
-      lbl.textContent = cb.checked
-        ? 'Physical location (optional — e.g. a group watch party)'
+      const v = cb.checked;
+      vf.style.display = v ? '' : 'none';
+      physOnly.style.display = v ? 'none' : '';
+      lbl.textContent = v
+        ? 'Watch Party Location (optional)'
         : 'Meeting Location *';
     }
     cb.addEventListener('change', toggle);
