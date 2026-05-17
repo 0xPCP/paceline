@@ -143,13 +143,52 @@
     </div>
 
     <div class="col-lg-8">
+
+      <!-- Upcoming registered rides -->
+      <div class="detail-card mb-4">
+        <h5 class="detail-card-title">Upcoming Rides</h5>
+        {% if not can_view %}
+        <p class="text-muted small mb-0">Ride schedule is private.</p>
+        {% elif upcoming_signups %}
+        <ul class="list-unstyled mb-0">
+          {% for s in upcoming_signups %}
+          <li class="mb-2 pb-2 {% if not loop.last %}border-bottom{% endif %}">
+            <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+              <span class="pace-badge pace-{{ s.ride.pace_category }}">{{ s.ride.pace_category }}</span>
+              {% if s.ride.is_virtual %}<span class="badge bg-info text-dark" style="font-size:.65rem">Virtual</span>{% endif %}
+            </div>
+            {% if s.ride.owner_id %}
+              <a href="{{ url_for('user_rides.detail', ride_id=s.ride.id) }}"
+                 class="fw-semibold small text-decoration-none">{{ s.ride.title }}</a>
+            {% else %}
+              <a href="{{ url_for('clubs.ride_detail', slug=s.ride.club.slug, ride_id=s.ride.id) }}"
+                 class="fw-semibold small text-decoration-none">{{ s.ride.title }}</a>
+            {% endif %}
+            <div class="text-muted" style="font-size:.8rem">
+              {{ s.ride.date | strftime('%b %-d, %Y') }}
+              &bull; {{ s.ride.time.strftime('%I:%M %p').lstrip('0') }}
+              &bull; {{ s.ride.distance_miles }} mi
+              {% if s.ride.elevation_feet %}&bull; {{ s.ride.elevation_feet }} ft{% endif %}
+              {% if s.ride.club %}
+              &bull; <a href="{{ url_for('clubs.home', slug=s.ride.club.slug) }}" class="text-muted">{{ s.ride.club.name }}</a>
+              {% endif %}
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted small mb-0">No upcoming rides registered.</p>
+        {% endif %}
+      </div>
+
+      <!-- Past ride history -->
       <div class="detail-card">
-        <h5 class="detail-card-title">Recent Rides</h5>
+        <h5 class="detail-card-title">Ride History</h5>
         {% if not can_view %}
         <p class="text-muted small mb-0">Ride history is private.</p>
-        {% elif public_signups %}
+        {% elif past_signups %}
         <ul class="list-unstyled mb-0">
-          {% for s in public_signups %}
+          {% for s in past_signups %}
           <li class="mb-2 pb-2 border-bottom">
             {% if s.ride.owner_id %}
               <a href="{{ url_for('user_rides.detail', ride_id=s.ride.id) }}"
