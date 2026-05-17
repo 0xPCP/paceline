@@ -15,6 +15,7 @@
     </nav>
     <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
       <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
+      {% if ride.is_virtual %}<span class="badge bg-info text-dark fw-normal">Virtual</span>{% endif %}
       {% if ride.ride_type %}<span class="badge bg-secondary fw-normal">{{ ride.ride_type | capitalize }}</span>{% endif %}
       {% if ride.is_cancelled %}<span class="badge bg-danger fs-6">Cancelled</span>{% endif %}
     </div>
@@ -33,8 +34,26 @@
           <dt>Club</dt>
           <dd><a href="{{ url_for('clubs.home', slug=club.slug) }}">{{ club.name }}</a></dd>
 
+          {% if ride.is_virtual %}
+          <dt>Format</dt>
+          <dd>
+            <span class="badge bg-info text-dark">Virtual</span>
+            {% if ride.virtual_platform %}
+            &mdash; {{ {'zwift':'Zwift','rouvy':'Rouvy','wahoo':'Wahoo SYSTM','trainerroad':'TrainerRoad','fulgaz':'FulGaz','bkool':'BKOOL'}.get(ride.virtual_platform, ride.virtual_platform | capitalize) }}
+            {% endif %}
+          </dd>
+          {% if ride.virtual_platform_url %}
+          <dt>Join Link</dt>
+          <dd><a href="{{ ride.virtual_platform_url }}" target="_blank" rel="noopener" class="btn btn-paceline btn-sm">Join on Platform &rarr;</a></dd>
+          {% endif %}
+          {% if ride.meeting_location %}
+          <dt>Watch Party Location</dt>
+          <dd>{{ ride.meeting_location }}</dd>
+          {% endif %}
+          {% else %}
           <dt>Meeting Location</dt>
           <dd>{{ ride.meeting_location }}</dd>
+          {% endif %}
 
           <dt>Distance</dt>
           <dd>{{ ride.distance_miles }} miles{% if ride.elevation_feet %} &bull; {{ ride.elevation_feet }} ft elevation gain{% endif %}</dd>

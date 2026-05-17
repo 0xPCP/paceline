@@ -146,6 +146,7 @@ def create_app(config_class=Config):
     from .routes.user_rides import user_rides_bp
     from .routes.board import board_bp
     from .routes.stripe_connect import stripe_connect_bp
+    from .routes.virtual import virtual_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -157,6 +158,7 @@ def create_app(config_class=Config):
     app.register_blueprint(user_rides_bp, url_prefix='/my-rides')
     app.register_blueprint(board_bp)
     app.register_blueprint(stripe_connect_bp, url_prefix='/stripe')
+    app.register_blueprint(virtual_bp, url_prefix='/virtual')
 
     from .version import __version__
     from .utils import club_theme_vars, mentionify

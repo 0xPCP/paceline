@@ -83,6 +83,11 @@ def create():
             flash(f'You can only create {MAX_RIDES_PER_WEEK} rides per week.', 'warning')
             return redirect(url_for('user_rides.list_rides'))
 
+        if not form.is_virtual.data and not form.meeting_location.data:
+            form.meeting_location.errors.append('Meeting location is required for in-person rides.')
+            return render_template('user_rides/create.html', form=form,
+                                   rides_used=current_user.user_rides_this_week(),
+                                   max_rides=MAX_RIDES_PER_WEEK)
         ride = Ride(
             owner_id=current_user.id,
             club_id=None,
@@ -90,7 +95,7 @@ def create():
             title=form.title.data,
             date=form.date.data,
             time=form.time.data,
-            meeting_location=form.meeting_location.data,
+            meeting_location=form.meeting_location.data or None,
             distance_miles=form.distance_miles.data,
             elevation_feet=form.elevation_feet.data,
             pace_category=form.pace_category.data,
@@ -101,6 +106,9 @@ def create():
             garmin_groupride_code=(form.garmin_groupride_code.data or '').strip() or None,
             description=form.description.data,
             max_riders=form.max_riders.data,
+            is_virtual=form.is_virtual.data,
+            virtual_platform=form.virtual_platform.data or None,
+            virtual_platform_url=form.virtual_platform_url.data or None,
             created_by=current_user.id,
         )
         db.session.add(ride)
@@ -187,12 +195,20 @@ def edit(ride_id):
     ride = _get_own_ride_or_404(ride_id)
     form = UserRideForm(obj=ride)
     if form.validate_on_submit():
+        if not form.is_virtual.data and not form.meeting_location.data:
+            form.meeting_location.errors.append('Meeting location is required for in-person rides.')
+            return render_template('user_rides/create.html', form=form, ride=ride,
+                                   rides_used=current_user.user_rides_this_week(),
+                                   max_rides=MAX_RIDES_PER_WEEK)
         form.populate_obj(ride)
+        ride.meeting_location = form.meeting_location.data or None
         if not form.route_url.data:
             ride.route_url = None
         if not form.video_url.data:
             ride.video_url = None
         ride.garmin_groupride_code = (form.garmin_groupride_code.data or '').strip() or None
+        ride.virtual_platform = form.virtual_platform.data or None
+        ride.virtual_platform_url = form.virtual_platform_url.data or None
         db.session.commit()
         flash('Ride updated.', 'success')
         return redirect(url_for('user_rides.detail', ride_id=ride.id))

@@ -923,14 +923,48 @@ with app.app_context():
         description='Easy end-of-week ride. All paces welcome.',
     )
 
-    db.session.add_all([phil_public, phil_private, jsmith_ride])
+    # Virtual rides — one user-owned, one club-hosted
+    zwift_tuesday = Ride(
+        owner_id=phil.id,
+        club_id=None,
+        is_private=False,
+        title='Tuesday Night Zwift Race — Watopia Flat Route',
+        date=date(2026, 5, 20),
+        time=time(20, 0),
+        distance_miles=25,
+        pace_category='A',
+        ride_type='training',
+        ride_leader='phil',
+        is_virtual=True,
+        virtual_platform='zwift',
+        virtual_platform_url='https://www.zwift.com/events/view/4823701',
+        description='Weekly Tuesday night race. Join the Zwift event 10 min early. Race kit in the Discord server.',
+    )
+    rouvy_saturday = Ride(
+        club_id=rbc.id,
+        title='Saturday Morning Rouvy Ride — Alpe d\'Huez',
+        date=date(2026, 5, 24),
+        time=time(9, 0),
+        distance_miles=8,
+        elevation_feet=3600,
+        pace_category='B',
+        ride_type='training',
+        is_virtual=True,
+        virtual_platform='rouvy',
+        virtual_platform_url='https://rouvy.com/virtual-routes/alpe-dhuez',
+        description='Group climb of Alpe d\'Huez on Rouvy. Bring your climbing legs.',
+        created_by=phil.id,
+    )
+
+    db.session.add_all([phil_public, phil_private, jsmith_ride, zwift_tuesday, rouvy_saturday])
     db.session.flush()
 
     # Auto-signup owners
     db.session.add_all([
-        RideSignup(ride_id=phil_public.id,  user_id=phil.id),
-        RideSignup(ride_id=phil_private.id, user_id=phil.id),
-        RideSignup(ride_id=jsmith_ride.id,  user_id=jsmith.id),
+        RideSignup(ride_id=phil_public.id,     user_id=phil.id),
+        RideSignup(ride_id=phil_private.id,    user_id=phil.id),
+        RideSignup(ride_id=jsmith_ride.id,     user_id=jsmith.id),
+        RideSignup(ride_id=zwift_tuesday.id,   user_id=phil.id),
     ])
 
     # mbaker has accepted an invitation to Phil's private ride
@@ -945,7 +979,7 @@ with app.app_context():
     db.session.add(RideSignup(ride_id=phil_public.id, user_id=twheels.id))
 
     db.session.commit()
-    print("Created 3 user-owned rides (2 for phil, 1 for jsmith)")
+    print("Created 5 user-owned rides (2 for phil, 1 for jsmith, 2 virtual)")
 
     print("\nSeed complete!")
     print("\nLogin credentials (all use password: password123 unless noted):")

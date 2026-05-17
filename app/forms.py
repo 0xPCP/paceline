@@ -331,11 +331,26 @@ class FeedbackForm(FlaskForm):
     submit = SubmitField('Send Feedback')
 
 
+VIRTUAL_PLATFORM_CHOICES = [
+    ('',          '— Select platform —'),
+    ('zwift',     'Zwift'),
+    ('rouvy',     'Rouvy'),
+    ('wahoo',     'Wahoo SYSTM'),
+    ('trainerroad', 'TrainerRoad'),
+    ('fulgaz',    'FulGaz'),
+    ('bkool',     'BKOOL'),
+    ('other',     'Other'),
+]
+
+
 class RideForm(FlaskForm):
     title = StringField('Ride Title', validators=[DataRequired(), Length(max=200)])
     date = DateField('Date', validators=[DataRequired()])
     time = TimeField('Start Time', validators=[DataRequired()])
-    meeting_location = StringField('Meeting Location', validators=[DataRequired(), Length(max=500)])
+    is_virtual = BooleanField('Virtual ride (Zwift, Rouvy, trainer, etc.)')
+    virtual_platform = SelectField('Platform', choices=VIRTUAL_PLATFORM_CHOICES, validators=[Optional()])
+    virtual_platform_url = StringField('Platform Event / Join Link', validators=[Optional(), SafeURL(), Length(max=512)])
+    meeting_location = StringField('Meeting Location', validators=[Optional(), Length(max=500)])
     distance_miles = FloatField('Distance (miles)', validators=[DataRequired(), NumberRange(min=0.1)])
     elevation_feet = IntegerField('Elevation Gain (feet)', validators=[Optional()])
     pace_category = SelectField('Pace Category', choices=[
@@ -370,7 +385,10 @@ class UserRideForm(FlaskForm):
     title            = StringField('Ride Title', validators=[DataRequired(), Length(max=200)])
     date             = DateField('Date', validators=[DataRequired()])
     time             = TimeField('Start Time', validators=[DataRequired()])
-    meeting_location = StringField('Meeting Location', validators=[DataRequired(), Length(max=500)])
+    is_virtual       = BooleanField('Virtual ride (Zwift, Rouvy, trainer, etc.)')
+    virtual_platform = SelectField('Platform', choices=VIRTUAL_PLATFORM_CHOICES, validators=[Optional()])
+    virtual_platform_url = StringField('Platform Event / Join Link', validators=[Optional(), SafeURL(), Length(max=512)])
+    meeting_location = StringField('Meeting Location', validators=[Optional(), Length(max=500)])
     distance_miles   = FloatField('Distance (miles)', validators=[DataRequired(), NumberRange(min=0.1)])
     elevation_feet   = IntegerField('Elevation Gain (feet)', validators=[Optional()])
     pace_category    = SelectField('Pace Category', choices=[
