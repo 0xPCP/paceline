@@ -276,14 +276,24 @@ def discover():
     ]
 
     if source == 'verified':
-        ride_filter = Ride.club_id.in_(verified_club_ids)
+        source_filter = Ride.club_id.in_(verified_club_ids)
     elif source == 'clubs':
-        ride_filter = Ride.club_id.in_(all_club_ids)
+        source_filter = Ride.club_id.in_(all_club_ids)
     else:  # 'all'
-        ride_filter = or_(
+        source_filter = or_(
             Ride.club_id.in_(all_club_ids),
             and_(Ride.owner_id.isnot(None), Ride.is_private == False),
         )
+
+    # Virtual rides always appear regardless of source — they're online, not location-specific
+    public_virtual = and_(
+        Ride.is_virtual == True,            # noqa: E712
+        or_(
+            Ride.club_id.isnot(None),       # any club's virtual ride
+            and_(Ride.owner_id.isnot(None), Ride.is_private == False),
+        ),
+    )
+    ride_filter = or_(source_filter, public_virtual)
 
     query = (Ride.query
              .filter(
@@ -296,7 +306,9 @@ def discover():
 
     if pace in ('A', 'B', 'C', 'D'):
         query = query.filter(Ride.pace_category == pace)
-    if ride_type in ('road', 'gravel', 'social', 'training', 'event', 'night'):
+    if ride_type == 'virtual':
+        query = query.filter(Ride.is_virtual == True)   # noqa: E712
+    elif ride_type in ('road', 'gravel', 'social', 'training', 'event', 'night'):
         query = query.filter(Ride.ride_type == ride_type)
 
     rides = query.limit(200).all()
@@ -321,6 +333,10 @@ def discover():
         club_cache = {}
         filtered = []
         for r in rides:
+            if r.is_virtual:
+                # Virtual rides are online — always include regardless of distance
+                filtered.append(r)
+                continue
             if r.owner_id and not r.club_id:
                 # Personal rides have no location — include only when far filters removed
                 filtered.append(r)
@@ -339,7 +355,7 @@ def discover():
         rides = filtered
 
     weather = get_weather_for_rides(rides)
-    ride_types = ['road', 'gravel', 'social', 'training', 'event', 'night']
+    ride_types = ['road', 'gravel', 'social', 'training', 'event', 'night', 'virtual']
     return render_template(
         'discover.html',
         rides=rides,
