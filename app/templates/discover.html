@@ -5,7 +5,7 @@
 <div class="page-header">
   <div class="container">
     <h1>Discover Rides</h1>
-    <p class="mb-0">Find upcoming rides from clubs in your area.</p>
+    <p class="mb-0">Find upcoming rides from clubs in your area, plus virtual rides on Zwift, Rouvy, and more.</p>
   </div>
 </div>
 
@@ -140,7 +140,9 @@
         <select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
           <option value="">All Types</option>
           {% for t in ride_types %}
-          <option value="{{ t }}" {{ 'selected' if active_type == t else '' }}>{{ t.title() }}</option>
+          <option value="{{ t }}" {{ 'selected' if active_type == t else '' }}>
+            {%- if t == 'virtual' %}Virtual (Online){% else %}{{ t.title() }}{% endif -%}
+          </option>
           {% endfor %}
         </select>
       </div>
@@ -202,6 +204,7 @@
         {# Mobile-only badges (hidden on sm+, shown below host on small screens) #}
         <div class="d-flex d-sm-none align-items-center gap-1 mb-1 flex-wrap">
           <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
+          {% if ride.is_virtual %}<span class="badge bg-info text-dark" style="font-size:.65rem">Virtual</span>{% endif %}
           {% if ride.ride_type %}<span class="badge bg-secondary" style="font-size:.65rem">{{ ride.ride_type.title() }}</span>{% endif %}
           {% if w %}{% set size = 'sm' %}{% include '_weather_chip.html' with context %}{% endif %}
         </div>
@@ -227,6 +230,7 @@
       <div class="rc-aside d-none d-sm-flex">
         <div class="d-flex align-items-center gap-1 flex-wrap justify-content-end">
           <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
+          {% if ride.is_virtual %}<span class="badge bg-info text-dark" style="font-size:.7rem">Virtual</span>{% endif %}
           {% if ride.ride_type %}<span class="badge bg-secondary" style="font-size:.7rem">{{ ride.ride_type.title() }}</span>{% endif %}
         </div>
         {% if w %}{% include '_weather_chip.html' with context %}{% endif %}
