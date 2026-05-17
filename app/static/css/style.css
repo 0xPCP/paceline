@@ -598,6 +598,15 @@ body.club-page {
 .page-header p { color: var(--paceline-gray); margin: 0; }
 .page-header-cancelled { background: #f3f4f6; border-bottom-color: #d1d5db; }
 
+/* Dark hero variant — used for public user profiles */
+.page-header--hero {
+  background: linear-gradient(135deg, #0f172a 0%, #0d4a4a 55%, #111827 100%);
+  border-bottom: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+.page-header--hero h1 { color: #fff; }
+.page-header--hero p  { color: rgba(255,255,255,.8); }
+
 /* ── Next Ride card ──────────────────────────────────────────────────────── */
 .next-ride-card {
   display: flex;
