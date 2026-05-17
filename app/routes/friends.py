@@ -1,4 +1,4 @@
-from flask import Blueprint, redirect, url_for, flash, abort
+from flask import Blueprint, redirect, url_for, flash, abort, request
 from flask_login import current_user, login_required
 from ..extensions import db
 from ..models import User, UserFriend
@@ -14,6 +14,7 @@ def send_request(username):
         flash('You cannot send a friend request to yourself.', 'danger')
         return redirect(url_for('main.public_profile', username=username))
 
+    follow_rides = request.form.get('follow_rides') == '1'
     existing = current_user.friend_request_row(other)
     if existing:
         if existing.status == 'accepted':
@@ -21,15 +22,16 @@ def send_request(username):
         elif existing.status == 'pending':
             flash('Friend request already sent.', 'info')
         elif existing.status == 'declined':
-            # Allow re-requesting after a decline (reset the row direction)
             existing.requester_id = current_user.id
             existing.addressee_id = other.id
             existing.status = 'pending'
+            existing.follow_rides = follow_rides
             db.session.commit()
             flash(f'Friend request sent to @{username}.', 'success')
         return redirect(url_for('main.public_profile', username=username))
 
-    row = UserFriend(requester_id=current_user.id, addressee_id=other.id, status='pending')
+    row = UserFriend(requester_id=current_user.id, addressee_id=other.id,
+                     status='pending', follow_rides=follow_rides)
     db.session.add(row)
     db.session.commit()
     flash(f'Friend request sent to @{username}.', 'success')

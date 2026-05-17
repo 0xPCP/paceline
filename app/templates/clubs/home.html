@@ -316,7 +316,7 @@
                   </div>
                   {% endif %}
                   <div>
-                    <div class="small fw-semibold">{{ leader.name }}</div>
+                    <div class="small fw-semibold">{% if leader.user %}<a href="{{ url_for('main.public_profile', username=leader.user.username) }}" class="text-decoration-none text-body">{{ leader.name }}</a>{% else %}{{ leader.name }}{% endif %}</div>
                     {% if leader.bio %}
                     <div class="text-muted" style="font-size:.75rem;line-height:1.3">
                       {{ leader.bio[:60] }}{% if leader.bio|length > 60 %}…{% endif %}

@@ -68,7 +68,7 @@
 
           {% if ride.ride_leader %}
           <dt>Ride Leader</dt>
-          <dd>{% if ride.leader and ride.leader.profile_is_public %}<a href="{{ url_for('main.public_profile', username=ride.leader.username) }}" class="text-decoration-none">{{ ride.ride_leader }}</a>{% else %}{{ ride.ride_leader }}{% endif %}</dd>
+          <dd>{% if ride.leader %}<a href="{{ url_for('main.public_profile', username=ride.leader.username) }}" class="text-decoration-none">{{ ride.ride_leader }}</a>{% else %}{{ ride.ride_leader }}{% endif %}</dd>
           {% endif %}
 
           {% if not ride.is_virtual %}
@@ -359,7 +359,7 @@
           {% if item.caption %}
           <div class="text-muted small mt-1 text-truncate">{{ item.caption }}</div>
           {% endif %}
-          <div class="small text-muted">{% if item.user.profile_is_public %}<a href="{{ url_for('main.public_profile', username=item.user.username) }}" class="text-muted text-decoration-none">{{ item.user.username }}</a>{% else %}{{ item.user.username }}{% endif %}</div>
+          <div class="small text-muted"><a href="{{ url_for('main.public_profile', username=item.user.username) }}" class="text-muted text-decoration-none">{{ item.user.username }}</a></div>
           {% if current_user.is_authenticated and (item.user_id == current_user.id or current_user.can_manage_rides(club)) %}
           <form method="post"
                 action="{{ url_for('media.delete_media', slug=club.slug, ride_id=ride.id, media_id=item.id) }}"
@@ -388,7 +388,7 @@
           </a>
           {% endif %}
           <div class="small text-muted mt-1">
-            {% if item.user.profile_is_public %}<a href="{{ url_for('main.public_profile', username=item.user.username) }}" class="text-muted text-decoration-none">{{ item.user.username }}</a>{% else %}{{ item.user.username }}{% endif %}{% if item.caption %} &bull; {{ item.caption }}{% endif %}
+            <a href="{{ url_for('main.public_profile', username=item.user.username) }}" class="text-muted text-decoration-none">{{ item.user.username }}</a>{% if item.caption %} &bull; {{ item.caption }}{% endif %}
           </div>
           {% if current_user.is_authenticated and (item.user_id == current_user.id or current_user.can_manage_rides(club)) %}
           <form method="post"
@@ -470,7 +470,7 @@
         <div class="comment-item">
           <div class="comment-avatar">{{ c.user.username[0].upper() }}</div>
           <div class="comment-body">
-            <span class="comment-author">{% if c.user.profile_is_public %}<a href="{{ url_for('main.public_profile', username=c.user.username) }}" class="text-decoration-none text-body">{{ c.user.username }}</a>{% else %}{{ c.user.username }}{% endif %}</span>
+            <span class="comment-author"><a href="{{ url_for('main.public_profile', username=c.user.username) }}" class="text-decoration-none text-body">{{ c.user.username }}</a></span>
             <span class="comment-time">{{ c.created_at.strftime('%b %d, %Y %I:%M %p') }}</span>
             {% if current_user.is_authenticated and (c.user_id == current_user.id or current_user.can_manage_rides(club)) %}
             <form method="post" action="{{ url_for('clubs.ride_comment_delete', slug=club.slug, ride_id=ride.id, comment_id=c.id) }}"
