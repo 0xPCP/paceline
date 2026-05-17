@@ -426,10 +426,23 @@ def _list_view(club):
     ride_groups = OrderedDict()
     for r in rides:
         ride_groups.setdefault(r.date, []).append(r)
+    friend_counts = {}
+    if current_user.is_authenticated:
+        friend_ids = current_user.accepted_friend_ids()
+        if friend_ids and rides:
+            rows = (RideSignup.query
+                    .filter(RideSignup.user_id.in_(friend_ids),
+                            RideSignup.ride_id.in_([r.id for r in rides]),
+                            RideSignup.is_waitlist == False,   # noqa: E712
+                            RideSignup.is_anonymous == False)  # noqa: E712
+                    .all())
+            for row in rows:
+                friend_counts[row.ride_id] = friend_counts.get(row.ride_id, 0) + 1
     return render_template('clubs/calendar_list.html', club=club, rides=rides,
                            ride_groups=ride_groups,
                            active_pace=pace, active_type=ride_type,
-                           ride_types=RIDE_TYPES, weather=weather, today=today, view='list')
+                           ride_types=RIDE_TYPES, weather=weather, today=today, view='list',
+                           friend_counts=friend_counts)
 
 
 def _month_view(club):

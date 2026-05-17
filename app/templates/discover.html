@@ -206,6 +206,7 @@
           <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
           {% if ride.is_virtual %}<span class="badge bg-info text-dark" style="font-size:.65rem">Virtual</span>{% endif %}
           {% if ride.ride_type %}<span class="badge bg-secondary" style="font-size:.65rem">{{ ride.ride_type.title() }}</span>{% endif %}
+          {% if friend_counts.get(ride.id) %}<span class="badge" style="background:var(--paceline-green,#2d6a4f);font-size:.65rem">{{ friend_counts[ride.id] }} friend{{ 's' if friend_counts[ride.id] != 1 }} going</span>{% endif %}
           {% if w %}{% set size = 'sm' %}{% include '_weather_chip.html' with context %}{% endif %}
         </div>
 
@@ -232,6 +233,7 @@
           <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
           {% if ride.is_virtual %}<span class="badge bg-info text-dark" style="font-size:.7rem">Virtual</span>{% endif %}
           {% if ride.ride_type %}<span class="badge bg-secondary" style="font-size:.7rem">{{ ride.ride_type.title() }}</span>{% endif %}
+          {% if friend_counts.get(ride.id) %}<span class="badge" style="background:var(--paceline-green,#2d6a4f);font-size:.7rem">{{ friend_counts[ride.id] }} friend{{ 's' if friend_counts[ride.id] != 1 }} going</span>{% endif %}
         </div>
         {% if w %}{% include '_weather_chip.html' with context %}{% endif %}
       </div>

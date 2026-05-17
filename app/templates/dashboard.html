@@ -33,6 +33,7 @@
                   <span class="text-muted small">{{ ride.club.name }}</span>
                 {% endif %}
                 {% if ride.is_cancelled %}<span class="badge bg-danger">{{ _('Cancelled') }}</span>{% endif %}
+                {% if friend_counts.get(ride.id) %}<span class="badge" style="background:var(--paceline-green,#2d6a4f);font-size:.7rem">{{ friend_counts[ride.id] }} friend{{ 's' if friend_counts[ride.id] != 1 }} going</span>{% endif %}
                 {% if w %}{% include '_weather_chip.html' with context %}{% endif %}
               </div>
               {% if ride.owner_id %}
@@ -73,6 +74,7 @@
                   <a href="{{ url_for('main.public_profile', username=friend_user.username) }}" class="text-muted text-decoration-none">@{{ friend_user.username }}</a>
                   is going
                 </span>
+                {% if friend_counts.get(ride.id, 0) > 1 %}<span class="badge" style="background:var(--paceline-green,#2d6a4f);font-size:.7rem">{{ friend_counts[ride.id] }} friends going</span>{% endif %}
                 {% if ride.is_virtual %}<span class="badge bg-info text-dark" style="font-size:.65rem">Virtual</span>{% endif %}
                 {% if w %}{% include '_weather_chip.html' with context %}{% endif %}
               </div>
@@ -112,6 +114,7 @@
                 {% else %}
                   <span class="text-muted small">{{ ride.club.name }}</span>
                 {% endif %}
+                {% if friend_counts.get(ride.id) %}<span class="badge" style="background:var(--paceline-green,#2d6a4f);font-size:.7rem">{{ friend_counts[ride.id] }} friend{{ 's' if friend_counts[ride.id] != 1 }} going</span>{% endif %}
                 {% if w %}{% include '_weather_chip.html' with context %}{% endif %}
               </div>
               {% if ride.owner_id %}
