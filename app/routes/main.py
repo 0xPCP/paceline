@@ -5,6 +5,7 @@ from flask_login import current_user, login_required
 from sqlalchemy import or_, and_, text
 from ..forms import FeedbackForm
 from ..models import Club, Ride, RideSignup, ClubMembership, PlatformPost, SiteFeedback, User, UserFriend
+from ..storage import get_storage
 from ..extensions import db
 from ..email import send_feedback_notification
 from ..weather import get_weather_for_rides
@@ -281,6 +282,16 @@ def help_riders():
     return render_template('help/riders.html')
 
 
+@main_bp.route('/users/<username>/photo')
+def profile_photo(username):
+    """Serve a user's profile photo from Spaces (or 404 if none)."""
+    from flask import abort
+    user = User.query.filter_by(username=username).first_or_404()
+    if not user.profile_photo_key:
+        abort(404)
+    return get_storage().serve(user.profile_photo_key, is_private=False)
+
+
 @main_bp.route('/users/<username>')
 @login_required
 def public_profile(username):
@@ -291,7 +302,7 @@ def public_profile(username):
                       .join(Ride, RideSignup.ride_id == Ride.id)
                       .filter(Ride.date < today, Ride.is_cancelled == False)
                       .order_by(Ride.date.desc())
-                      .limit(20)
+                      .limit(15)
                       .all())
     friend_status = None
     friend_row = None

@@ -15,7 +15,7 @@ from ..models import (AdminAuditLog, AppErrorLog, BoardDigestItem, Club,
                       ClubBoardSubscription, ClubInvite, ClubLeader, ClubMembership,
                       ClubMembershipPayment, ClubOwnershipTransfer, ClubPost,
                       PlatformPost, Ride, RideComment, RideMedia, RideSignup,
-                      SiteFeedback, User, UserEmailLog, UserRideInvite,
+                      SiteFeedback, User, UserBike, UserEmailLog, UserRideInvite,
                       WaiverSignature)
 from ..forms import (
     AccountSetupForm, DisableMfaForm, MfaCodeForm, PasswordResetRequestForm, RegisterForm,
@@ -635,6 +635,102 @@ def profile():
                            disable_mfa_form=DisableMfaForm(),
                            gear_catalog=GEAR_CATALOG, owned_gear=owned,
                            past_signups=past_signups, ytd_stats=ytd_stats)
+
+
+@auth_bp.route('/profile/photo', methods=['POST'])
+@login_required
+def profile_photo_upload():
+    import io
+    from PIL import Image
+    from ..storage import get_storage
+
+    f = request.files.get('photo')
+    if not f or not f.filename:
+        flash('No file selected.', 'danger')
+        return redirect(url_for('auth.profile'))
+
+    ext = f.filename.rsplit('.', 1)[-1].lower()
+    if ext not in {'jpg', 'jpeg', 'png', 'webp'}:
+        flash('Only JPEG, PNG, and WebP images are supported.', 'danger')
+        return redirect(url_for('auth.profile'))
+
+    raw = f.stream.read()
+    if len(raw) > 8 * 1024 * 1024:
+        flash('Photo must be under 8 MB.', 'danger')
+        return redirect(url_for('auth.profile'))
+
+    try:
+        img = Image.open(io.BytesIO(raw)).convert('RGB')
+    except Exception:
+        flash('Could not read image file.', 'danger')
+        return redirect(url_for('auth.profile'))
+
+    # Resize to max 400px on the longest side, preserve aspect ratio
+    img.thumbnail((400, 400), Image.LANCZOS)
+    buf = io.BytesIO()
+    img.save(buf, format='JPEG', quality=82, optimize=True)
+    jpeg_bytes = buf.getvalue()
+
+    key = f'avatars/{current_user.id}.jpg'
+    storage = get_storage()
+    storage.save(key, jpeg_bytes)
+
+    current_user.profile_photo_key = key
+    db.session.commit()
+    flash('Profile photo updated.', 'success')
+    return redirect(url_for('auth.profile'))
+
+
+@auth_bp.route('/profile/photo/delete', methods=['POST'])
+@login_required
+def profile_photo_delete():
+    from ..storage import get_storage
+    if current_user.profile_photo_key:
+        get_storage().delete(current_user.profile_photo_key)
+        current_user.profile_photo_key = None
+        db.session.commit()
+        flash('Profile photo removed.', 'info')
+    return redirect(url_for('auth.profile'))
+
+
+@auth_bp.route('/profile/bikes', methods=['POST'])
+@login_required
+def add_bike():
+    make_model = (request.form.get('make_model') or '').strip()
+    if not make_model:
+        flash('Make/model is required.', 'danger')
+        return redirect(url_for('auth.profile') + '#bikes')
+
+    bike_type = request.form.get('bike_type', 'road')
+    if bike_type not in UserBike.BIKE_TYPES:
+        bike_type = 'other'
+
+    nickname = (request.form.get('nickname') or '').strip() or None
+    is_primary = request.form.get('is_primary') == '1'
+
+    if is_primary:
+        # Clear existing primary flag
+        for b in current_user.bikes:
+            b.is_primary = False
+
+    order = len(current_user.bikes)
+    bike = UserBike(user_id=current_user.id, make_model=make_model,
+                    nickname=nickname, bike_type=bike_type,
+                    is_primary=is_primary, display_order=order)
+    db.session.add(bike)
+    db.session.commit()
+    flash(f'Added {make_model}.', 'success')
+    return redirect(url_for('auth.profile') + '#bikes')
+
+
+@auth_bp.route('/profile/bikes/<int:bike_id>/delete', methods=['POST'])
+@login_required
+def delete_bike(bike_id):
+    bike = UserBike.query.filter_by(id=bike_id, user_id=current_user.id).first_or_404()
+    db.session.delete(bike)
+    db.session.commit()
+    flash('Bike removed.', 'info')
+    return redirect(url_for('auth.profile') + '#bikes')
 
 
 @auth_bp.route('/profile/delete-account', methods=['POST'])
