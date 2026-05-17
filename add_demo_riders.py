@@ -16,7 +16,7 @@ from app.models import User, Club, ClubMembership, Ride, RideSignup, UserFriend
 app = create_app()
 
 DEMO_TAG = '[Demo Account]'
-FRIEND_OF = 'wazup16'     # the account that will see "Friends Riding Soon"
+FRIEND_OF = 'phil'        # the demo account that will see "Friends Riding Soon"
 CLUB_SLUG = 'paceline-demo'
 
 DEMO_USERS = [
