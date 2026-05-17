@@ -229,13 +229,17 @@ FAKE_WEATHER = {
     'description': 'Partly cloudy',
     'emoji': '⛅',
     'severity': 0,
+    'weather_code': 2,
     'temp_f': 68,
+    'feels_like_f': 65,
     'wind_mph': 10,
     'precip_prob': 10,
     'aqi': 42,
     'aqi_label': 'Good',
     'warning': False,
     'warning_reasons': [],
+    'end_temp_f': None,
+    'duration_hours': None,
 }
 
 

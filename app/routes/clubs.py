@@ -465,6 +465,50 @@ def ride_detail(slug, ride_id):
             show_route = False
 
     weather = get_weather_for_rides([ride])
+    ride_weather = weather.get(ride.id)
+
+    ride_gear = None
+    if ride_weather:
+        from ..gear import cycling_gear, VERDICT_LABEL, estimate_duration
+        duration = estimate_duration(ride.distance_miles, ride.pace_category)
+        owned = (current_user.gear_inventory
+                 if current_user.is_authenticated and current_user.gear_inventory
+                 else None)
+        g = cycling_gear(
+            temp_f=ride_weather['temp_f'],
+            feels_like_f=ride_weather['feels_like_f'],
+            wind_mph=ride_weather['wind_mph'],
+            precip_prob=ride_weather['precip_prob'],
+            weather_code=ride_weather['weather_code'],
+            owned_ids=owned,
+            pace_category=ride.pace_category,
+            duration_hours=duration,
+            end_temp_f=ride_weather.get('end_temp_f'),
+        )
+        verdict_text, verdict_class = VERDICT_LABEL[g['verdict']]
+        gear_items = []
+        for slot, icon in [
+            ('bottoms',    '🩳'), ('jersey',     '👕'), ('base_layer', '🧥'),
+            ('outer',      '🧥'), ('gloves',     '🧤'), ('head',       '🧢'),
+            ('feet',       '👟'), ('eyewear',    '🕶️'),
+        ]:
+            val = g.get(slot)
+            if val:
+                gear_items.append({'icon': icon, 'label': val})
+        for warmer in g.get('warmers', []):
+            gear_items.append({'icon': '💪', 'label': warmer})
+        if g.get('sun_sleeves'):
+            gear_items.append({'icon': '☀️', 'label': g['sun_sleeves']})
+        ride_gear = {
+            'verdict':       g['verdict'],
+            'verdict_text':  verdict_text,
+            'verdict_class': verdict_class,
+            'gear_list':     gear_items,
+            'notes':         g.get('notes', []),
+            'duration_hours': duration,
+            'end_temp_f':    ride_weather.get('end_temp_f'),
+        }
+
     comment_form = RideCommentForm() if current_user.is_authenticated else None
     can_manage_groupride_code = False
     can_add_groupride_code = False
@@ -483,7 +527,8 @@ def ride_detail(slug, ride_id):
                            waiver_required=waiver_required,
                            membership_required=membership_required,
                            show_route=show_route,
-                           ride_weather=weather.get(ride.id),
+                           ride_weather=ride_weather,
+                           ride_gear=ride_gear,
                            comment_form=comment_form,
                            can_manage_groupride_code=can_manage_groupride_code,
                            can_add_groupride_code=can_add_groupride_code,
