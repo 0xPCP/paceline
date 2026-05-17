@@ -898,6 +898,7 @@ class UserFriend(db.Model):
     requester_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     addressee_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     status       = db.Column(db.String(20), default='pending', nullable=False)
+    follow_rides = db.Column(db.Boolean, default=True, nullable=False, server_default='true')
     created_at   = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at   = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
                               onupdate=lambda: datetime.now(timezone.utc))

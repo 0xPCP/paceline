@@ -108,7 +108,7 @@
               <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
                 <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
                 {% if ride.owner_id %}
-                  <span class="text-muted small">{% if ride.owner.profile_is_public %}<a href="{{ url_for('main.public_profile', username=ride.owner.username) }}" class="text-muted text-decoration-none">@{{ ride.owner.username }}</a>{% else %}@{{ ride.owner.username }}{% endif %}</span>
+                  <span class="text-muted small"><a href="{{ url_for('main.public_profile', username=ride.owner.username) }}" class="text-muted text-decoration-none">@{{ ride.owner.username }}</a></span>
                 {% else %}
                   <span class="text-muted small">{{ ride.club.name }}</span>
                 {% endif %}

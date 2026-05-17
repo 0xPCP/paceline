@@ -53,9 +53,19 @@ def _notify_friends_of_signup(signer, ride, club):
                 m.user_id for m in
                 ClubMembership.query.filter_by(club_id=club.id, status='active').all()
             }
+        from ..models import UserFriend
         for friend in friends:
             # Check if this friend can see the ride
             if club.is_private and friend.id not in member_ids:
+                continue
+            # Respect the per-friend follow_rides toggle
+            row = UserFriend.query.filter(
+                db.or_(
+                    db.and_(UserFriend.requester_id == signer_id, UserFriend.addressee_id == friend.id),
+                    db.and_(UserFriend.requester_id == friend.id, UserFriend.addressee_id == signer_id),
+                )
+            ).first()
+            if row and not row.follow_rides:
                 continue
             send_friend_ride_notification(friend, signer_user, ride)
     except Exception:

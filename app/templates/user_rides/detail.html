@@ -113,7 +113,7 @@
 
           {% if ride.ride_leader %}
           <dt>Ride Leader</dt>
-          <dd>{% if ride.leader and ride.leader.profile_is_public %}<a href="{{ url_for('main.public_profile', username=ride.leader.username) }}" class="text-decoration-none">{{ ride.ride_leader }}</a>{% else %}{{ ride.ride_leader }}{% endif %}</dd>
+          <dd>{% if ride.leader %}<a href="{{ url_for('main.public_profile', username=ride.leader.username) }}" class="text-decoration-none">{{ ride.ride_leader }}</a>{% else %}{{ ride.ride_leader }}{% endif %}</dd>
           {% endif %}
 
           {% if not ride.is_virtual %}
@@ -212,7 +212,7 @@
         <ul class="list-group list-group-flush mb-3">
           {% for inv in pending_invites %}
           <li class="list-group-item px-0 py-2 d-flex align-items-center justify-content-between">
-            <span>{% if inv.user.profile_is_public %}<a href="{{ url_for('main.public_profile', username=inv.user.username) }}" class="text-decoration-none">{{ inv.user.username }}</a>{% else %}{{ inv.user.username }}{% endif %}</span>
+            <span><a href="{{ url_for('main.public_profile', username=inv.user.username) }}" class="text-decoration-none">{{ inv.user.username }}</a></span>
             <div class="d-flex gap-2">
               <form method="post" action="{{ url_for('user_rides.approve_invite', ride_id=ride.id, invite_id=inv.id) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
@@ -234,7 +234,7 @@
         <ul class="list-group list-group-flush">
           {% for inv in accepted_invites %}
           <li class="list-group-item px-0 py-1 d-flex align-items-center justify-content-between">
-            <span>{% if inv.user.profile_is_public %}<a href="{{ url_for('main.public_profile', username=inv.user.username) }}" class="text-decoration-none">{{ inv.user.username }}</a>{% else %}{{ inv.user.username }}{% endif %}</span>
+            <span><a href="{{ url_for('main.public_profile', username=inv.user.username) }}" class="text-decoration-none">{{ inv.user.username }}</a></span>
             <form method="post" action="{{ url_for('user_rides.decline_invite', ride_id=ride.id, invite_id=inv.id) }}"
                   onsubmit="return confirm('Remove {{ inv.user.username }} from this ride?')">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />

@@ -31,6 +31,10 @@
       {% else %}
         <form method="post" action="{{ url_for('friends.send_request', username=profile_user.username) }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="follow_rides" value="1" id="follow-rides-hdr" checked>
+            <label class="form-check-label small text-white-50" for="follow-rides-hdr">Notify me when @{{ profile_user.username }} signs up for rides</label>
+          </div>
           <button class="btn btn-sm btn-outline-light">+ Add Friend</button>
         </form>
       {% endif %}
@@ -91,6 +95,10 @@
         {% if friend_status == 'none' %}
         <form method="post" action="{{ url_for('friends.send_request', username=profile_user.username) }}" class="mt-3">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" name="follow_rides" value="1" id="follow-rides-wall" checked>
+            <label class="form-check-label small text-muted" for="follow-rides-wall">Notify me when @{{ profile_user.username }} signs up for rides</label>
+          </div>
           <button class="btn btn-sm btn-outline-secondary w-100">+ Add Friend to view profile</button>
         </form>
         {% elif friend_status == 'pending_sent' %}
