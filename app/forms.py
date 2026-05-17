@@ -112,6 +112,7 @@ class ProfileForm(FlaskForm):
     notify_club_news = BooleanField('Club news posts')
     notify_weekly_digest = BooleanField('Weekly club digest')
     notify_board_digest = BooleanField('Daily message board digest')
+    notify_friend_ride_signup = BooleanField('When a friend signs up for a ride')
     submit   = SubmitField('Save Changes')
 
 

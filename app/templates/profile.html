@@ -96,7 +96,8 @@
               form.notify_club_new_rides,
               form.notify_club_news,
               form.notify_weekly_digest,
-              form.notify_board_digest
+              form.notify_board_digest,
+              form.notify_friend_ride_signup
             ] %}
             <div class="col-md-6">
               <div class="form-check">
@@ -140,7 +141,8 @@
             'club_new_rides': 'notify_club_new_rides',
             'club_news': 'notify_club_news',
             'weekly_digest': 'notify_weekly_digest',
-            'board_digest': 'notify_board_digest'
+            'board_digest': 'notify_board_digest',
+            'friend_ride_signup': 'notify_friend_ride_signup'
           }.items() %}
           {% if email_prefs.get(key, true) %}
           <input type="hidden" name="{{ field_name }}" value="y">
