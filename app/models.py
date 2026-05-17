@@ -717,11 +717,14 @@ class Ride(db.Model):
     title = db.Column(db.String(200), nullable=False)
     date = db.Column(db.Date, nullable=False)
     time = db.Column(db.Time, nullable=False)
-    meeting_location = db.Column(db.String(500), nullable=False)
+    meeting_location = db.Column(db.String(500), nullable=True)
     distance_miles = db.Column(db.Float, nullable=False)
     elevation_feet = db.Column(db.Integer, nullable=True)
     pace_category = db.Column(db.String(2), nullable=False)  # A, B, C, D
     ride_type = db.Column(db.String(20), nullable=True)  # road, gravel, social, training, event, night
+    is_virtual = db.Column(db.Boolean, default=False, nullable=False, server_default='false')
+    virtual_platform = db.Column(db.String(64), nullable=True)   # zwift, rouvy, wahoo, etc.
+    virtual_platform_url = db.Column(db.String(512), nullable=True)
     leader_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     ride_leader = db.Column(db.String(100), nullable=True)  # display name cache; set from leader FK or free text
     route_url = db.Column(db.String(500), nullable=True)

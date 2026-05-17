@@ -59,6 +59,7 @@
     <div class="col-lg-8">
       <div class="d-flex align-items-start gap-2 mb-3 flex-wrap">
         <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
+        {% if ride.is_virtual %}<span class="badge bg-info text-dark">Virtual</span>{% endif %}
         {% if ride.is_private %}
           <span class="badge bg-secondary">Private</span>
         {% else %}
@@ -81,8 +82,26 @@
       <div class="card border-0 shadow-sm p-4 mb-3">
         <h5 class="mb-3">Ride Details</h5>
         <dl class="detail-dl">
+          {% if ride.is_virtual %}
+          <dt>Format</dt>
+          <dd>
+            <span class="badge bg-info text-dark">Virtual</span>
+            {% if ride.virtual_platform %}
+            &mdash; {{ {'zwift':'Zwift','rouvy':'Rouvy','wahoo':'Wahoo SYSTM','trainerroad':'TrainerRoad','fulgaz':'FulGaz','bkool':'BKOOL'}.get(ride.virtual_platform, ride.virtual_platform | capitalize) }}
+            {% endif %}
+          </dd>
+          {% if ride.virtual_platform_url %}
+          <dt>Join Link</dt>
+          <dd><a href="{{ ride.virtual_platform_url }}" target="_blank" rel="noopener" class="btn btn-paceline btn-sm">Join on Platform &rarr;</a></dd>
+          {% endif %}
+          {% if ride.meeting_location %}
+          <dt>Watch Party Location</dt>
+          <dd>{{ ride.meeting_location }}</dd>
+          {% endif %}
+          {% else %}
           <dt>Meeting Location</dt>
           <dd>{{ ride.meeting_location }}</dd>
+          {% endif %}
 
           <dt>Distance</dt>
           <dd>{{ ride.distance_miles }} miles{% if ride.elevation_feet %} &bull; {{ ride.elevation_feet }} ft elevation{% endif %}</dd>

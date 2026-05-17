@@ -957,13 +957,18 @@ def ride_new(slug):
     members = (ClubMembership.query.filter_by(club_id=club.id, status='active')
                .join(ClubMembership.user).order_by(User.username).all())
     if form.validate_on_submit():
+        is_virtual = form.is_virtual.data
+        if not is_virtual and not form.meeting_location.data:
+            form.meeting_location.errors.append('Meeting location is required for in-person rides.')
+            return render_template('admin/ride_form.html', form=form, club=club,
+                                   members=members, title='New Ride')
         leader_id, ride_leader = _resolve_leader(club)
         ride = Ride(
             club_id=club.id,
             title=form.title.data,
             date=form.date.data,
             time=form.time.data,
-            meeting_location=form.meeting_location.data,
+            meeting_location=form.meeting_location.data or None,
             distance_miles=form.distance_miles.data,
             elevation_feet=form.elevation_feet.data,
             pace_category=form.pace_category.data,
@@ -977,6 +982,9 @@ def ride_new(slug):
             description=form.description.data or None,
             is_cancelled=form.is_cancelled.data,
             is_recurring=form.is_recurring.data,
+            is_virtual=is_virtual,
+            virtual_platform=form.virtual_platform.data or None,
+            virtual_platform_url=form.virtual_platform_url.data or None,
             created_by=current_user.id,
         )
         db.session.add(ride)
@@ -1001,13 +1009,18 @@ def ride_edit(slug, ride_id):
     members = (ClubMembership.query.filter_by(club_id=club.id, status='active')
                .join(ClubMembership.user).order_by(User.username).all())
     if form.validate_on_submit():
+        is_virtual = form.is_virtual.data
+        if not is_virtual and not form.meeting_location.data:
+            form.meeting_location.errors.append('Meeting location is required for in-person rides.')
+            return render_template('admin/ride_form.html', form=form, club=club,
+                                   members=members, title='Edit Ride', ride=ride)
         was_recurring  = ride.is_recurring
         was_cancelled  = ride.is_cancelled
         leader_id, ride_leader = _resolve_leader(club)
         ride.title          = form.title.data
         ride.date           = form.date.data
         ride.time           = form.time.data
-        ride.meeting_location = form.meeting_location.data
+        ride.meeting_location = form.meeting_location.data or None
         ride.distance_miles = form.distance_miles.data
         ride.elevation_feet = form.elevation_feet.data
         ride.pace_category  = form.pace_category.data
@@ -1021,6 +1034,9 @@ def ride_edit(slug, ride_id):
         ride.description    = form.description.data or None
         ride.is_cancelled   = form.is_cancelled.data
         ride.is_recurring   = form.is_recurring.data
+        ride.is_virtual     = is_virtual
+        ride.virtual_platform = form.virtual_platform.data or None
+        ride.virtual_platform_url = form.virtual_platform_url.data or None
         db.session.commit()
         if not was_cancelled and ride.is_cancelled:
             send_cancellation_emails(ride)

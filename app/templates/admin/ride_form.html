@@ -35,7 +35,26 @@
           </div>
         </div>
 
-        <div class="mb-3">
+        <!-- Virtual ride toggle -->
+        <div class="mb-3 form-check">
+          {{ form.is_virtual(class="form-check-input", id="is_virtual_cb") }}
+          {{ form.is_virtual.label(class="form-check-label fw-semibold") }}
+        </div>
+
+        <div id="virtual-fields" class="mb-3 p-3 border rounded bg-light" style="display:none">
+          <div class="mb-3">
+            {{ form.virtual_platform.label(class="form-label") }}
+            {{ form.virtual_platform(class="form-select") }}
+          </div>
+          <div class="mb-0">
+            {{ form.virtual_platform_url.label(class="form-label") }}
+            {{ form.virtual_platform_url(class="form-control" + (" is-invalid" if form.virtual_platform_url.errors else ""), placeholder="https://zwift.com/events/…") }}
+            <div class="form-text">Paste the event URL or join link riders need to open on their platform.</div>
+            {% for e in form.virtual_platform_url.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          </div>
+        </div>
+
+        <div id="location-field" class="mb-3">
           {{ form.meeting_location.label(class="form-label") }}
           {{ form.meeting_location(class="form-control" + (" is-invalid" if form.meeting_location.errors else ""), placeholder="e.g. Lake Fairfax Park parking lot", **{'data-testid': 'club-ride-meeting-location'}) }}
           {% for e in form.meeting_location.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
@@ -151,6 +170,18 @@
     function toggle() { txt.style.display = sel.value ? 'none' : ''; }
     sel.addEventListener('change', toggle);
     toggle();
+
+    const vCb = document.getElementById('is_virtual_cb');
+    const vFields = document.getElementById('virtual-fields');
+    const locField = document.getElementById('location-field');
+    function toggleVirtual() {
+      vFields.style.display = vCb.checked ? '' : 'none';
+      locField.querySelector('label').textContent = vCb.checked
+        ? 'Physical location (optional — e.g. a group watch party)'
+        : 'Meeting Location *';
+    }
+    vCb.addEventListener('change', toggleVirtual);
+    toggleVirtual();
   })();
 </script>
 {% endblock %}

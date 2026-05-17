@@ -44,8 +44,27 @@
         </div>
       </div>
 
-      <div class="mb-3">
-        {{ form.meeting_location.label(class="form-label fw-semibold") }}
+      <!-- Virtual ride toggle -->
+      <div class="mb-3 form-check form-switch">
+        {{ form.is_virtual(class="form-check-input", role="switch", id="ur_is_virtual") }}
+        {{ form.is_virtual.label(class="form-check-label fw-semibold") }}
+      </div>
+
+      <div id="ur-virtual-fields" class="mb-3 p-3 border rounded bg-light" style="display:none">
+        <div class="mb-3">
+          {{ form.virtual_platform.label(class="form-label fw-semibold") }}
+          {{ form.virtual_platform(class="form-select") }}
+        </div>
+        <div class="mb-0">
+          {{ form.virtual_platform_url.label(class="form-label fw-semibold") }}
+          {{ form.virtual_platform_url(class="form-control" + (" is-invalid" if form.virtual_platform_url.errors else ""), placeholder="https://zwift.com/events/…") }}
+          <div class="form-text">Paste the event URL or join link for your platform.</div>
+          {% for e in form.virtual_platform_url.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+        </div>
+      </div>
+
+      <div id="ur-location-field" class="mb-3">
+        <label class="form-label fw-semibold" id="ur-location-label">Meeting Location *</label>
         {{ form.meeting_location(class="form-control" + (" is-invalid" if form.meeting_location.errors else ""), **{'data-testid': 'personal-ride-meeting-location'}) }}
         {% for e in form.meeting_location.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
       </div>
@@ -137,4 +156,22 @@
     </div>
   </form>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ g.csp_nonce }}">
+  (function () {
+    const cb = document.getElementById('ur_is_virtual');
+    const vf = document.getElementById('ur-virtual-fields');
+    const lbl = document.getElementById('ur-location-label');
+    function toggle() {
+      vf.style.display = cb.checked ? '' : 'none';
+      lbl.textContent = cb.checked
+        ? 'Physical location (optional — e.g. a group watch party)'
+        : 'Meeting Location *';
+    }
+    cb.addEventListener('change', toggle);
+    toggle();
+  })();
+</script>
 {% endblock %}
