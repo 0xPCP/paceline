@@ -36,7 +36,20 @@ body.club-page {
 .paceline-navbar .navbar-toggler {
   color: #374151 !important;
 }
-.paceline-navbar .nav-link:hover { color: var(--paceline-dark) !important; }
+.paceline-navbar .navbar-nav .nav-link {
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  transition: background 0.15s ease, color 0.15s ease;
+  font-weight: 500;
+}
+.paceline-navbar .navbar-nav .nav-link:hover,
+.paceline-navbar .navbar-nav .nav-link:focus-visible {
+  color: var(--paceline-green) !important;
+  background: var(--paceline-green-pale);
+}
+.paceline-navbar .navbar-nav .nav-link.active {
+  color: var(--paceline-green) !important;
+}
 .paceline-navbar .dropdown-menu { border: none; box-shadow: 0 4px 16px rgba(0,0,0,.15); }
 
 .paceline-brand {
