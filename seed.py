@@ -9,7 +9,7 @@ from app import create_app
 from app.extensions import db, bcrypt
 from app.models import (User, Club, ClubMembership, ClubAdmin, ClubWaiver,
                          WaiverSignature, Ride, RideSignup, UserRideInvite,
-                         ClubSponsor, ClubPost, ClubLeader, UserFriend)
+                         ClubSponsor, ClubPost, ClubLeader, UserFriend, UserBike)
 
 app = create_app()
 
@@ -914,6 +914,17 @@ with app.app_context():
         signup(upcoming_rbc[2], casey_demo, riley_demo)
     if len(upcoming_rbc) >= 4:
         signup(upcoming_rbc[3], alex_demo, riley_demo)
+
+    # Bikes for demo riders
+    db.session.add_all([
+        UserBike(user_id=alex_demo.id,   make_model='Trek Domane SL 6',         nickname='The Commuter',  bike_type='road',   is_primary=True,  display_order=0),
+        UserBike(user_id=alex_demo.id,   make_model='Salsa Warbird',             nickname=None,            bike_type='gravel', is_primary=False, display_order=1),
+        UserBike(user_id=jordan_demo.id, make_model='Specialized Diverge Comp',  nickname='Gravelicious',  bike_type='gravel', is_primary=True,  display_order=0),
+        UserBike(user_id=jordan_demo.id, make_model='Giant Propel Advanced',     nickname='Race Day',      bike_type='road',   is_primary=False, display_order=1),
+        UserBike(user_id=casey_demo.id,  make_model='Cannondale Synapse 105',    nickname=None,            bike_type='road',   is_primary=True,  display_order=0),
+        UserBike(user_id=casey_demo.id,  make_model='Trek Marlin 6',             nickname='The Beast',     bike_type='mtb',    is_primary=False, display_order=1),
+        UserBike(user_id=riley_demo.id,  make_model='Giant Revolt 2',            nickname='Mud Season',    bike_type='gravel', is_primary=True,  display_order=0),
+    ])
 
     db.session.commit()
     print("Created 4 demo riders (alex_demo, jordan_demo, casey_demo, riley_demo)")

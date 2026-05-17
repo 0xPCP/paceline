@@ -2,7 +2,7 @@
 {% block title %}{{ profile_user.username }} — Paceline{% endblock %}
 
 {% block content %}
-<div class="page-header">
+<div class="page-header page-header--hero">
   <div class="container">
     <div class="d-flex align-items-center gap-3 mb-2">
       {% if profile_user.profile_photo_key %}
@@ -19,7 +19,7 @@
       <div>
         <h1 class="mb-0">{{ profile_user.username }}</h1>
         {% if profile_user.bio %}
-        <p class="mb-0" style="color:rgba(255,255,255,.85)">{{ profile_user.bio }}</p>
+        <p class="mb-0">{{ profile_user.bio }}</p>
         {% endif %}
       </div>
     </div>
