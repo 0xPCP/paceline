@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Members — {{ club.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <h1>{{ club.name }}</h1>
+    <p class="mb-0">{{ club.member_count }} active member{{ 's' if club.member_count != 1 else '' }}</p>
+  </div>
+</div>
+
+<div class="container py-4">
+  <div class="mb-3">
+    <a href="{{ url_for('clubs.home', slug=club.slug) }}" class="text-muted small">← Back to {{ club.name }}</a>
+  </div>
+
+  {% if sections %}
+  {% for section_title, members in sections %}
+  <h5 class="mb-3 {% if not loop.first %}mt-4{% endif %}">{{ section_title }}</h5>
+  <div class="row g-3 mb-2">
+    {% for user in members %}
+    <div class="col-sm-6 col-lg-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body py-2 px-3 d-flex align-items-center gap-3">
+          <div style="width:40px;height:40px;border-radius:50%;background:var(--paceline-green,#2d6a4f);
+                      display:flex;align-items:center;justify-content:center;
+                      color:#fff;font-size:1rem;font-weight:600;flex-shrink:0">
+            {{ user.username[0].upper() }}
+          </div>
+          <div class="flex-grow-1 min-width-0">
+            {% if user.profile_is_public %}
+            <a href="{{ url_for('main.public_profile', username=user.username) }}"
+               class="fw-semibold text-decoration-none d-block text-truncate">{{ user.username }}</a>
+            {% else %}
+            <span class="fw-semibold d-block text-truncate">{{ user.username }}</span>
+            {% endif %}
+            <div class="text-muted" style="font-size:.75rem">
+              {% if user.id == owner_id %}
+                <span class="badge" style="background:var(--paceline-green,#2d6a4f);font-size:.65rem">Owner</span>
+              {% elif admin_user_ids.get(user.id) == 'admin' %}
+                <span class="badge bg-secondary" style="font-size:.65rem">Admin</span>
+              {% elif admin_user_ids.get(user.id) == 'ride_manager' %}
+                <span class="badge bg-secondary" style="font-size:.65rem">Ride Manager</span>
+              {% elif admin_user_ids.get(user.id) %}
+                <span class="badge bg-secondary" style="font-size:.65rem">{{ admin_user_ids.get(user.id).replace('_',' ').title() }}</span>
+              {% else %}
+                {{ attendance.get(user.id, 0) }} ride{{ 's' if attendance.get(user.id, 0) != 1 else '' }}
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+  {% else %}
+  <p class="text-muted">No active members yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

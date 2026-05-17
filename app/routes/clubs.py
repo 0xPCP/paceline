@@ -322,6 +322,65 @@ def club_leaders_public(slug):
     return render_template('clubs/leaders.html', club=club, leaders=club.leaders)
 
 
+@clubs_bp.route('/<slug>/members/')
+def club_members(slug):
+    """Public member roster for a club, ordered by role then ride attendance."""
+    from ..models import User, ClubMembership, ClubAdmin, RideSignup, Ride
+    club = _get_club_or_404(slug)
+
+    # Private clubs: only active members may view the roster
+    if club.is_private:
+        if not current_user.is_authenticated or not current_user.is_active_member_of(club):
+            from flask import abort
+            abort(403)
+
+    active_memberships = (
+        ClubMembership.query
+        .filter_by(club_id=club.id, status='active')
+        .all()
+    )
+    member_ids = [m.user_id for m in active_memberships]
+    if not member_ids:
+        return render_template('clubs/members.html', club=club, sections=[])
+
+    # Attendance count per member for this club's rides
+    from sqlalchemy import func
+    attendance = dict(
+        db.session.query(RideSignup.user_id, func.count(RideSignup.id))
+        .join(Ride, RideSignup.ride_id == Ride.id)
+        .filter(Ride.club_id == club.id, RideSignup.user_id.in_(member_ids))
+        .group_by(RideSignup.user_id)
+        .all()
+    )
+
+    admin_rows = ClubAdmin.query.filter_by(club_id=club.id).all()
+    admin_user_ids = {r.user_id: r.role for r in admin_rows}
+    owner_id = club.owner_id
+
+    users = {u.id: u for u in User.query.filter(User.id.in_(member_ids)).all()}
+
+    owner = [users[owner_id]] if owner_id and owner_id in users else []
+    leaders = [users[uid] for uid in admin_user_ids if uid in users and uid != owner_id]
+    leaders.sort(key=lambda u: attendance.get(u.id, 0), reverse=True)
+    others = [
+        users[uid] for uid in member_ids
+        if uid != owner_id and uid not in admin_user_ids and uid in users
+    ]
+    others.sort(key=lambda u: attendance.get(u.id, 0), reverse=True)
+
+    sections = []
+    if owner:
+        sections.append(('Club Owner', owner))
+    if leaders:
+        sections.append(('Admins & Managers', leaders))
+    if others:
+        sections.append(('Members', others))
+
+    return render_template('clubs/members.html', club=club, sections=sections,
+                           attendance=attendance, admin_user_ids=admin_user_ids,
+                           owner_id=owner_id)
+
+
 # ── Club calendar ─────────────────────────────────────────────────────────────
 
 @clubs_bp.route('/<slug>/rides/')

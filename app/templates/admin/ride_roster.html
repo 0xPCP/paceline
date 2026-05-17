@@ -58,7 +58,7 @@
               </td>
               {% endif %}
               <td>
-                {{ s.user.username }}
+                <a href="{{ url_for('main.public_profile', username=s.user.username) }}" class="text-decoration-none text-body">{{ s.user.username }}</a>
                 {% if s.is_anonymous %}<span class="badge bg-secondary ms-1" style="font-size:.65rem">anon</span>{% endif %}
               </td>
               <td><a href="mailto:{{ s.user.email }}">{{ s.user.email }}</a></td>

@@ -84,6 +84,14 @@
           </div>
 
           <hr class="my-3">
+          <h6 class="mb-1">Privacy</h6>
+          <p class="text-muted small mb-2">By default your profile is visible only to accepted friends. Make it public to appear on member lists and in search.</p>
+          <div class="form-check mb-3">
+            {{ form.profile_is_public(class="form-check-input") }}
+            {{ form.profile_is_public.label(class="form-check-label") }}
+          </div>
+
+          <hr class="my-3">
           <h6 class="mb-1">Email Notifications</h6>
           <p class="text-muted small mb-3">Choose which Paceline emails you want to receive. Account security emails are always sent.</p>
           <div class="row g-2 mb-3">
@@ -132,6 +140,9 @@
           <input type="hidden" name="emergency_contact_name" value="{{ current_user.emergency_contact_name or '' }}">
           <input type="hidden" name="emergency_contact_phone" value="{{ current_user.emergency_contact_phone or '' }}">
           {% set email_prefs = current_user.email_preferences or {} %}
+          {% if current_user.profile_is_public %}
+          <input type="hidden" name="profile_is_public" value="y">
+          {% endif %}
           {% for key, field_name in {
             'ride_cancellations': 'notify_ride_cancellations',
             'ride_reminders': 'notify_ride_reminders',
