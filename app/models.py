@@ -53,7 +53,8 @@ class User(db.Model, UserMixin):
     gear_inventory = db.Column(db.JSON, nullable=True)
 
     # Public profile
-    profile_is_public = db.Column(db.Boolean, default=False, nullable=False, server_default='false')
+    profile_is_public  = db.Column(db.Boolean, default=False, nullable=False, server_default='false')
+    profile_photo_key  = db.Column(db.String(200), nullable=True)  # Spaces object key
     gender   = db.Column(db.String(10), nullable=True)  # 'male' | 'female' | 'nonbinary'
     bio      = db.Column(db.Text, nullable=True)
     language = db.Column(db.String(5), nullable=True)   # preferred UI language code
@@ -911,6 +912,26 @@ class UserFriend(db.Model):
                                                    cascade='all, delete-orphan'))
 
     __table_args__ = (db.UniqueConstraint('requester_id', 'addressee_id', name='uq_friend_request'),)
+
+
+class UserBike(db.Model):
+    """A bike owned by a user, displayed on their public profile."""
+    __tablename__ = 'user_bikes'
+
+    BIKE_TYPES = ['road', 'gravel', 'mtb', 'cx', 'tt', 'commuter', 'other']
+
+    id            = db.Column(db.Integer, primary_key=True)
+    user_id       = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
+    make_model    = db.Column(db.String(100), nullable=False)
+    nickname      = db.Column(db.String(50), nullable=True)
+    bike_type     = db.Column(db.String(20), nullable=False, default='road')
+    is_primary    = db.Column(db.Boolean, default=False, nullable=False)
+    display_order = db.Column(db.Integer, default=0, nullable=False)
+    created_at    = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = db.relationship('User', backref=db.backref('bikes', lazy=True,
+                                                       order_by='UserBike.display_order',
+                                                       cascade='all, delete-orphan'))
 
 
 class AppErrorLog(db.Model):

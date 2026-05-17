@@ -4,10 +4,25 @@
 {% block content %}
 <div class="page-header">
   <div class="container">
-    <h1>{{ profile_user.username }}</h1>
-    {% if profile_user.bio %}
-    <p class="mb-0" style="color:rgba(255,255,255,.85)">{{ profile_user.bio }}</p>
-    {% endif %}
+    <div class="d-flex align-items-center gap-3 mb-2">
+      {% if profile_user.profile_photo_key %}
+      <img src="{{ url_for('main.profile_photo', username=profile_user.username) }}"
+           alt="{{ profile_user.username }}"
+           style="width:72px;height:72px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(255,255,255,.4)">
+      {% else %}
+      <div style="width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.2);
+                  display:flex;align-items:center;justify-content:center;
+                  color:#fff;font-size:1.8rem;font-weight:600;flex-shrink:0">
+        {{ profile_user.username[0].upper() }}
+      </div>
+      {% endif %}
+      <div>
+        <h1 class="mb-0">{{ profile_user.username }}</h1>
+        {% if profile_user.bio %}
+        <p class="mb-0" style="color:rgba(255,255,255,.85)">{{ profile_user.bio }}</p>
+        {% endif %}
+      </div>
+    </div>
     {% if friend_status is not none %}
     <div class="mt-3">
       {% if friend_status == 'accepted' %}
@@ -70,7 +85,7 @@
         {% endif %}
       </div>
 
-      <div class="detail-card">
+      <div class="detail-card mb-3">
         <h5 class="detail-card-title">Clubs</h5>
         {% set public_memberships = profile_user.club_memberships
              | selectattr('club.is_private', 'equalto', false)
@@ -89,6 +104,25 @@
         <p class="text-muted small mb-0">No public club memberships.</p>
         {% endif %}
       </div>
+
+      {% if profile_user.bikes %}
+      <div class="detail-card">
+        <h5 class="detail-card-title">Bikes</h5>
+        <ul class="list-unstyled mb-0">
+          {% for bike in profile_user.bikes %}
+          <li class="py-2 {% if not loop.last %}border-bottom{% endif %}">
+            <span class="fw-semibold small">{{ bike.make_model }}</span>
+            {% if bike.nickname %}<span class="text-muted small ms-1">"{{ bike.nickname }}"</span>{% endif %}
+            <div class="d-flex gap-1 mt-1">
+              <span class="badge bg-light text-dark border" style="font-size:.65rem">{{ bike.bike_type | capitalize }}</span>
+              {% if bike.is_primary %}<span class="badge" style="background:var(--paceline-green,#2d6a4f);font-size:.65rem">Primary</span>{% endif %}
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
       {% else %}
       <div class="detail-card">
         <p class="text-muted small mb-0">🔒 This profile is private.</p>
