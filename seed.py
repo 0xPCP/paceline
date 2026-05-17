@@ -894,9 +894,9 @@ with app.app_context():
     # Members of RBC for demo ride access
     join(rbc, alex_demo, jordan_demo, casey_demo, riley_demo)
 
-    # Accepted friendships with testadmin so their signups appear in its "Friends Riding Soon"
+    # Accepted friendships with phil (the demo account) so its "Friends Riding Soon" is populated
     for demo_user in [alex_demo, jordan_demo, casey_demo, riley_demo]:
-        db.session.add(UserFriend(requester_id=testadmin.id, addressee_id=demo_user.id,
+        db.session.add(UserFriend(requester_id=phil.id, addressee_id=demo_user.id,
                                   status='accepted', follow_rides=True))
 
     db.session.flush()
