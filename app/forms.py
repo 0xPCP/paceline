@@ -250,9 +250,8 @@ class PlatformPostForm(FlaskForm):
 
 
 class ClubLeaderForm(FlaskForm):
-    name          = StringField('Display Name', validators=[DataRequired(), Length(max=100)])
-    bio           = TextAreaField('Bio', validators=[Optional()])
-    photo_url     = StringField('Photo URL', validators=[Optional(), SafeURL(), Length(max=500)])
+    bio           = StringField('One-line bio', validators=[Optional(), Length(max=200)],
+                                description='e.g. "20-year club veteran, loves gravel and rain."')
     display_order = IntegerField('Display Order', validators=[Optional(), NumberRange(min=0)], default=0)
     submit        = SubmitField('Save Leader')
 

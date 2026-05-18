@@ -1595,6 +1595,20 @@ def post_delete(slug, post_id):
 
 # ── Ride leaders roster ───────────────────────────────────────────────────────
 
+def _eligible_leader_members(club):
+    """Active members in good standing (dues current if required), sorted by username."""
+    today = date.today()
+    query = (ClubMembership.query
+             .filter_by(club_id=club.id, status='active')
+             .join(ClubMembership.user))
+    if club.membership_dues_required:
+        query = query.filter(
+            ClubMembership.dues_paid_until.isnot(None),
+            ClubMembership.dues_paid_until >= today,
+        )
+    return query.order_by(User.username.asc()).all()
+
+
 @admin_bp.route('/clubs/<slug>/leaders')
 @club_admin_required
 def club_leaders(slug):
@@ -1607,18 +1621,27 @@ def club_leaders(slug):
 def leader_new(slug):
     club = _get_club_or_404(slug)
     form = ClubLeaderForm()
-    if form.validate_on_submit():
-        db.session.add(ClubLeader(
-            club_id=club.id,
-            name=form.name.data,
-            bio=form.bio.data or None,
-            photo_url=form.photo_url.data or None,
-            display_order=form.display_order.data or 0,
-        ))
-        db.session.commit()
-        flash('Leader added.', 'success')
-        return redirect(url_for('admin.club_leaders', slug=slug))
-    return render_template('admin/leader_form.html', form=form, club=club, title='Add Leader')
+    eligible = _eligible_leader_members(club)
+    if request.method == 'POST':
+        user_id = request.form.get('user_id', type=int)
+        user = User.query.get(user_id) if user_id else None
+        if not user:
+            flash('Please select a member.', 'danger')
+        elif ClubLeader.query.filter_by(club_id=club.id, user_id=user_id).first():
+            flash(f'{user.username} is already on the leaders roster.', 'warning')
+        elif form.validate():
+            db.session.add(ClubLeader(
+                club_id=club.id,
+                user_id=user_id,
+                name=user.username,
+                bio=form.bio.data.strip() or None,
+                display_order=form.display_order.data or 0,
+            ))
+            db.session.commit()
+            flash(f'{user.username} added to the leaders roster.', 'success')
+            return redirect(url_for('admin.club_leaders', slug=slug))
+    return render_template('admin/leader_form.html', form=form, club=club,
+                           title='Add Ride Leader', eligible=eligible, leader=None)
 
 
 @admin_bp.route('/clubs/<slug>/leaders/<int:leader_id>/edit', methods=['GET', 'POST'])
@@ -1627,15 +1650,27 @@ def leader_edit(slug, leader_id):
     club = _get_club_or_404(slug)
     leader = ClubLeader.query.filter_by(id=leader_id, club_id=club.id).first_or_404()
     form = ClubLeaderForm(obj=leader)
-    if form.validate_on_submit():
-        leader.name          = form.name.data
-        leader.bio           = form.bio.data or None
-        leader.photo_url     = form.photo_url.data or None
-        leader.display_order = form.display_order.data or 0
-        db.session.commit()
-        flash('Leader updated.', 'success')
-        return redirect(url_for('admin.club_leaders', slug=slug))
-    return render_template('admin/leader_form.html', form=form, club=club, title='Edit Leader')
+    eligible = _eligible_leader_members(club)
+    if request.method == 'POST':
+        user_id = request.form.get('user_id', type=int)
+        user = User.query.get(user_id) if user_id else None
+        if not user:
+            flash('Please select a member.', 'danger')
+        elif form.validate():
+            # Allow re-selecting the same user on edit; block switching to a duplicate
+            existing = ClubLeader.query.filter_by(club_id=club.id, user_id=user_id).first()
+            if existing and existing.id != leader.id:
+                flash(f'{user.username} is already on the leaders roster.', 'warning')
+            else:
+                leader.user_id       = user_id
+                leader.name          = user.username
+                leader.bio           = form.bio.data.strip() or None
+                leader.display_order = form.display_order.data or 0
+                db.session.commit()
+                flash('Leader updated.', 'success')
+                return redirect(url_for('admin.club_leaders', slug=slug))
+    return render_template('admin/leader_form.html', form=form, club=club,
+                           title='Edit Ride Leader', eligible=eligible, leader=leader)
 
 
 @admin_bp.route('/clubs/<slug>/leaders/<int:leader_id>/delete', methods=['POST'])
