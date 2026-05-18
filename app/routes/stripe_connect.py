@@ -177,24 +177,65 @@ def webhook():
         current_app.logger.warning('Rejected Stripe webhook: %s', exc)
         return {'error': 'invalid signature'}, 400
 
-    if event.get('type') != 'checkout.session.completed':
-        return {'status': 'ignored'}
+    event_type = event.get('type', '')
+    obj = event.get('data', {}).get('object', {})
 
-    checkout = event.get('data', {}).get('object', {})
-    session_id = checkout.get('id')
-    if not session_id:
-        return {'status': 'missing session id'}, 400
+    # ── Successful checkout ───────────────────────────────────────────────────
+    if event_type == 'checkout.session.completed':
+        session_id = obj.get('id')
+        if not session_id:
+            return {'status': 'missing session id'}, 400
 
-    payment = ClubMembershipPayment.query.filter_by(provider_session_id=session_id).first()
-    if not payment:
-        current_app.logger.warning('Stripe webhook had unknown checkout session %s', session_id)
-        return {'status': 'unknown session'}, 200
-    if payment.status == 'paid':
-        return {'status': 'already processed'}
+        payment = ClubMembershipPayment.query.filter_by(provider_session_id=session_id).first()
+        if not payment:
+            current_app.logger.warning('Stripe webhook had unknown checkout session %s', session_id)
+            return {'status': 'unknown session'}, 200
+        if payment.status == 'paid':
+            return {'status': 'already processed'}
 
-    payment.status = 'paid'
-    payment.provider_payment_intent_id = checkout.get('payment_intent')
-    payment.paid_at = datetime.now(timezone.utc)
-    activate_membership_dues(payment.membership, paid_at=payment.paid_at)
-    db.session.commit()
-    return {'status': 'processed'}
+        payment.status = 'paid'
+        payment.provider_payment_intent_id = obj.get('payment_intent')
+        payment.paid_at = datetime.now(timezone.utc)
+        activate_membership_dues(payment.membership, paid_at=payment.paid_at)
+        db.session.commit()
+        return {'status': 'processed'}
+
+    # ── Payment failure ───────────────────────────────────────────────────────
+    if event_type in ('payment_intent.payment_failed', 'charge.failed'):
+        pi_id = obj.get('id') if event_type == 'payment_intent.payment_failed' else obj.get('payment_intent')
+        error_msg = (
+            obj.get('last_payment_error', {}).get('message')
+            or obj.get('failure_message')
+            or 'Unknown failure'
+        )
+        current_app.logger.warning('Stripe payment failed: %s %s — %s', event_type, pi_id, error_msg)
+
+        # Find the related payment record (may not exist for retries before session completes)
+        payment = None
+        if pi_id:
+            payment = ClubMembershipPayment.query.filter_by(
+                provider_payment_intent_id=pi_id
+            ).first()
+
+        # Log to AppErrorLog so it appears in the error dashboard
+        from ..models import AppErrorLog
+        db.session.add(AppErrorLog(
+            status_code=0,
+            method='STRIPE',
+            path=f'/stripe/webhook ({event_type})',
+            error_type='stripe_payment_failed',
+            error_message=f'{event_type} | pi={pi_id} | {error_msg}',
+        ))
+        db.session.commit()
+
+        # Email platform owner
+        from ..email import send_stripe_error_alert
+        send_stripe_error_alert(
+            event_type=event_type,
+            payment_intent_id=pi_id,
+            error_message=error_msg,
+            payment=payment,
+        )
+        return {'status': 'failure_logged'}
+
+    return {'status': 'ignored'}

@@ -1,0 +1,18 @@
+STRIPE PAYMENT FAILURE — Paceline Platform Alert
+=================================================
+
+Event type:     {{ event_type }}
+Payment intent: {{ payment_intent_id or '—' }}
+Error:          {{ error_message or '—' }}
+Club:           {{ club_name }}
+User:           {{ username }}
+Amount:         {{ amount_str }}
+{% if payment %}
+Session ID:     {{ payment.provider_session_id or '—' }}
+Payment status: {{ payment.status }}
+{% endif %}
+
+Review at: https://paceline.club/admin/
+
+---
+Paceline platform alert. Do not reply to this message.
