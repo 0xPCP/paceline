@@ -15,10 +15,23 @@
       {%- elif s.user.gender == 'nonbinary' %} Non-binary
       {%- endif %} Rider
     </span>
-  {%- elif s.is_anonymous -%}
-    <a href="{{ url_for('main.public_profile', username=s.user.username) }}" class="text-decoration-none">{{ s.user.username }}</a>
-    <span class="badge bg-secondary ms-1" style="font-size:.65rem">anon</span>
   {%- else -%}
-    <a href="{{ url_for('main.public_profile', username=s.user.username) }}" class="text-decoration-none">{{ s.user.username }}</a>
+    <span class="d-flex align-items-center gap-2">
+      {%- if s.user.profile_photo_key -%}
+      <img src="{{ url_for('main.profile_photo', username=s.user.username) }}"
+           alt="{{ s.user.username }}"
+           style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0">
+      {%- elif s.user.strava_profile_url -%}
+      <img src="{{ s.user.strava_profile_url }}" alt="{{ s.user.username }}"
+           style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0"
+           onerror="this.style.display='none'">
+      {%- else -%}
+      <span style="width:28px;height:28px;border-radius:50%;background:var(--paceline-green,#2d6a4f);
+                   display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;
+                   color:#fff;font-size:.75rem;font-weight:600">{{ s.user.username[0].upper() }}</span>
+      {%- endif -%}
+      <a href="{{ url_for('main.public_profile', username=s.user.username) }}" class="text-decoration-none">{{ s.user.username }}</a>
+      {%- if s.is_anonymous %}<span class="badge bg-secondary ms-1" style="font-size:.65rem">anon</span>{%- endif -%}
+    </span>
   {%- endif -%}
 {%- endmacro %}

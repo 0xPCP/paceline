@@ -894,7 +894,7 @@ body.club-page {
 .signup-count-label { color: var(--paceline-gray); font-size: .9rem; margin-bottom: .5rem; }
 .signup-list-title { font-size: .8rem; font-weight: 700; text-transform: uppercase; color: var(--paceline-gray); text-align: left; }
 .signup-list { list-style: none; padding: 0; margin: 0; text-align: left; }
-.signup-list li { padding: .3rem 0; border-bottom: 1px solid var(--paceline-border); font-size: .9rem; }
+.signup-list li { padding: .25rem 0; border-bottom: 1px solid var(--paceline-border); font-size: .9rem; display: flex; align-items: center; }
 .signup-list li:last-child { border-bottom: none; }
 .signup-login-cta, .signup-private-note { font-size: .9rem; color: var(--paceline-gray); margin-top: 1rem; }
 
