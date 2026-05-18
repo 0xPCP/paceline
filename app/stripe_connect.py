@@ -100,6 +100,7 @@ def create_checkout_session(*, club, user, membership, payment, success_url, can
         'line_items[0][price_data][currency]': club.membership_dues_currency or 'usd',
         'line_items[0][price_data][unit_amount]': str(payment.amount_cents),
         'line_items[0][price_data][product_data][name]': f'{club.name} membership dues',
+        'payment_intent_data[application_fee_amount]': '100',
         'payment_intent_data[transfer_data][destination]': club.stripe_account_id,
         'metadata[payment_id]': str(payment.id),
         'metadata[club_id]': str(club.id),
