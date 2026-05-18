@@ -3,8 +3,9 @@ import hmac
 import json
 import time
 from datetime import datetime, timezone
+from unittest.mock import MagicMock, patch
 
-from app.models import ClubMembership, ClubMembershipPayment
+from app.models import Club, ClubMembership, ClubMembershipPayment
 from tests.conftest import login
 
 
@@ -171,3 +172,44 @@ def test_stripe_webhook_activates_membership(client, app, db, sample_club, regul
     assert membership.dues_confirmed_by_id is None
     assert payment.status == 'paid'
     assert payment.provider_payment_intent_id == 'pi_123'
+
+
+def test_create_checkout_session_includes_platform_fee(app):
+    """create_checkout_session must send application_fee_amount=100 ($1) to Stripe."""
+    from app.stripe_connect import create_checkout_session
+
+    club = MagicMock()
+    club.stripe_account_id = 'acct_test_123'
+    club.membership_dues_currency = 'usd'
+    club.name = 'Test Club'
+
+    user = MagicMock()
+    user.email = 'rider@test.com'
+
+    membership = MagicMock()
+    membership.id = 1
+
+    payment = MagicMock()
+    payment.id = 1
+    payment.amount_cents = 2000
+    payment.club_id = 1
+    payment.user_id = 1
+
+    fake_response = MagicMock()
+    fake_response.status_code = 200
+    fake_response.json.return_value = {'id': 'cs_test_abc', 'url': 'https://checkout.stripe.com/c/pay'}
+
+    with app.app_context():
+        app.config['STRIPE_SECRET_KEY'] = 'sk_test_fake'
+        with patch('app.stripe_connect.requests.post', return_value=fake_response) as mock_post:
+            create_checkout_session(
+                club=club, user=user, membership=membership, payment=payment,
+                success_url='https://example.com/success',
+                cancel_url='https://example.com/cancel',
+            )
+
+    posted_data = mock_post.call_args.kwargs['data']
+    assert posted_data['payment_intent_data[application_fee_amount]'] == '100', (
+        'Platform $1 fee missing — application_fee_amount must be 100 cents'
+    )
+    assert posted_data['payment_intent_data[transfer_data][destination]'] == 'acct_test_123'
