@@ -1,0 +1,27 @@
+{% extends "email/_base.html" %}
+{% block preheader %}
+  {% if days_until_expiry == 0 %}Your {{ club.name }} membership expires today — renew now to stay active.
+  {% else %}Your {{ club.name }} membership expires in {{ days_until_expiry }} day{% if days_until_expiry != 1 %}s{% endif %}.{% endif %}
+{% endblock %}
+{% block body %}
+<div class="club-tag">{{ club.name }}</div>
+<h1>
+  {% if days_until_expiry == 0 %}Your membership expires today.
+  {% elif days_until_expiry <= 7 %}Your membership expires in {{ days_until_expiry }} day{% if days_until_expiry != 1 %}s{% endif %}.
+  {% else %}Time to renew your membership.{% endif %}
+</h1>
+
+<div class="alert {% if days_until_expiry == 0 %}alert-danger{% elif days_until_expiry <= 7 %}alert-danger{% else %}alert-info{% endif %}">
+  Your <strong>{{ club.name }}</strong> membership
+  {% if days_until_expiry == 0 %}expires <strong>today</strong> ({{ membership.dues_paid_until.strftime('%B %d, %Y') }}).
+  {% else %}expires on <strong>{{ membership.dues_paid_until.strftime('%B %d, %Y') }}</strong> — {{ days_until_expiry }} day{% if days_until_expiry != 1 %}s{% endif %} from now.{% endif %}
+  Renew now to keep your access to rides and club content.
+</div>
+
+<p style="font-size:.9rem;color:#495057;margin-bottom:24px">
+  Renewing early extends your membership from your current expiry date,
+  so you won't lose any time you've already paid for.
+</p>
+
+<a href="https://paceline.club/clubs/{{ club.slug }}/" class="cta">Renew Membership</a>
+{% endblock %}

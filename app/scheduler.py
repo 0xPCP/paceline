@@ -9,7 +9,7 @@ import logging
 from datetime import date
 
 from .weather import get_weather_for_rides
-from .email import send_board_digest, send_cancellation_emails, send_ride_reminder, send_weekly_digest
+from .email import send_board_digest, send_cancellation_emails, send_dues_reminder, send_ride_reminder, send_weekly_digest
 from .storage import get_storage
 
 logger = logging.getLogger(__name__)
@@ -146,6 +146,42 @@ def send_board_activity_digests(app):
         logger.info('Board digest job: sent %d digest email(s)', sent_count)
 
 
+def send_dues_expiry_reminders(app):
+    """Send dues renewal reminders at 30, 7, and 0 days before expiry."""
+    from datetime import timedelta
+    with app.app_context():
+        from .extensions import db
+        from .models import ClubMembership
+        today = date.today()
+        thresholds = [30, 7, 0]
+        target_dates = {d: today + timedelta(days=d) for d in thresholds}
+        candidates = (
+            ClubMembership.query
+            .filter(
+                ClubMembership.status == 'active',
+                ClubMembership.dues_paid_until.in_(target_dates.values()),
+            )
+            .all()
+        )
+        sent_count = 0
+        for membership in candidates:
+            if not membership.club.membership_dues_required:
+                continue
+            days_out = (membership.dues_paid_until - today).days
+            key = str(days_out)
+            already_sent = (membership.dues_reminder_sent or {}).get(key)
+            if already_sent:
+                continue
+            if send_dues_reminder(membership, days_out):
+                sent = dict(membership.dues_reminder_sent or {})
+                sent[key] = today.isoformat()
+                membership.dues_reminder_sent = sent
+                sent_count += 1
+        if sent_count:
+            db.session.commit()
+        logger.info('Dues reminder job: sent %d reminder(s) for %s', sent_count, today)
+
+
 def purge_expired_media(app):
     """
     Delete ride media and board media older than MEDIA_EXPIRY_DAYS (default 90).
@@ -254,6 +290,15 @@ def init_scheduler(app):
         args=[app],
         id='board_activity_digest',
         name='Daily board activity digest',
+        replace_existing=True,
+        misfire_grace_time=3600,
+    )
+    scheduler.add_job(
+        func=send_dues_expiry_reminders,
+        trigger=CronTrigger(hour=8, minute=0),
+        args=[app],
+        id='dues_expiry_reminders',
+        name='Dues expiry reminder emails',
         replace_existing=True,
         misfire_grace_time=3600,
     )

@@ -279,6 +279,10 @@ def home(slug):
     is_member  = current_user.is_authenticated and current_user.is_active_member_of(club)
     is_pending = current_user.is_authenticated and current_user.is_pending_member_of(club)
     is_pending_payment = current_user.is_authenticated and current_user.is_pending_payment_member_of(club)
+    user_membership = (
+        ClubMembership.query.filter_by(user_id=current_user.id, club_id=club.id).first()
+        if current_user.is_authenticated else None
+    )
     strava_activities = get_club_activities(club.strava_club_id)
 
     from ..extensions import db as _db
@@ -318,6 +322,7 @@ def home(slug):
     return render_template('clubs/home.html', club=club, upcoming=upcoming,
                            weather=weather, is_member=is_member, is_pending=is_pending,
                            is_pending_payment=is_pending_payment,
+                           user_membership=user_membership,
                            today=today, strava_activities=strava_activities,
                            club_stats=club_stats,
                            board_posts=board_posts,

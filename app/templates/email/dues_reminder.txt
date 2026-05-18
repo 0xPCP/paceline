@@ -1,0 +1,14 @@
+{% if days_until_expiry == 0 %}Your {{ club.name }} membership expires today.
+{% else %}Your {{ club.name }} membership expires in {{ days_until_expiry }} day{% if days_until_expiry != 1 %}s{% endif %}.
+{% endif %}
+
+Your membership expires on {{ membership.dues_paid_until.strftime('%B %d, %Y') }}.
+Renew now to keep your access to rides and club content.
+
+Renewing early extends from your current expiry date — you won't lose any time already paid for.
+
+Renew: https://paceline.club/clubs/{{ club.slug }}/
+
+---
+You're receiving this because you have an account on Paceline.
+Manage email preferences: https://paceline.club/auth/profile

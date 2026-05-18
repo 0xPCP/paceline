@@ -16,6 +16,9 @@ def default_dues_expiration(club, start_date=None):
 
 def activate_membership_dues(membership, confirmed_by=None, paid_at=None):
     membership.status = 'active'
-    membership.dues_paid_until = default_dues_expiration(membership.club)
+    # If renewing early, stack from the existing expiry date rather than today.
+    start = membership.dues_paid_until if membership.dues_paid_until and membership.dues_paid_until > date.today() else None
+    membership.dues_paid_until = default_dues_expiration(membership.club, start_date=start)
     membership.dues_confirmed_at = paid_at or datetime.now(timezone.utc)
     membership.dues_confirmed_by_id = confirmed_by.id if confirmed_by else None
+    membership.dues_reminder_sent = None
