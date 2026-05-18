@@ -857,9 +857,7 @@ def club_settings(slug):
         club.require_membership = form.require_membership.data
         club.join_approval      = form.join_approval.data if form.join_approval.data in ('auto', 'manual') else 'auto'
         club.membership_dues_required = form.membership_dues_required.data
-        dues_mode = form.membership_dues_mode.data or 'manual'
-        club.membership_dues_mode = dues_mode if dues_mode in ('manual', 'stripe_connect') else 'manual'
-        club.membership_dues_url = form.membership_dues_url.data or None
+        club.membership_dues_mode = 'stripe_connect'
         if form.membership_dues_amount.data is not None:
             club.membership_dues_amount_cents = int(round(float(form.membership_dues_amount.data) * 100))
         else:
@@ -878,6 +876,12 @@ def club_settings(slug):
         flash('Club settings updated.', 'success')
         return redirect(url_for('admin.club_settings', slug=slug))
 
+    if request.method == 'POST':
+        for field_name, errors in form.errors.items():
+            for error in errors:
+                current_app.logger.error('[club_settings] slug=%s field=%s error=%s', slug, field_name, error)
+        if form.errors:
+            flash('Settings not saved. Check the highlighted fields below.', 'danger')
     return render_template('admin/club_settings.html', form=form, club=club)
 
 

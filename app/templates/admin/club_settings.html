@@ -301,27 +301,13 @@
         </div>
 
         <div class="mb-3">
-          {{ form.membership_dues_mode.label(class="form-label") }}
-          {{ form.membership_dues_mode(class="form-select" + (" is-invalid" if form.membership_dues_mode.errors else "")) }}
-          {% for e in form.membership_dues_mode.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
-          <div class="form-text">Phase 1 uses your external payment link and manual confirmation. Phase 2 uses your connected Stripe account and activates members automatically after payment.</div>
-        </div>
-
-        <div class="mb-3">
-          {{ form.membership_dues_url.label(class="form-label") }}
-          {{ form.membership_dues_url(class="form-control" + (" is-invalid" if form.membership_dues_url.errors else ""), placeholder="https://buy.stripe.com/...") }}
-          {% for e in form.membership_dues_url.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
-          <div class="form-text">For Phase 1, paste the club-owned Stripe, PayPal, Square, or other hosted payment link for dues.</div>
-        </div>
-
-        <div class="mb-3">
           {{ form.membership_dues_amount.label(class="form-label") }}
           <div class="input-group">
             <span class="input-group-text">$</span>
             {{ form.membership_dues_amount(class="form-control" + (" is-invalid" if form.membership_dues_amount.errors else ""), placeholder="40.00", min="1", step="0.01") }}
             {% for e in form.membership_dues_amount.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
           </div>
-          <div class="form-text">Required for Phase 2 so Paceline can send riders to the correct Stripe Checkout amount.</div>
+          <div class="form-text">Required for Stripe Connect so Paceline can send riders to the correct Stripe Checkout amount.</div>
         </div>
 
         <div class="mb-4">
