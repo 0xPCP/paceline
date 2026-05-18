@@ -660,6 +660,24 @@ class AdminAuditLog(db.Model):
     target_user = db.relationship('User', foreign_keys=[target_user_id])
 
 
+class DuesEditLog(db.Model):
+    """Records manual superadmin edits to a member's dues dates or status."""
+    __tablename__ = 'dues_edit_logs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    membership_id = db.Column(db.Integer, db.ForeignKey('club_memberships.id'), nullable=False)
+    edited_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    edited_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    old_dues_paid_until = db.Column(db.Date, nullable=True)
+    new_dues_paid_until = db.Column(db.Date, nullable=True)
+    old_status = db.Column(db.String(20), nullable=True)
+    new_status = db.Column(db.String(20), nullable=True)
+    note = db.Column(db.Text, nullable=True)
+
+    edited_by = db.relationship('User', foreign_keys=[edited_by_id])
+    membership = db.relationship('ClubMembership', foreign_keys=[membership_id])
+
+
 class SiteFeedback(db.Model):
     """Feedback submitted from public site pages for superadmin review."""
     __tablename__ = 'site_feedback'

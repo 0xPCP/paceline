@@ -400,6 +400,8 @@ def club_members(slug):
 
 @clubs_bp.route('/<slug>/rides/')
 def rides(slug):
+    if not current_user.is_authenticated:
+        return redirect(url_for('auth.login', next=request.url))
     club = _get_club_or_404(slug)
     view = request.args.get('view', 'list')
     if view == 'month':
@@ -551,6 +553,8 @@ def embed(slug):
 
 @clubs_bp.route('/<slug>/rides/<int:ride_id>')
 def ride_detail(slug, ride_id):
+    if not current_user.is_authenticated:
+        return redirect(url_for('auth.login', next=request.url))
     club = _get_club_or_404(slug)
     ride = Ride.query.filter_by(id=ride_id, club_id=club.id).first_or_404()
 

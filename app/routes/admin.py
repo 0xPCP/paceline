@@ -510,15 +510,84 @@ def platform_post_delete(post_id):
 @admin_bp.route('/users/<int:user_id>')
 @superadmin_required
 def user_detail(user_id):
+    from ..models import DuesEditLog
     profile_user   = User.query.get_or_404(user_id)
     recent_signups = (RideSignup.query
                       .filter_by(user_id=user_id)
                       .order_by(RideSignup.id.desc())
                       .limit(10).all())
+    memberships = (ClubMembership.query
+                   .filter_by(user_id=user_id)
+                   .join(Club, ClubMembership.club_id == Club.id)
+                   .order_by(Club.name.asc())
+                   .all())
+    edit_logs = {}
+    if memberships:
+        m_ids = [m.id for m in memberships]
+        logs = (DuesEditLog.query
+                .filter(DuesEditLog.membership_id.in_(m_ids))
+                .order_by(DuesEditLog.edited_at.desc())
+                .all())
+        for log in logs:
+            edit_logs.setdefault(log.membership_id, []).append(log)
+    from datetime import date as _date
     return render_template('admin/user_detail.html',
                            profile_user=profile_user,
                            recent_signups=recent_signups,
-                           can_delete_test_user=_is_deletable_test_user(profile_user))
+                           can_delete_test_user=_is_deletable_test_user(profile_user),
+                           memberships=memberships,
+                           edit_logs=edit_logs,
+                           today=_date.today())
+
+
+@admin_bp.route('/users/<int:user_id>/memberships/<int:membership_id>/edit-dues', methods=['POST'])
+@superadmin_required
+def edit_member_dues(user_id, membership_id):
+    from ..models import DuesEditLog
+    from datetime import date as _date
+    membership = ClubMembership.query.get_or_404(membership_id)
+    if membership.user_id != user_id:
+        abort(404)
+
+    old_paid_until = membership.dues_paid_until
+    old_status = membership.status
+
+    raw_date = request.form.get('dues_paid_until', '').strip()
+    new_paid_until = None
+    if raw_date:
+        try:
+            new_paid_until = _date.fromisoformat(raw_date)
+        except ValueError:
+            flash('Invalid date format.', 'danger')
+            return redirect(url_for('admin.user_detail', user_id=user_id))
+
+    new_status = request.form.get('status', '').strip()
+    if new_status not in ('active', 'pending', 'pending_payment'):
+        new_status = old_status
+
+    note = request.form.get('note', '').strip() or None
+
+    membership.dues_paid_until = new_paid_until
+    membership.status = new_status
+
+    log = DuesEditLog(
+        membership_id=membership.id,
+        edited_by_id=current_user.id,
+        old_dues_paid_until=old_paid_until,
+        new_dues_paid_until=new_paid_until,
+        old_status=old_status,
+        new_status=new_status,
+        note=note,
+    )
+    db.session.add(log)
+    _audit('edit_member_dues',
+           target_user=membership.user,
+           details=f'club_id={membership.club_id}; '
+                   f'paid_until: {old_paid_until} → {new_paid_until}; '
+                   f'status: {old_status} → {new_status}')
+    db.session.commit()
+    flash(f'Dues updated for {membership.user.username} in {membership.club.name}.', 'success')
+    return redirect(url_for('admin.user_detail', user_id=user_id))
 
 
 @admin_bp.route('/users/<int:user_id>/reset-password', methods=['POST'])
@@ -883,6 +952,40 @@ def club_settings(slug):
         if form.errors:
             flash('Settings not saved. Check the highlighted fields below.', 'danger')
     return render_template('admin/club_settings.html', form=form, club=club)
+
+
+@admin_bp.route('/clubs/<slug>/members/')
+@club_member_view_required
+def club_members(slug):
+    """Full member roster with dues status — accessible to club admins."""
+    from datetime import date as _date
+    club = _get_club_or_404(slug)
+    q = request.args.get('q', '').strip()
+    status_filter = request.args.get('status', 'all')
+
+    query = (ClubMembership.query.filter_by(club_id=club.id)
+             .join(ClubMembership.user))
+    if q:
+        query = query.filter(
+            or_(User.username.ilike(f'%{q}%'), User.email.ilike(f'%{q}%'))
+        )
+    if status_filter == 'active':
+        query = query.filter(ClubMembership.status == 'active')
+    elif status_filter == 'pending':
+        query = query.filter(ClubMembership.status == 'pending')
+    elif status_filter == 'pending_payment':
+        query = query.filter(ClubMembership.status == 'pending_payment')
+    elif status_filter == 'expired':
+        query = query.filter(
+            ClubMembership.status == 'active',
+            ClubMembership.dues_paid_until < _date.today(),
+        )
+
+    memberships = query.order_by(User.username.asc()).all()
+    today = _date.today()
+    return render_template('admin/club_members.html', club=club,
+                           memberships=memberships, today=today,
+                           q=q, status_filter=status_filter)
 
 
 @admin_bp.route('/clubs/<slug>/members/export')

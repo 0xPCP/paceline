@@ -170,7 +170,7 @@
       </div>
     </div>
     <div class="d-flex gap-3 align-items-center flex-shrink-0">
-      <a href="{{ url_for('clubs.ride_detail', slug=club.slug, ride_id=nr.id) }}" class="btn btn-paceline-sm">View Ride</a>
+      <a href="{{ url_for('clubs.ride_detail', slug=club.slug, ride_id=nr.id) if current_user.is_authenticated else url_for('auth.login', next=url_for('clubs.ride_detail', slug=club.slug, ride_id=nr.id)) }}" class="btn btn-paceline-sm">View Ride</a>
       <a href="#" class="nrs-more" onclick="switchToTab('tab-rides-btn');return false;">
         {% if upcoming|length > 1 %}+{{ upcoming|length - 1 }} more upcoming{% else %}Full calendar{% endif %} →
       </a>
@@ -462,11 +462,16 @@
     <div class="container py-4">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="club-section-title mb-0">Upcoming Rides</h4>
+        {% if current_user.is_authenticated %}
         <a href="{{ url_for('clubs.rides', slug=club.slug) }}" class="btn btn-paceline">Full Calendar</a>
+        {% else %}
+        <a href="{{ url_for('auth.login', next=url_for('clubs.rides', slug=club.slug)) }}" class="btn btn-paceline">Full Calendar</a>
+        {% endif %}
       </div>
 
       {% if upcoming %}
-        {% for ride in upcoming %}
+        {% set visible_rides = upcoming if current_user.is_authenticated else upcoming[:5] %}
+        {% for ride in visible_rides %}
         {% set w = weather.get(ride.id) %}
         <div class="ride-card mb-3 {{ 'ride-cancelled' if ride.is_cancelled else '' }}">
           <div class="d-flex gap-3 align-items-start">
@@ -480,8 +485,13 @@
                 {% if ride.is_cancelled %}<span class="badge bg-danger">Cancelled</span>{% endif %}
                 {% if w %}{% include '_weather_chip.html' with context %}{% endif %}
               </div>
+              {% if current_user.is_authenticated %}
               <a href="{{ url_for('clubs.ride_detail', slug=club.slug, ride_id=ride.id) }}"
                  class="ride-title">{{ ride.title }}</a>
+              {% else %}
+              <a href="{{ url_for('auth.login', next=url_for('clubs.ride_detail', slug=club.slug, ride_id=ride.id)) }}"
+                 class="ride-title">{{ ride.title }}</a>
+              {% endif %}
               <p class="ride-meta mb-0">
                 {{ ride.time.strftime('%I:%M %p').lstrip('0') }} &bull;
                 {{ ride.distance_miles }} mi
@@ -496,11 +506,19 @@
           </div>
         </div>
         {% endfor %}
+        {% if not current_user.is_authenticated and upcoming|length > 5 %}
+        <div class="text-center py-3 border rounded bg-light mb-3">
+          <p class="mb-2 text-muted small">Sign in to see all {{ upcoming|length }} upcoming rides.</p>
+          <a href="{{ url_for('auth.login', next=url_for('clubs.rides', slug=club.slug)) }}" class="btn btn-paceline btn-sm">Sign In</a>
+        </div>
+        {% endif %}
+        {% if current_user.is_authenticated %}
         <div class="text-center mt-4">
           <a href="{{ url_for('clubs.rides', slug=club.slug) }}" class="btn btn-outline-secondary">
             View Full Calendar →
           </a>
         </div>
+        {% endif %}
       {% else %}
         <div class="empty-state py-5">
           <div style="font-size:2.5rem;margin-bottom:.75rem">🗓️</div>
