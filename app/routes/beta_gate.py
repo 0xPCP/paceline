@@ -53,7 +53,7 @@ def register_beta_gate(app):
 
     @app.before_request
     def _beta_gate():
-        if request.endpoint in (None, '_beta_login', 'static', 'main.health'):
+        if request.endpoint in (None, '_beta_login', 'static', 'main.health', 'stripe_connect.webhook'):
             return
         if session.get('_beta_ok'):
             return
