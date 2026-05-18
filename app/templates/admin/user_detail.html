@@ -61,20 +61,109 @@
         </dl>
       </div>
 
-      {# Club memberships #}
-      {% if profile_user.club_memberships %}
+      {# Club memberships + dues management #}
       <div class="detail-card mb-4">
         <h5 class="detail-card-title">Club Memberships</h5>
-        <ul class="list-unstyled mb-0">
-          {% for m in profile_user.club_memberships %}
-          <li class="mb-1 d-flex align-items-center gap-2">
-            <a href="{{ url_for('clubs.home', slug=m.club.slug) }}">{{ m.club.name }}</a>
-            <span class="badge {{ 'bg-success' if m.status == 'active' else 'bg-warning text-dark' }} small">{{ m.status }}</span>
-          </li>
-          {% endfor %}
-        </ul>
+        {% if memberships %}
+        {% for m in memberships %}
+        {% set days_left = (m.dues_paid_until - today).days if m.dues_paid_until else none %}
+        {% set m_logs = edit_logs.get(m.id, []) %}
+        <div class="border rounded p-3 mb-3">
+          <div class="d-flex align-items-start justify-content-between gap-2 flex-wrap">
+            <div>
+              <a href="{{ url_for('clubs.home', slug=m.club.slug) }}" class="fw-semibold text-decoration-none">{{ m.club.name }}</a>
+              <span class="badge ms-1 {{ 'bg-success' if m.status == 'active' else ('bg-warning text-dark' if m.status == 'pending' else 'bg-info text-dark') }}">{{ m.status }}</span>
+              {% if m_logs %}<span class="badge bg-secondary ms-1" title="Manually edited">edited</span>{% endif %}
+            </div>
+            <button class="btn btn-outline-secondary btn-xs" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#edit-dues-{{ m.id }}">
+              Edit Dues
+            </button>
+          </div>
+
+          <dl class="detail-dl mt-2 mb-0" style="grid-template-columns: 140px 1fr; font-size:.85rem">
+            <dt>Dues paid through</dt>
+            <dd>
+              {% if m.dues_paid_until %}
+                {{ m.dues_paid_until.strftime('%B %d, %Y') }}
+                {% if days_left is not none %}
+                  {% if days_left < 0 %}
+                    <span class="badge bg-danger ms-1">Expired {{ -days_left }}d ago</span>
+                  {% elif days_left <= 30 %}
+                    <span class="badge bg-warning text-dark ms-1">Expires in {{ days_left }}d</span>
+                  {% else %}
+                    <span class="badge bg-success ms-1">Current</span>
+                  {% endif %}
+                {% endif %}
+              {% else %}
+                <span class="text-muted">Not set</span>
+              {% endif %}
+            </dd>
+            <dt>Joined</dt>
+            <dd class="text-muted">{{ m.joined_at.strftime('%b %d, %Y') if m.joined_at else '—' }}</dd>
+          </dl>
+
+          {# Inline edit form #}
+          <div class="collapse mt-3" id="edit-dues-{{ m.id }}">
+            <div class="border-top pt-3">
+              <form method="post" action="{{ url_for('admin.edit_member_dues', user_id=profile_user.id, membership_id=m.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="row g-2 mb-2">
+                  <div class="col-sm-4">
+                    <label class="form-label small fw-semibold mb-1">Status</label>
+                    <select name="status" class="form-select form-select-sm">
+                      <option value="active"          {% if m.status == 'active' %}selected{% endif %}>Active</option>
+                      <option value="pending"         {% if m.status == 'pending' %}selected{% endif %}>Pending approval</option>
+                      <option value="pending_payment" {% if m.status == 'pending_payment' %}selected{% endif %}>Pending payment</option>
+                    </select>
+                  </div>
+                  <div class="col-sm-4">
+                    <label class="form-label small fw-semibold mb-1">Dues paid through</label>
+                    <input type="date" name="dues_paid_until" class="form-control form-control-sm"
+                           value="{{ m.dues_paid_until.isoformat() if m.dues_paid_until else '' }}">
+                  </div>
+                  <div class="col-sm-4">
+                    <label class="form-label small fw-semibold mb-1">Note (optional)</label>
+                    <input type="text" name="note" class="form-control form-control-sm"
+                           placeholder="Reason for change…" maxlength="200">
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-sm btn-primary"
+                        onclick="return confirm('Save dues changes for {{ m.user.username }} in {{ m.club.name }}?')">
+                  Save Changes
+                </button>
+              </form>
+            </div>
+          </div>
+
+          {# Edit history #}
+          {% if m_logs %}
+          <div class="mt-3 border-top pt-2">
+            <p class="small fw-semibold text-muted mb-1">Edit history</p>
+            {% for log in m_logs %}
+            <div class="small text-muted mb-1">
+              <strong>{{ log.edited_at.strftime('%b %d, %Y %H:%M') }}</strong> by {{ log.edited_by.username }}
+              {% if log.old_status != log.new_status %}
+                · status <em>{{ log.old_status }}</em> → <em>{{ log.new_status }}</em>
+              {% endif %}
+              {% if log.old_dues_paid_until != log.new_dues_paid_until %}
+                · dues through
+                <em>{{ log.old_dues_paid_until.strftime('%b %d, %Y') if log.old_dues_paid_until else 'none' }}</em>
+                →
+                <em>{{ log.new_dues_paid_until.strftime('%b %d, %Y') if log.new_dues_paid_until else 'none' }}</em>
+              {% endif %}
+              {% if log.note %}<br><span class="fst-italic">"{{ log.note }}"</span>{% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="text-muted small mb-0">No club memberships.</p>
+        {% endif %}
       </div>
-      {% endif %}
 
       {# Recent ride signups #}
       {% if recent_signups %}

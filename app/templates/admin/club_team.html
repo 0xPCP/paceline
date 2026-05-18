@@ -124,7 +124,8 @@
       <div class="card border-0 shadow-sm">
         <div class="card-body">
           <h5 class="card-title mb-3 d-flex align-items-center gap-2 flex-wrap">
-            <span>Members
+            <span>
+              <a href="{{ url_for('admin.club_members', slug=club.slug) }}" class="text-decoration-none text-body">Members</a>
               <span class="badge bg-secondary ms-1">{{ members | length }}</span>
               {% if pending %}
               <span class="badge bg-warning text-dark ms-1">{{ pending | length }} pending</span>
