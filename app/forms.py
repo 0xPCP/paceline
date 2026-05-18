@@ -167,12 +167,6 @@ class ClubSettingsForm(FlaskForm):
         ('manual', 'Manual approval — admin must approve each request'),
     ])
     membership_dues_required = BooleanField('Require paid dues before membership becomes active')
-    membership_dues_mode = SelectField('Dues Payment Workflow', choices=[
-        ('manual', 'Phase 1 - Club-owned payment link with admin confirmation'),
-        ('stripe_connect', 'Phase 2 - Stripe Connect with automatic activation'),
-    ])
-    membership_dues_url = StringField('External Dues Payment Link',
-                                      validators=[Optional(), SafeURL(), Length(max=500)])
     membership_dues_amount = DecimalField('Dues Amount (USD)',
                                          validators=[Optional(), NumberRange(min=1, max=10000)],
                                          places=2)

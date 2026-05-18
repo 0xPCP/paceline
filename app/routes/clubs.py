@@ -857,8 +857,6 @@ def join(slug):
         if status == 'pending_payment':
             if club.stripe_dues_ready:
                 flash(f"Your request to join {club.name} is waiting for dues payment. Use the club dues button to pay through Stripe and activate automatically.", 'info')
-            elif club.membership_dues_url:
-                flash(f"Your request to join {club.name} is waiting for dues confirmation. Use the club dues link, then a club admin will activate your membership.", 'info')
             else:
                 flash(f"Your request to join {club.name} is waiting for dues confirmation from a club admin.", 'info')
         elif status == 'pending':

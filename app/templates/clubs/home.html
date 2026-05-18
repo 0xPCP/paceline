@@ -97,9 +97,6 @@
             <button class="btn btn-paceline">Pay Club Dues</button>
           </form>
           <p class="text-white-50 small mb-0 mt-1">Your membership activates automatically after Stripe confirms payment.</p>
-          {% elif club.membership_dues_url %}
-          <a class="btn btn-paceline" href="{{ club.membership_dues_url }}" target="_blank" rel="noopener">Pay Club Dues</a>
-          <p class="text-white-50 small mb-0 mt-1">Your membership will activate after a club admin confirms payment.</p>
           {% else %}
           <span class="btn btn-outline-light disabled">Payment Pending</span>
           <p class="text-white-50 small mb-0 mt-1">A club admin needs to confirm your dues payment.</p>

@@ -173,7 +173,6 @@ def test_settings_saves_paid_dues_configuration(client, db, sample_club, club_ad
         'require_membership': 'y',
         'join_approval': 'auto',
         'membership_dues_required': 'y',
-        'membership_dues_url': 'https://buy.stripe.com/test_dues',
         'membership_duration_months': '12',
         'cancel_rain_prob': '80', 'cancel_wind_mph': '35',
         'cancel_temp_min_f': '28', 'cancel_temp_max_f': '100',
@@ -181,7 +180,7 @@ def test_settings_saves_paid_dues_configuration(client, db, sample_club, club_ad
     assert r.status_code == 200
     db.session.refresh(sample_club)
     assert sample_club.membership_dues_required is True
-    assert sample_club.membership_dues_url == 'https://buy.stripe.com/test_dues'
+    assert sample_club.membership_dues_mode == 'stripe_connect'
     assert sample_club.membership_duration_months == 12
 
 
@@ -204,7 +203,6 @@ def test_auto_approve_join_shows_success_flash(client, db, membership_club, regu
 
 def test_paid_dues_join_creates_pending_payment_membership(client, db, membership_club, regular_user):
     membership_club.membership_dues_required = True
-    membership_club.membership_dues_url = 'https://buy.stripe.com/test_dues'
     db.session.commit()
     login(client)
     r = client.post(f'/clubs/{membership_club.slug}/join', follow_redirects=True)
@@ -212,7 +210,6 @@ def test_paid_dues_join_creates_pending_payment_membership(client, db, membershi
     assert r.status_code == 200
     assert row is not None
     assert row.status == 'pending_payment'
-    assert b'Pay Club Dues' in r.data
 
 
 def test_admin_confirms_paid_dues_activates_membership(client, db, membership_club, club_admin, regular_user):

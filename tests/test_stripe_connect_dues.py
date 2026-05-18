@@ -26,7 +26,6 @@ def _settings_payload(club, **overrides):
         'require_membership': 'y',
         'join_approval': 'auto',
         'membership_dues_required': 'y',
-        'membership_dues_mode': 'stripe_connect',
         'membership_dues_amount': '45.00',
         'membership_duration_months': '12',
         'cancel_rain_prob': '80',
