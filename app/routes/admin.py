@@ -313,12 +313,57 @@ def dashboard():
                     .order_by(AdminAuditLog.created_at.desc())
                     .limit(8).all())
     unread_feedback_count = SiteFeedback.query.filter_by(is_read=False).count()
+
+    # ── Stripe monitoring ──────────────────────────────────────────────────────
+    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+    two_hours_ago = datetime.now(timezone.utc) - timedelta(hours=2)
+
+    stripe_stats = {
+        'connected_clubs': Club.query.filter(
+            Club.stripe_account_id.isnot(None),
+            Club.stripe_account_connected_at.isnot(None),
+        ).count(),
+        'total_paid': ClubMembershipPayment.query.filter_by(status='paid').count(),
+        'total_amount_cents': db.session.query(
+            func.sum(ClubMembershipPayment.amount_cents)
+        ).filter_by(status='paid').scalar() or 0,
+        'paid_30d': ClubMembershipPayment.query.filter(
+            ClubMembershipPayment.status == 'paid',
+            ClubMembershipPayment.paid_at >= thirty_days_ago,
+        ).count(),
+        'amount_30d_cents': db.session.query(
+            func.sum(ClubMembershipPayment.amount_cents)
+        ).filter(
+            ClubMembershipPayment.status == 'paid',
+            ClubMembershipPayment.paid_at >= thirty_days_ago,
+        ).scalar() or 0,
+        'stuck_pending': ClubMembershipPayment.query.filter(
+            ClubMembershipPayment.status == 'pending',
+            ClubMembershipPayment.created_at < two_hours_ago,
+        ).count(),
+    }
+    stripe_recent = (
+        ClubMembershipPayment.query
+        .filter_by(status='paid')
+        .order_by(ClubMembershipPayment.paid_at.desc())
+        .limit(10).all()
+    )
+    stripe_errors = (
+        AppErrorLog.query
+        .filter(AppErrorLog.error_type == 'stripe_payment_failed')
+        .order_by(AppErrorLog.created_at.desc())
+        .limit(10).all()
+    )
+
     return render_template('admin/dashboard.html', stats=stats, clubs=clubs,
                            super_admins=super_admins, popular=popular,
                            ungeocodeable_count=ungeocodeable_count,
                            report=report, recent_audit=recent_audit,
                            unread_feedback_count=unread_feedback_count,
-                           error_report=report.get('errors', {}))
+                           error_report=report.get('errors', {}),
+                           stripe_stats=stripe_stats,
+                           stripe_recent=stripe_recent,
+                           stripe_errors=stripe_errors)
 
 
 @admin_bp.route('/clubs/<int:club_id>/feature', methods=['POST'])

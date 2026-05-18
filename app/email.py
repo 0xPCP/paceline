@@ -523,6 +523,40 @@ def send_friend_ride_notification(recipient, signer, ride):
         logger.exception('Failed to send friend ride notification to user %d', recipient.id)
 
 
+def send_stripe_error_alert(event_type, payment_intent_id, error_message, payment=None):
+    """Alert the platform owner about a Stripe payment failure."""
+    recipient = 'phil@pcp.dev'
+    club_name = payment.membership.club.name if payment and payment.membership else 'Unknown'
+    username = payment.user.username if payment and payment.user else 'Unknown'
+    amount_str = f'${payment.amount_cents / 100:.2f}' if payment else '—'
+
+    html = render_template(
+        'email/stripe_error_alert.html',
+        event_type=event_type,
+        payment_intent_id=payment_intent_id,
+        error_message=error_message,
+        club_name=club_name,
+        username=username,
+        amount_str=amount_str,
+        payment=payment,
+    )
+    text = render_template(
+        'email/stripe_error_alert.txt',
+        event_type=event_type,
+        payment_intent_id=payment_intent_id,
+        error_message=error_message,
+        club_name=club_name,
+        username=username,
+        amount_str=amount_str,
+        payment=payment,
+    )
+    try:
+        _send(f'[Paceline] Stripe payment failure: {event_type}', [recipient], html, text)
+        logger.info('Stripe error alert sent to %s for %s', recipient, payment_intent_id)
+    except Exception:
+        logger.exception('Failed to send Stripe error alert for %s', payment_intent_id)
+
+
 def send_feedback_notification(feedback):
     """Notify superadmins that new site feedback was submitted."""
     from .admin_stats import configured_superadmin_emails

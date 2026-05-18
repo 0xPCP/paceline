@@ -427,11 +427,11 @@ def test_webhook_unknown_session_id_returns_200(client, app, db):
 
 
 def test_webhook_non_checkout_event_is_ignored(client, app, db):
-    """Events other than checkout.session.completed must be silently ignored (200)."""
+    """Unrecognised event types must be silently ignored with 200."""
     app.config['STRIPE_WEBHOOK_SECRET'] = 'whsec_test'
     payload = json.dumps({
-        'type': 'payment_intent.payment_failed',
-        'data': {'object': {'id': 'pi_failed'}},
+        'type': 'customer.subscription.created',
+        'data': {'object': {'id': 'sub_irrelevant'}},
     }).encode()
     sig = _stripe_signature(payload, 'whsec_test')
 
@@ -442,6 +442,41 @@ def test_webhook_non_checkout_event_is_ignored(client, app, db):
 
     assert response.status_code == 200
     assert response.get_json()['status'] == 'ignored'
+
+
+def test_webhook_payment_failed_logs_error_and_returns_200(client, app, db, monkeypatch):
+    """payment_intent.payment_failed must log to AppErrorLog, alert admin, and return 200."""
+    from app.models import AppErrorLog
+    app.config['STRIPE_WEBHOOK_SECRET'] = 'whsec_test'
+
+    # Stub out the email send so the test doesn't require a real mail server
+    sent = []
+    monkeypatch.setattr(
+        'app.email.send_stripe_error_alert',
+        lambda **kwargs: sent.append(kwargs),
+    )
+
+    payload = json.dumps({
+        'type': 'payment_intent.payment_failed',
+        'data': {'object': {
+            'id': 'pi_failed_test',
+            'last_payment_error': {'message': 'Your card was declined.'},
+        }},
+    }).encode()
+    sig = _stripe_signature(payload, 'whsec_test')
+
+    response = client.post(
+        '/stripe/webhook', data=payload,
+        headers={'Stripe-Signature': sig}, content_type='application/json',
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()['status'] == 'failure_logged'
+    assert len(sent) == 1, 'send_stripe_error_alert should be called once'
+    assert sent[0]['payment_intent_id'] == 'pi_failed_test'
+    error_log = AppErrorLog.query.filter_by(error_type='stripe_payment_failed').first()
+    assert error_log is not None
+    assert 'pi_failed_test' in error_log.error_message
 
 
 def test_webhook_bad_signature_returns_400(client, app, db):
