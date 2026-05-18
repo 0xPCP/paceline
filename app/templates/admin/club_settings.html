@@ -352,7 +352,9 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <button class="btn btn-outline-danger btn-sm">Disconnect</button>
               </form>
+              {% if not club.stripe_account_connected_at %}
               <a class="btn btn-outline-primary btn-sm" href="{{ url_for('stripe_connect.connect_club', slug=club.slug) }}">Continue Onboarding</a>
+              {% endif %}
               {% else %}
               <a class="btn btn-outline-primary btn-sm" href="{{ url_for('stripe_connect.connect_club', slug=club.slug) }}">Connect Stripe</a>
               {% endif %}
