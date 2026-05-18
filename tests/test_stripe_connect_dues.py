@@ -176,49 +176,13 @@ def test_stripe_webhook_activates_membership(client, app, db, sample_club, regul
     assert payment.provider_payment_intent_id == 'pi_123'
 
 
-def test_create_checkout_session_includes_platform_fee(app):
-    """create_checkout_session must send application_fee_amount=100 ($1) to Stripe."""
-    from app.stripe_connect import create_checkout_session
-
-    club = MagicMock()
-    club.stripe_account_id = 'acct_test_123'
-    club.membership_dues_currency = 'usd'
-    club.name = 'Test Club'
-
-    user = MagicMock()
-    user.email = 'rider@test.com'
-
-    membership = MagicMock()
-    membership.id = 1
-
-    payment = MagicMock()
-    payment.id = 1
-    payment.amount_cents = 2000
-    payment.club_id = 1
-    payment.user_id = 1
-
-    fake_response = MagicMock()
-    fake_response.status_code = 200
-    fake_response.json.return_value = {'id': 'cs_test_abc', 'url': 'https://checkout.stripe.com/c/pay'}
-
-    with app.app_context():
-        app.config['STRIPE_SECRET_KEY'] = 'sk_test_fake'
-        with patch('app.stripe_connect.requests.post', return_value=fake_response) as mock_post:
-            create_checkout_session(
-                club=club, user=user, membership=membership, payment=payment,
-                success_url='https://example.com/success',
-                cancel_url='https://example.com/cancel',
-            )
-
-    posted_data = mock_post.call_args.kwargs['data']
-    assert posted_data['payment_intent_data[application_fee_amount]'] == '100', (
-        'Platform $1 fee missing — application_fee_amount must be 100 cents'
-    )
-    assert posted_data['payment_intent_data[transfer_data][destination]'] == 'acct_test_123'
-
-
-def test_checkout_session_includes_sustainment_fund_line_item(app):
-    """create_checkout_session must include a second line item for the $1 Paceline Sustainment Fund."""
+def test_create_checkout_session_direct_charge(app):
+    """create_checkout_session must use direct charges:
+    - Stripe-Account header routes the call to the connected account
+    - application_fee_amount carries the platform fee
+    - no transfer_data[destination] (that's destination charges, not direct)
+    - only one line item visible to the customer
+    """
     from app.stripe_connect import create_checkout_session
 
     club = MagicMock()
@@ -245,6 +209,7 @@ def test_checkout_session_includes_sustainment_fund_line_item(app):
 
     with app.app_context():
         app.config['STRIPE_SECRET_KEY'] = 'sk_test_fake'
+        app.config['STRIPE_PLATFORM_FEE_CENTS'] = 100
         with patch('app.stripe_connect.requests.post', return_value=fake_response) as mock_post:
             create_checkout_session(
                 club=club, user=user, membership=membership, payment=payment,
@@ -252,12 +217,20 @@ def test_checkout_session_includes_sustainment_fund_line_item(app):
                 cancel_url='https://example.com/cancel',
             )
 
-    data = mock_post.call_args.kwargs['data']
-    assert data.get('line_items[1][price_data][product_data][name]') == 'Paceline Sustainment Fund', (
-        'Second line item for Paceline Sustainment Fund missing'
+    posted_headers = mock_post.call_args.kwargs['headers']
+    posted_data = mock_post.call_args.kwargs['data']
+
+    assert posted_headers.get('Stripe-Account') == 'acct_test_123', (
+        'Stripe-Account header missing — checkout must be created on the connected account (direct charge)'
     )
-    assert data.get('line_items[1][price_data][unit_amount]') == '100', (
-        'Sustainment Fund line item must be $1 (100 cents)'
+    assert posted_data['payment_intent_data[application_fee_amount]'] == '100', (
+        'Platform $1 fee missing — application_fee_amount must be 100 cents'
+    )
+    assert 'payment_intent_data[transfer_data][destination]' not in posted_data, (
+        'transfer_data[destination] must not be set for direct charges'
+    )
+    assert 'line_items[1][price_data][product_data][name]' not in posted_data, (
+        'No second line item — platform fee is silent (application_fee_amount), not a visible line item'
     )
 
 
