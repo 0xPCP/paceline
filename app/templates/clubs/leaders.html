@@ -28,6 +28,10 @@
           <img src="{{ url_for('main.profile_photo', username=leader.user.username) }}"
                alt="{{ leader.name }}"
                style="width:72px;height:72px;object-fit:cover;border-radius:50%;flex-shrink:0">
+          {% elif leader.user and leader.user.strava_profile_url %}
+          <img src="{{ leader.user.strava_profile_url }}" alt="{{ leader.name }}"
+               style="width:72px;height:72px;object-fit:cover;border-radius:50%;flex-shrink:0"
+               onerror="this.style.display='none'">
           {% elif leader.photo_url %}
           <img src="{{ leader.photo_url }}" alt="{{ leader.name }}"
                style="width:72px;height:72px;object-fit:cover;border-radius:50%;flex-shrink:0"
