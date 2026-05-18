@@ -59,6 +59,7 @@
 </nav>
 
 <!-- Flash messages -->
+{% block flash %}
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
   <div class="flash-container container mt-3">
@@ -71,6 +72,7 @@
   </div>
   {% endif %}
 {% endwith %}
+{% endblock %}
 
 {% block content %}{% endblock %}
 
