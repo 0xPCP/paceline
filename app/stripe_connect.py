@@ -88,8 +88,22 @@ def retrieve_connected_account(account_id):
 
 
 def create_checkout_session(*, club, user, membership, payment, success_url, cancel_url):
+    """Create a Checkout Session as a direct charge on the club's connected account.
+
+    The platform fee (application_fee_amount) is deducted from the charge
+    before the remaining funds settle to the connected account. The fee is
+    invisible to the customer — they see only the membership line item.
+
+    The webhook that handles checkout.session.completed must be registered
+    in the Stripe dashboard as a Connect webhook so it receives events from
+    connected accounts. Set STRIPE_CONNECT_WEBHOOK_SECRET in .env to the
+    signing secret Stripe assigns to that Connect webhook endpoint.
+    """
     if not club.stripe_account_id:
         raise StripeConnectError('This club has not connected Stripe.')
+
+    platform_fee_cents = current_app.config.get('STRIPE_PLATFORM_FEE_CENTS', 100)
+
     data = {
         'mode': 'payment',
         'success_url': success_url,
@@ -101,19 +115,18 @@ def create_checkout_session(*, club, user, membership, payment, success_url, can
         'line_items[0][price_data][unit_amount]': str(payment.amount_cents),
         'line_items[0][price_data][product_data][name]': f'{club.name} — {club.membership_duration_months}-Month Membership',
         'line_items[0][price_data][product_data][description]': 'Cycling club membership',
-        'line_items[1][quantity]': '1',
-        'line_items[1][price_data][currency]': club.membership_dues_currency or 'usd',
-        'line_items[1][price_data][unit_amount]': '100',
-        'line_items[1][price_data][product_data][name]': 'Paceline Sustainment Fund',
-        'line_items[1][price_data][product_data][description]': 'Supports the Paceline platform for all clubs',
-        'payment_intent_data[application_fee_amount]': '100',
-        'payment_intent_data[transfer_data][destination]': club.stripe_account_id,
+        'payment_intent_data[application_fee_amount]': str(platform_fee_cents),
         'metadata[payment_id]': str(payment.id),
         'metadata[club_id]': str(club.id),
         'metadata[user_id]': str(user.id),
         'metadata[membership_id]': str(membership.id),
     }
+
+    # Direct charge: session is created on the connected account.
+    # The Stripe-Account header routes the API call to the club's account.
     headers = _headers()
+    headers['Stripe-Account'] = club.stripe_account_id
+
     response = requests.post(
         f'{STRIPE_API_BASE}/checkout/sessions',
         headers=headers,

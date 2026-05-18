@@ -168,11 +168,17 @@ def dues_checkout(slug):
 @stripe_connect_bp.route('/webhook', methods=['POST'])
 @csrf.exempt
 def webhook():
-    secret = current_app.config.get('STRIPE_WEBHOOK_SECRET')
+    # Prefer the Connect webhook secret (events from connected accounts);
+    # fall back to the platform account webhook secret if not set.
+    secret = (
+        current_app.config.get('STRIPE_CONNECT_WEBHOOK_SECRET')
+        or current_app.config.get('STRIPE_WEBHOOK_SECRET')
+    )
     if not secret:
         abort(404)
+    raw = request.get_data()
     try:
-        event = verify_webhook_payload(request.get_data(), request.headers.get('Stripe-Signature'), secret)
+        event = verify_webhook_payload(raw, request.headers.get('Stripe-Signature'), secret)
     except (StripeConnectError, ValueError) as exc:
         current_app.logger.warning('Rejected Stripe webhook: %s', exc)
         return {'error': 'invalid signature'}, 400
