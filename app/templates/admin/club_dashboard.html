@@ -51,11 +51,12 @@
       <a href="{{ url_for('admin.club_posts', slug=club.slug) }}" class="btn btn-outline-secondary btn-sm">News</a>
       {% endif %}
       {% if is_full_admin %}
+      <a href="{{ url_for('admin.club_members', slug=club.slug) }}" class="btn btn-outline-secondary btn-sm">
+        All Members{% if stats.pending %} <span class="badge bg-warning text-dark">{{ stats.pending }}</span>{% endif %}
+      </a>
       <a href="{{ url_for('admin.club_leaders', slug=club.slug) }}" class="btn btn-outline-secondary btn-sm">Leaders</a>
       <a href="{{ url_for('admin.club_sponsors', slug=club.slug) }}" class="btn btn-outline-secondary btn-sm">Sponsors</a>
-      <a href="{{ url_for('admin.club_team', slug=club.slug) }}" class="btn btn-outline-secondary btn-sm">
-        Team{% if stats.pending %} <span class="badge bg-warning text-dark">{{ stats.pending }}</span>{% endif %}
-      </a>
+      <a href="{{ url_for('admin.club_team', slug=club.slug) }}" class="btn btn-outline-secondary btn-sm">Team</a>
       <a href="{{ url_for('admin.club_invites', slug=club.slug) }}" class="btn btn-outline-secondary btn-sm">Invites</a>
       <a href="{{ url_for('admin.club_import', slug=club.slug) }}" class="btn btn-outline-secondary btn-sm">Import Members</a>
       <a href="{{ url_for('admin.club_settings', slug=club.slug) }}" class="btn btn-outline-secondary btn-sm">Settings</a>
