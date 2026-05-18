@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ club.name }} Settings — Admin{% endblock %}
+{% block flash %}{% endblock %}
 
 {% block content %}
 <div class="page-header">
@@ -430,6 +431,15 @@
           </button>
           <span id="copy-embed-confirm" class="text-success small ms-2 d-none">Copied!</span>
         </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% for category, message in messages %}
+          <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'warning' if category == 'warning' else 'info' }} alert-dismissible fade show mb-3" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+          {% endfor %}
+        {% endwith %}
 
         <div class="d-flex gap-2">
           {{ form.submit(class="btn btn-paceline") }}
