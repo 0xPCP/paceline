@@ -33,22 +33,29 @@ _PRESIGN_TTL = 300  # seconds — pre-signed URL lifetime for Spaces
 class LocalStorage:
     """Store files on the host filesystem under UPLOAD_FOLDER."""
 
-    def save(self, key: str, data: bytes, upload_folder: str, **_) -> None:
-        dest = os.path.join(upload_folder, key)
+    def _folder(self, upload_folder):
+        if upload_folder:
+            return upload_folder
+        from flask import current_app
+        return current_app.config.get('UPLOAD_FOLDER', 'uploads')
+
+    def save(self, key: str, data: bytes, upload_folder: str = None, **_) -> None:
+        dest = os.path.join(self._folder(upload_folder), key)
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         with open(dest, 'wb') as fh:
             fh.write(data)
 
-    def delete(self, key: str, upload_folder: str, **_) -> None:
-        path = os.path.join(upload_folder, key)
+    def delete(self, key: str, upload_folder: str = None, **_) -> None:
+        path = os.path.join(self._folder(upload_folder), key)
         try:
             os.remove(path)
         except OSError:
             pass
 
-    def serve(self, key: str, upload_folder: str, **_):
+    def serve(self, key: str, upload_folder: str = None, **_):
         """Return a Flask response streaming the file from disk."""
-        directory = os.path.join(upload_folder, os.path.dirname(key))
+        folder = self._folder(upload_folder)
+        directory = os.path.join(folder, os.path.dirname(key))
         filename = os.path.basename(key)
         return send_from_directory(directory, filename)
 
@@ -69,13 +76,16 @@ class SpacesStorage:
             aws_secret_access_key=secret_key,
         )
 
-    def save(self, key: str, data: bytes, **_) -> None:
-        self._client.put_object(
+    def save(self, key: str, data: bytes, acl: str = 'private', **_) -> None:
+        kwargs = dict(
             Bucket=self._bucket,
             Key=key,
             Body=data,
             ContentType='image/jpeg',
         )
+        if acl:
+            kwargs['ACL'] = acl
+        self._client.put_object(**kwargs)
 
     def delete(self, key: str, **_) -> None:
         try:

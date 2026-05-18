@@ -644,39 +644,52 @@ def profile_photo_upload():
     from PIL import Image
     from ..storage import get_storage
 
-    f = request.files.get('photo')
-    if not f or not f.filename:
-        flash('No file selected.', 'danger')
+    is_xhr = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+    def _err(msg, status=400):
+        if is_xhr:
+            from flask import jsonify
+            return jsonify({'ok': False, 'error': msg}), status
+        flash(msg, 'danger')
         return redirect(url_for('auth.profile'))
 
-    ext = f.filename.rsplit('.', 1)[-1].lower()
-    if ext not in {'jpg', 'jpeg', 'png', 'webp'}:
-        flash('Only JPEG, PNG, and WebP images are supported.', 'danger')
-        return redirect(url_for('auth.profile'))
+    f = request.files.get('photo')
+    if not f or not f.filename:
+        return _err('No file selected.')
 
     raw = f.stream.read()
     if len(raw) > 8 * 1024 * 1024:
-        flash('Photo must be under 8 MB.', 'danger')
-        return redirect(url_for('auth.profile'))
+        return _err('Photo must be under 8 MB.')
 
     try:
         img = Image.open(io.BytesIO(raw)).convert('RGB')
     except Exception:
-        flash('Could not read image file.', 'danger')
-        return redirect(url_for('auth.profile'))
+        return _err('Could not read image file.')
 
-    # Resize to max 400px on the longest side, preserve aspect ratio
-    img.thumbnail((400, 400), Image.LANCZOS)
+    # Resize to 400×400 square — client already sends a square crop
+    img = img.resize((400, 400), Image.LANCZOS)
     buf = io.BytesIO()
-    img.save(buf, format='JPEG', quality=82, optimize=True)
+    img.save(buf, format='JPEG', quality=85, optimize=True)
     jpeg_bytes = buf.getvalue()
 
     key = f'avatars/{current_user.id}.jpg'
     storage = get_storage()
-    storage.save(key, jpeg_bytes)
+    try:
+        # Public-read so the avatar can be served via CDN/public URL
+        storage.save(key, jpeg_bytes, acl='public-read')
+    except Exception as exc:
+        current_app.logger.error('Avatar upload failed for user %s: %s', current_user.id, exc)
+        return _err('Photo upload failed. Please try again.', 500)
 
     current_user.profile_photo_key = key
     db.session.commit()
+
+    if is_xhr:
+        from flask import jsonify
+        photo_url = url_for('main.profile_photo', username=current_user.username,
+                            _t=int(__import__('time').time()), _external=False)
+        return jsonify({'ok': True, 'url': photo_url})
+
     flash('Profile photo updated.', 'success')
     return redirect(url_for('auth.profile'))
 
