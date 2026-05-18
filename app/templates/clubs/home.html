@@ -83,6 +83,12 @@
       <div class="col-lg-3 text-lg-end mt-4 mt-lg-0 d-flex flex-lg-column gap-2 justify-content-start justify-content-lg-end align-items-start align-items-lg-end">
         {% if current_user.is_authenticated %}
           {% if is_member %}
+          {% if club.membership_dues_required and club.stripe_dues_ready and user_membership and user_membership.dues_paid_until and (user_membership.dues_paid_until - today).days <= 30 %}
+          <form method="post" action="{{ url_for('stripe_connect.dues_checkout', slug=club.slug) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <button class="btn btn-paceline">Renew Membership</button>
+          </form>
+          {% endif %}
           <form method="post" action="{{ url_for('clubs.leave', slug=club.slug) }}" class="d-inline">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
             <button class="btn btn-outline-light">Leave Club</button>
@@ -96,7 +102,7 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
             <button class="btn btn-paceline">Pay Club Dues</button>
           </form>
-          <p class="text-white-50 small mb-0 mt-1">Your membership activates automatically after Stripe confirms payment.</p>
+          <p class="text-white-50 small mb-0 mt-1">Your membership activates automatically after payment. A $1 Paceline Sustainment Fee is added at checkout.</p>
           {% else %}
           <span class="btn btn-outline-light disabled">Payment Pending</span>
           <p class="text-white-50 small mb-0 mt-1">A club admin needs to confirm your dues payment.</p>
@@ -117,6 +123,34 @@
     </div>
   </div>
 </div>
+
+{# ── Membership expiry banner ─────────────────────────────────────────────── #}
+{% if is_member and club.membership_dues_required and user_membership and user_membership.dues_paid_until %}
+{% set days_left = (user_membership.dues_paid_until - today).days %}
+{% if days_left <= 30 %}
+<div class="container mt-3">
+  <div class="alert {% if days_left <= 7 %}alert-danger{% else %}alert-warning{% endif %} d-flex align-items-center justify-content-between flex-wrap gap-2 mb-0">
+    <div>
+      {% if days_left <= 0 %}
+      <strong>Your membership expired on {{ user_membership.dues_paid_until.strftime('%B %d, %Y') }}.</strong>
+      Renew to keep your access to rides and club content.
+      {% elif days_left == 1 %}
+      <strong>Your membership expires tomorrow</strong> ({{ user_membership.dues_paid_until.strftime('%B %d, %Y') }}).
+      {% else %}
+      <strong>Your membership expires in {{ days_left }} days</strong> ({{ user_membership.dues_paid_until.strftime('%B %d, %Y') }}).
+      {% endif %}
+      {% if days_left > 0 %}Renewing now extends from your current expiry date.{% endif %}
+    </div>
+    {% if club.stripe_dues_ready %}
+    <form method="post" action="{{ url_for('stripe_connect.dues_checkout', slug=club.slug) }}" class="d-inline flex-shrink-0">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <button class="btn btn-sm {% if days_left <= 7 %}btn-danger{% else %}btn-warning{% endif %}">Renew Now</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endif %}
 
 {# ── Next ride strip ──────────────────────────────────────────────────────── #}
 {% if upcoming %}

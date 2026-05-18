@@ -350,6 +350,7 @@ class ClubMembership(db.Model):
     dues_paid_until = db.Column(db.Date, nullable=True)
     dues_confirmed_at = db.Column(db.DateTime, nullable=True)
     dues_confirmed_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    dues_reminder_sent = db.Column(db.JSON, nullable=True)
 
     dues_confirmed_by = db.relationship('User', foreign_keys=[dues_confirmed_by_id])
 

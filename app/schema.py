@@ -115,6 +115,9 @@ def ensure_runtime_schema():
     if membership_columns and 'dues_confirmed_by_id' not in membership_columns:
         db.session.execute(text('ALTER TABLE club_memberships ADD COLUMN dues_confirmed_by_id INTEGER'))
         changed = True
+    if membership_columns and 'dues_reminder_sent' not in membership_columns:
+        db.session.execute(text('ALTER TABLE club_memberships ADD COLUMN dues_reminder_sent JSON'))
+        changed = True
     if membership_columns and db.engine.dialect.name == 'postgresql':
         status_col = next(
             (col for col in inspector.get_columns('club_memberships') if col['name'] == 'status'),

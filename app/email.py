@@ -369,6 +369,26 @@ def send_import_invite_email(invite):
     logger.info('Import invite email sent to %s for club %d', invite.email, invite.club_id)
 
 
+def send_dues_reminder(membership, days_until_expiry):
+    """Notify a member that their club dues are expiring soon (or today)."""
+    user = membership.user
+    club = membership.club
+    if not user or not user.email:
+        return False
+    if days_until_expiry == 0:
+        subject = f'Your {club.name} membership expires today'
+    else:
+        subject = f'Your {club.name} membership expires in {days_until_expiry} day{"s" if days_until_expiry != 1 else ""}'
+    html = render_template('email/dues_reminder.html', user=user, club=club,
+                           membership=membership, days_until_expiry=days_until_expiry)
+    text = render_template('email/dues_reminder.txt', user=user, club=club,
+                           membership=membership, days_until_expiry=days_until_expiry)
+    sent = _send_to_users('membership_updates', subject, [user], html, text)
+    if sent:
+        logger.info('Dues reminder (%dd) sent to %s for club %d', days_until_expiry, user.email, club.id)
+    return sent
+
+
 def send_password_reset_email(user, reset_url):
     """Send an email-verified password setup/reset link."""
     if not user.email:

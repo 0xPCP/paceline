@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from flask import Blueprint, abort, current_app, flash, redirect, request, url_for
 from flask_login import current_user, login_required
@@ -116,8 +116,13 @@ def dues_checkout(slug):
 
     membership = ClubMembership.query.filter_by(user_id=current_user.id, club_id=club.id).first()
     if membership and membership.status == 'active':
-        flash('Your membership is already active.', 'info')
-        return redirect(url_for('clubs.home', slug=slug))
+        expiring_soon = (
+            membership.dues_paid_until is not None
+            and membership.dues_paid_until <= date.today() + timedelta(days=30)
+        )
+        if not expiring_soon:
+            flash('Your membership is already active.', 'info')
+            return redirect(url_for('clubs.home', slug=slug))
     if membership is None:
         membership = ClubMembership(user_id=current_user.id, club_id=club.id, status='pending_payment')
         db.session.add(membership)
