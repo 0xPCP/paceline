@@ -1336,6 +1336,11 @@ body.club-page {
   transition: box-shadow .12s, border-color .12s;
 }
 .ride-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.08); border-color: var(--paceline-green-light); }
+.ride-card-mine {
+  border-left: 3px solid var(--paceline-green);
+  background: var(--paceline-green-pale);
+}
+.ride-card-mine:hover { border-left-color: var(--paceline-green-dark); }
 .ride-cancelled { opacity: .65; }
 
 .ride-date-block {
