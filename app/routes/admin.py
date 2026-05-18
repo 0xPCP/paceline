@@ -796,6 +796,17 @@ def club_settings(slug):
     form = ClubSettingsForm(obj=club)
     if request.method == 'GET' and club.membership_dues_amount_cents:
         form.membership_dues_amount.data = club.membership_dues_amount_cents / 100
+    # Passive Stripe status sync: if the account exists but connected_at was never
+    # set (e.g. due to a timing race on the return URL), re-check on each GET.
+    if request.method == 'GET' and club.stripe_account_id and not club.stripe_account_connected_at:
+        try:
+            from ..stripe_connect import retrieve_connected_account
+            account = retrieve_connected_account(club.stripe_account_id)
+            if account.get('charges_enabled'):
+                club.stripe_account_connected_at = datetime.now(timezone.utc)
+                db.session.commit()
+        except Exception:
+            pass
     if form.validate_on_submit():
         club.name         = form.name.data
         club.tagline      = form.tagline.data or None
