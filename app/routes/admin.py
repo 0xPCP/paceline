@@ -983,8 +983,27 @@ def club_members(slug):
 
     memberships = query.order_by(User.username.asc()).all()
     today = _date.today()
+
+    # For clubs with dues, fetch the most recent paid payment per membership.
+    payments_by_membership_id = {}
+    if club.membership_dues_required and memberships:
+        m_ids = [m.id for m in memberships]
+        paid_payments = (
+            ClubMembershipPayment.query
+            .filter(
+                ClubMembershipPayment.membership_id.in_(m_ids),
+                ClubMembershipPayment.status == 'paid',
+            )
+            .order_by(ClubMembershipPayment.paid_at.desc())
+            .all()
+        )
+        for p in paid_payments:
+            if p.membership_id not in payments_by_membership_id:
+                payments_by_membership_id[p.membership_id] = p
+
     return render_template('admin/club_members.html', club=club,
                            memberships=memberships, today=today,
+                           payments_by_membership_id=payments_by_membership_id,
                            q=q, status_filter=status_filter)
 
 
@@ -998,19 +1017,49 @@ def club_members_export(slug):
     club = _get_club_or_404(slug)
     memberships = (ClubMembership.query.filter_by(club_id=club.id)
                    .join(ClubMembership.user).order_by(User.username).all())
+    # Fetch most recent paid payment per membership for dues clubs
+    dues_payments = {}
+    if club.membership_dues_required:
+        m_ids = [m.id for m in memberships]
+        for p in (ClubMembershipPayment.query
+                  .filter(ClubMembershipPayment.membership_id.in_(m_ids),
+                          ClubMembershipPayment.status == 'paid')
+                  .order_by(ClubMembershipPayment.paid_at.desc()).all()):
+            dues_payments.setdefault(p.membership_id, p)
+
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['Username', 'Email', 'Status', 'Joined',
-                     'Emergency Contact', 'Emergency Phone'])
+    if club.membership_dues_required:
+        writer.writerow(['Username', 'Email', 'Status', 'Joined',
+                         'Dues Paid', 'Transaction ID', 'Expires',
+                         'Emergency Contact', 'Emergency Phone'])
+    else:
+        writer.writerow(['Username', 'Email', 'Status', 'Joined',
+                         'Emergency Contact', 'Emergency Phone'])
     for m in memberships:
-        writer.writerow([
-            m.user.username,
-            m.user.email,
-            m.status,
-            m.joined_at.strftime('%Y-%m-%d') if m.joined_at else '',
-            m.user.emergency_contact_name or '',
-            m.user.emergency_contact_phone or '',
-        ])
+        p = dues_payments.get(m.id)
+        if club.membership_dues_required:
+            writer.writerow([
+                m.user.username,
+                m.user.email,
+                m.status,
+                m.joined_at.strftime('%Y-%m-%d') if m.joined_at else '',
+                p.paid_at.strftime('%Y-%m-%d') if p and p.paid_at else
+                    (m.dues_confirmed_at.strftime('%Y-%m-%d') if m.dues_confirmed_at else ''),
+                p.provider_payment_intent_id or '' if p else '',
+                m.dues_paid_until.strftime('%Y-%m-%d') if m.dues_paid_until else '',
+                m.user.emergency_contact_name or '',
+                m.user.emergency_contact_phone or '',
+            ])
+        else:
+            writer.writerow([
+                m.user.username,
+                m.user.email,
+                m.status,
+                m.joined_at.strftime('%Y-%m-%d') if m.joined_at else '',
+                m.user.emergency_contact_name or '',
+                m.user.emergency_contact_phone or '',
+            ])
     output.seek(0)
     filename = f'{club.slug}_members.csv'
     return Response(
