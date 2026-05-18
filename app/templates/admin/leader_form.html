@@ -19,33 +19,87 @@
 <div class="container py-4">
   <div class="row">
     <div class="col-lg-6">
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }} alert-dismissible fade show">
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>{{ msg }}
+        </div>
+        {% endfor %}
+      {% endwith %}
+
       <form method="post" novalidate>
         {{ form.hidden_tag() }}
 
+        {# ── Member picker ───────────────────────────────────────────────── #}
         <div class="mb-3">
-          {{ form.name.label(class="form-label") }}
-          {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="e.g. Dave K.") }}
-          {% for e in form.name.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          <label class="form-label fw-semibold">
+            Member <span class="text-danger">*</span>
+          </label>
+
+          {% if eligible %}
+          <select name="user_id" class="form-select" required>
+            <option value="">— choose a member —</option>
+            {% for m in eligible %}
+            <option value="{{ m.user_id }}"
+              {% if leader and leader.user_id == m.user_id %}selected{% endif %}>
+              {{ m.user.username }}
+              {% if m.user.email %} ({{ m.user.email }}){% endif %}
+              {% if club.membership_dues_required and m.dues_paid_until %}
+                · dues through {{ m.dues_paid_until.strftime('%b %-d, %Y') }}
+              {% endif %}
+            </option>
+            {% endfor %}
+          </select>
+
+          {# If editing and the current leader is no longer in the eligible list, warn and keep them selectable #}
+          {% if leader and leader.user %}
+            {% set current_in_list = eligible | selectattr('user_id', 'equalto', leader.user_id) | list %}
+            {% if not current_in_list %}
+            <div class="alert alert-warning py-2 mt-2 small">
+              <strong>{{ leader.user.username }}</strong> is the current leader but is no longer an active member in good standing.
+              Saving will keep them as the leader. You can also
+              <a href="{{ url_for('admin.leader_delete', slug=club.slug, leader_id=leader.id) }}"
+                 onclick="return confirm('Remove {{ leader.user.username }} from the roster?')" class="alert-link">remove them</a>.
+            </div>
+            {# Include the current user as a hidden option so we can still re-save without error #}
+            <input type="hidden" name="user_id" value="{{ leader.user_id }}">
+            {% endif %}
+          {% endif %}
+
+          {% if club.membership_dues_required %}
+          <div class="form-text">Only active members with current dues are shown.</div>
+          {% else %}
+          <div class="form-text">Only active members are shown.</div>
+          {% endif %}
+
+          {% else %}
+          <div class="alert alert-warning">
+            No eligible members found.
+            {% if club.membership_dues_required %}
+            Members must be active with current dues to be added as leaders.
+            {% else %}
+            The club has no active members yet.
+            {% endif %}
+          </div>
+          {% endif %}
         </div>
 
+        {# ── One-line bio ────────────────────────────────────────────────── #}
         <div class="mb-3">
-          {{ form.bio.label(class="form-label") }}
-          {{ form.bio(class="form-control" + (" is-invalid" if form.bio.errors else ""), rows=4,
-                      placeholder="Short bio — experience, specialty, fun fact…") }}
+          {{ form.bio.label(class="form-label fw-semibold") }}
+          {{ form.bio(class="form-control" + (" is-invalid" if form.bio.errors else ""),
+                      placeholder="e.g. "20-year club veteran, loves gravel and early morning starts."",
+                      maxlength=200) }}
+          <div class="form-text">Shown publicly under the leader's name. Keep it to one sentence.</div>
           {% for e in form.bio.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
         </div>
 
-        <div class="mb-3">
-          {{ form.photo_url.label(class="form-label") }}
-          {{ form.photo_url(class="form-control" + (" is-invalid" if form.photo_url.errors else ""),
-                            placeholder="https://…") }}
-          {% for e in form.photo_url.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
-        </div>
-
+        {# ── Display order ───────────────────────────────────────────────── #}
         <div class="mb-4" style="max-width:160px">
-          {{ form.display_order.label(class="form-label") }}
+          {{ form.display_order.label(class="form-label fw-semibold") }}
           {{ form.display_order(class="form-control" + (" is-invalid" if form.display_order.errors else "")) }}
-          <div class="form-text">Lower = shown first.</div>
+          <div class="form-text">Lower number = shown first.</div>
           {% for e in form.display_order.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
         </div>
 

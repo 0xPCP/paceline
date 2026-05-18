@@ -22,7 +22,13 @@
     <div class="col-sm-6 col-lg-4">
       <div class="card border-0 shadow-sm h-100">
         <div class="card-body d-flex gap-3 align-items-start">
-          {% if leader.photo_url %}
+
+          {# Avatar: prefer user profile photo, fall back to photo_url, then initial #}
+          {% if leader.user and leader.user.profile_photo_key %}
+          <img src="{{ url_for('main.profile_photo', username=leader.user.username) }}"
+               alt="{{ leader.name }}"
+               style="width:72px;height:72px;object-fit:cover;border-radius:50%;flex-shrink:0">
+          {% elif leader.photo_url %}
           <img src="{{ leader.photo_url }}" alt="{{ leader.name }}"
                style="width:72px;height:72px;object-fit:cover;border-radius:50%;flex-shrink:0"
                onerror="this.style.display='none'">
@@ -33,12 +39,21 @@
             {{ leader.name[0].upper() }}
           </div>
           {% endif %}
+
           <div>
-            <h6 class="mb-1">{% if leader.user %}<a href="{{ url_for('main.public_profile', username=leader.user.username) }}" class="text-decoration-none text-body">{{ leader.name }}</a>{% else %}{{ leader.name }}{% endif %}</h6>
+            <h6 class="mb-1">
+              {% if leader.user %}
+              <a href="{{ url_for('main.public_profile', username=leader.user.username) }}"
+                 class="text-decoration-none text-body">{{ leader.name }}</a>
+              {% else %}
+              {{ leader.name }}
+              {% endif %}
+            </h6>
             {% if leader.bio %}
             <p class="text-muted small mb-0">{{ leader.bio }}</p>
             {% endif %}
           </div>
+
         </div>
       </div>
     </div>

@@ -11,7 +11,7 @@
         <li class="breadcrumb-item active">Leaders</li>
       </ol>
     </nav>
-    <div class="d-flex justify-content-between align-items-center">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
       <h1>{{ club.name }} — Ride Leaders</h1>
       <a href="{{ url_for('admin.leader_new', slug=club.slug) }}" class="btn btn-paceline">+ Add Leader</a>
     </div>
@@ -19,40 +19,86 @@
 </div>
 
 <div class="container py-4">
-  <p class="text-muted small mb-4">Leaders are displayed publicly on the club's Leaders page. Use Display Order to control the sort (lower = earlier).</p>
+  <p class="text-muted small mb-4">
+    Leaders are linked to existing club members and displayed publicly on the club's Ride Leaders page.
+    Use Display Order to control the sort (lower = earlier).
+  </p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }} alert-dismissible fade show">
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>{{ msg }}
+    </div>
+    {% endfor %}
+  {% endwith %}
+
   {% if leaders %}
-  <div class="paceline-table-wrap">
-    <table class="table paceline-table">
-      <thead><tr><th>Name</th><th>Bio</th><th>Order</th><th></th></tr></thead>
-      <tbody>
-        {% for leader in leaders %}
-        <tr>
-          <td>
-            {% if leader.photo_url %}
-            <img src="{{ leader.photo_url }}" alt="{{ leader.name }}"
-                 style="width:32px;height:32px;object-fit:cover;border-radius:50%;margin-right:8px"
-                 onerror="this.style.display='none'">
-            {% endif %}
-            <strong>{{ leader.name }}</strong>
-          </td>
-          <td><small class="text-muted">{{ leader.bio[:80] + '…' if leader.bio and leader.bio|length > 80 else (leader.bio or '—') }}</small></td>
-          <td><small>{{ leader.display_order }}</small></td>
-          <td class="text-end">
-            <a href="{{ url_for('admin.leader_edit', slug=club.slug, leader_id=leader.id) }}"
-               class="btn btn-outline-secondary btn-xs me-1">Edit</a>
-            <form method="post" action="{{ url_for('admin.leader_delete', slug=club.slug, leader_id=leader.id) }}"
-                  class="d-inline" onsubmit="return confirm('Remove {{ leader.name }}?')">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button class="btn btn-outline-danger btn-xs">Remove</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+      <div class="paceline-table-wrap">
+        <table class="table table-sm paceline-table mb-0">
+          <thead>
+            <tr>
+              <th>Member</th>
+              <th>Bio</th>
+              <th style="width:80px">Order</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for leader in leaders %}
+            <tr>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  {# Avatar #}
+                  {% if leader.user and leader.user.profile_photo_key %}
+                  <img src="{{ url_for('main.profile_photo', username=leader.user.username) }}"
+                       alt="{{ leader.name }}"
+                       style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0">
+                  {% elif leader.photo_url %}
+                  <img src="{{ leader.photo_url }}" alt="{{ leader.name }}"
+                       style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0"
+                       onerror="this.style.display='none'">
+                  {% else %}
+                  <div style="width:36px;height:36px;border-radius:50%;background:var(--paceline-green,#2d6a4f);
+                              display:flex;align-items:center;justify-content:center;
+                              color:#fff;font-size:.9rem;font-weight:600;flex-shrink:0">
+                    {{ leader.name[0].upper() }}
+                  </div>
+                  {% endif %}
+                  <div>
+                    <strong>{{ leader.name }}</strong>
+                    {% if leader.user %}
+                    <br><small class="text-muted">{{ leader.user.email }}</small>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              <td><small class="text-muted">{{ leader.bio or '—' }}</small></td>
+              <td><small class="text-muted">{{ leader.display_order }}</small></td>
+              <td class="text-end text-nowrap">
+                <a href="{{ url_for('admin.leader_edit', slug=club.slug, leader_id=leader.id) }}"
+                   class="btn btn-outline-secondary btn-xs me-1">Edit</a>
+                <form method="post"
+                      action="{{ url_for('admin.leader_delete', slug=club.slug, leader_id=leader.id) }}"
+                      class="d-inline"
+                      onsubmit="return confirm('Remove {{ leader.name }} from the roster?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button class="btn btn-outline-danger btn-xs">Remove</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
   {% else %}
-  <p class="text-muted">No leaders yet. <a href="{{ url_for('admin.leader_new', slug=club.slug) }}">Add the first one.</a></p>
+  <div class="empty-state py-5 text-center">
+    <p class="text-muted mb-3">No leaders on the roster yet.</p>
+    <a href="{{ url_for('admin.leader_new', slug=club.slug) }}" class="btn btn-paceline">Add First Leader</a>
+  </div>
   {% endif %}
 </div>
 {% endblock %}
