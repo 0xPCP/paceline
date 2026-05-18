@@ -100,13 +100,13 @@ def create_checkout_session(*, club, user, membership, payment, success_url, can
         'line_items[0][price_data][currency]': club.membership_dues_currency or 'usd',
         'line_items[0][price_data][unit_amount]': str(payment.amount_cents),
         'line_items[0][price_data][product_data][name]': f'{club.name} membership dues',
+        'payment_intent_data[transfer_data][destination]': club.stripe_account_id,
         'metadata[payment_id]': str(payment.id),
         'metadata[club_id]': str(club.id),
         'metadata[user_id]': str(user.id),
         'metadata[membership_id]': str(membership.id),
     }
     headers = _headers()
-    headers['Stripe-Account'] = club.stripe_account_id
     response = requests.post(
         f'{STRIPE_API_BASE}/checkout/sessions',
         headers=headers,
