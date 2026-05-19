@@ -111,6 +111,7 @@ def test_connect_return_marks_account_connected_when_charges_enabled(client, app
 
 def test_stripe_checkout_creates_payment_and_redirects(client, app, db, sample_club, regular_user, monkeypatch):
     app.config['STRIPE_SECRET_KEY'] = 'sk_test_fake'
+    app.config['STRIPE_PLATFORM_FEE_CENTS'] = 100
     sample_club.membership_dues_required = True
     sample_club.membership_dues_mode = 'stripe_connect'
     sample_club.membership_dues_amount_cents = 4500
@@ -121,7 +122,7 @@ def test_stripe_checkout_creates_payment_and_redirects(client, app, db, sample_c
 
     def fake_checkout(**kwargs):
         assert kwargs['club'].id == sample_club.id
-        assert kwargs['payment'].amount_cents == 4500
+        assert kwargs['payment'].amount_cents == 4600
         return {'id': 'cs_test_123', 'url': 'https://checkout.stripe.com/c/pay'}
 
     monkeypatch.setattr('app.routes.stripe_connect.create_checkout_session', fake_checkout)
@@ -226,7 +227,7 @@ def test_create_checkout_session_direct_charge(app):
     - Stripe-Account header routes the call to the connected account
     - application_fee_amount carries the platform fee
     - no transfer_data[destination] (that's destination charges, not direct)
-    - only one line item visible to the customer
+    - customer sees the club dues line item plus Paceline's $1 platform fee
     """
     from app.stripe_connect import create_checkout_session
 
@@ -244,7 +245,7 @@ def test_create_checkout_session_direct_charge(app):
 
     payment = MagicMock()
     payment.id = 1
-    payment.amount_cents = 2000
+    payment.amount_cents = 2100
     payment.club_id = 1
     payment.user_id = 1
 
@@ -271,11 +272,13 @@ def test_create_checkout_session_direct_charge(app):
     assert posted_data['payment_intent_data[application_fee_amount]'] == '100', (
         'Platform $1 fee missing — application_fee_amount must be 100 cents'
     )
+    assert posted_data['line_items[0][price_data][unit_amount]'] == '2000'
+    assert posted_data['line_items[1][price_data][unit_amount]'] == '100'
+    assert posted_data['line_items[1][price_data][product_data][name]'] == 'Paceline platform fee'
+    assert posted_data['metadata[club_dues_amount_cents]'] == '2000'
+    assert posted_data['metadata[platform_fee_cents]'] == '100'
     assert 'payment_intent_data[transfer_data][destination]' not in posted_data, (
         'transfer_data[destination] must not be set for direct charges'
-    )
-    assert 'line_items[1][price_data][product_data][name]' not in posted_data, (
-        'No second line item — platform fee is silent (application_fee_amount), not a visible line item'
     )
 
 

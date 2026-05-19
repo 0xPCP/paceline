@@ -130,11 +130,12 @@ def dues_checkout(slug):
     else:
         membership.status = 'pending_payment'
 
+    platform_fee_cents = current_app.config.get('STRIPE_PLATFORM_FEE_CENTS', 100)
     payment = ClubMembershipPayment(
         club_id=club.id,
         user_id=current_user.id,
         membership_id=membership.id,
-        amount_cents=club.membership_dues_amount_cents,
+        amount_cents=club.membership_dues_amount_cents + platform_fee_cents,
         currency=club.membership_dues_currency or 'usd',
     )
     db.session.add(payment)

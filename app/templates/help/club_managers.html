@@ -339,12 +339,11 @@
         </p>
         <p class="section-body">
           Payments are processed as <strong>direct charges</strong> on your club's
-          connected Stripe account, meaning the funds go directly into your club's
-          Stripe balance. Paceline does not hold club dues — it acts only as a
-          platform facilitator. Paceline deducts a <strong>$1 platform fee</strong>
-          from each transaction before the funds settle to your Stripe account. The
-          rider sees only the dues amount you set; the $1 comes from the club's
-          payout, not from the member's card total. Clubs handle their own refunds,
+          connected Stripe account, meaning the charge is created on your club's
+          Stripe account. Paceline does not hold club dues — it acts only as a
+          platform facilitator. Paceline adds a separate <strong>$1 platform fee</strong>
+          to each checkout. For example, if your club sets dues at $45, the rider
+          pays $46 total at Stripe Checkout. Clubs handle their own refunds,
           payment questions, and disputes through their Stripe account. Paceline's
           $1 platform fee is not refunded when a club refunds dues.
         </p>
@@ -369,8 +368,8 @@
           </li>
           <li>
             Enter the <strong>Dues Amount</strong> — the amount your club charges
-            per membership period. This is what the member pays; Paceline's $1
-            platform fee comes from the club's payout.
+            per membership period. Paceline adds a separate $1 platform fee at
+            checkout, so $45 dues are charged as $46 total.
           </li>
           <li>
             Set the <strong>Membership Duration</strong> in months. Paceline
