@@ -68,7 +68,9 @@ Production configuration should be environment-driven:
 - `SUPERADMIN_EMAILS=phil@pcp.dev`
 - `DONATE_URL`
 - `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_CONNECT_WEBHOOK_SECRET` for the Stripe Connect webhook that listens to connected-account events
+- `STRIPE_WEBHOOK_SECRET` only for optional platform-level Stripe events or fallback
+- `STRIPE_PLATFORM_FEE_CENTS=100`
 - `MAIL_SERVER`
 - `MAIL_PORT`
 - `MAIL_USE_TLS`
@@ -82,6 +84,12 @@ Production configuration should be environment-driven:
   - `SPACES_ACCESS_KEY`
   - `SPACES_SECRET_KEY`
   - `SPACES_PUBLIC_BASE_URL` if using a public/CDN URL
+
+For automated club dues, Paceline creates direct charges on connected club
+Stripe accounts. The Stripe webhook endpoint at `/stripe/webhook` must be
+configured in Stripe Dashboard as a Connect webhook with **Listen to events on
+connected accounts** enabled, otherwise checkout completion events will not
+reach Paceline.
 
 ## Deployment Flow
 

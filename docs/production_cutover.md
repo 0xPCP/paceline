@@ -61,7 +61,8 @@ Set these in App Platform's environment variable panel (encrypted at rest):
 | `DONATE_URL` | Stripe payment link |
 | `STRIPE_SECRET_KEY` | Paceline Stripe platform key, if Stripe Connect dues are enabled |
 | `STRIPE_PUBLISHABLE_KEY` | Paceline Stripe publishable key, if Stripe Checkout/client flows are enabled |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret for `/stripe/webhook` |
+| `STRIPE_CONNECT_WEBHOOK_SECRET` | Stripe Connect webhook signing secret for direct-charge dues events sent to `/stripe/webhook` |
+| `STRIPE_WEBHOOK_SECRET` | Optional platform webhook signing secret for non-Connect Stripe events; kept as a fallback |
 | `STRIPE_PLATFORM_FEE_CENTS` | `100` for the $1 Paceline platform fee on Stripe Connect dues |
 | `SPACES_BUCKET` | `paceline-media` |
 | `SPACES_REGION` | `nyc3` |
@@ -73,6 +74,20 @@ Set these in App Platform's environment variable panel (encrypted at rest):
 | `GOOGLE_OAUTH_CLIENT_SECRET` | From Google Cloud Console |
 
 ---
+
+### Stripe Connect webhook setup
+
+Paceline uses Stripe Connect direct charges for automated club dues. In Stripe
+Dashboard, create the `/stripe/webhook` endpoint as a **Connect webhook** by
+choosing **Listen to events on connected accounts**. Subscribe at minimum to:
+
+- `checkout.session.completed`
+- `payment_intent.payment_failed`
+- `charge.failed`
+
+Copy that Connect endpoint's signing secret into
+`STRIPE_CONNECT_WEBHOOK_SECRET`. A normal platform webhook secret is not enough
+for direct-charge checkout events created on connected club accounts.
 
 ## Step 3 — Database migration (TrueNAS → Managed PostgreSQL)
 
