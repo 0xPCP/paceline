@@ -149,7 +149,7 @@ msgstr "À venir de vos clubs"
 msgid "What to Wear"
 msgstr "Quoi porter"
 
-msgid "no location set"
+msgid "No location set"
 msgstr "aucun lieu défini"
 
 msgid "Loading…"

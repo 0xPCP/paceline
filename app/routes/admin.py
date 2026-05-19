@@ -1625,8 +1625,11 @@ def leader_new(slug):
     if request.method == 'POST':
         user_id = request.form.get('user_id', type=int)
         user = User.query.get(user_id) if user_id else None
+        eligible_user_ids = {row.user_id for row in eligible}
         if not user:
             flash('Please select a member.', 'danger')
+        elif user_id not in eligible_user_ids:
+            flash('Please select an active member in good standing.', 'danger')
         elif ClubLeader.query.filter_by(club_id=club.id, user_id=user_id).first():
             flash(f'{user.username} is already on the leaders roster.', 'warning')
         elif form.validate():
@@ -1654,8 +1657,11 @@ def leader_edit(slug, leader_id):
     if request.method == 'POST':
         user_id = request.form.get('user_id', type=int)
         user = User.query.get(user_id) if user_id else None
+        eligible_user_ids = {row.user_id for row in eligible}
         if not user:
             flash('Please select a member.', 'danger')
+        elif user_id not in eligible_user_ids and user_id != leader.user_id:
+            flash('Please select an active member in good standing.', 'danger')
         elif form.validate():
             # Allow re-selecting the same user on edit; block switching to a duplicate
             existing = ClubLeader.query.filter_by(club_id=club.id, user_id=user_id).first()

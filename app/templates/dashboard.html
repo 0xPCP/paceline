@@ -140,7 +140,7 @@
               {% elif ride.is_full %}
               <span class="badge bg-secondary">Full</span>
               {% elif not waiver_ok %}
-              <a href="{{ url_for('clubs.waiver', slug=ride.club.slug) }}" class="btn btn-warning btn-xs">Waiver →</a>
+              <a href="{{ url_for('clubs.waiver', slug=ride.club.slug) }}" class="btn btn-warning btn-xs">Sign Waiver First</a>
               {% elif not dues_ok %}
               <span class="badge bg-warning text-dark">Dues expired</span>
               {% endif %}
