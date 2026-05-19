@@ -1,9 +1,11 @@
 """
 Tests for club calendar views: list, week, and month.
 All views are now club-scoped at /clubs/<slug>/rides/.
+Calendar views require authentication (v0.121).
 """
 from datetime import date, timedelta
 import pytest
+from tests.conftest import login
 
 
 BASE = '/clubs/test-club/rides/'
@@ -12,6 +14,10 @@ BASE = '/clubs/test-club/rides/'
 # ── List view ─────────────────────────────────────────────────────────────────
 
 class TestListView:
+    @pytest.fixture(autouse=True)
+    def _auto_login(self, client, regular_user):
+        login(client)
+
     def test_returns_200(self, client, sample_club, mock_weather):
         resp = client.get(BASE)
         assert resp.status_code == 200
@@ -67,6 +73,10 @@ class TestListView:
 # ── Week view ─────────────────────────────────────────────────────────────────
 
 class TestWeekView:
+    @pytest.fixture(autouse=True)
+    def _auto_login(self, client, regular_user):
+        login(client)
+
     def test_returns_200(self, client, sample_club, mock_weather):
         resp = client.get(BASE + '?view=week')
         assert resp.status_code == 200
@@ -108,6 +118,10 @@ class TestWeekView:
 # ── Month view ────────────────────────────────────────────────────────────────
 
 class TestMonthView:
+    @pytest.fixture(autouse=True)
+    def _auto_login(self, client, regular_user):
+        login(client)
+
     def test_returns_200(self, client, sample_club, mock_weather):
         assert client.get(BASE + '?view=month').status_code == 200
 

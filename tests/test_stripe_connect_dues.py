@@ -579,14 +579,16 @@ def test_activate_membership_dues_resets_reminder_sent(db, sample_club, regular_
 
 # ── Guest gating unit tests ───────────────────────────────────────────────────
 
-def test_guest_club_rides_list_is_public(client, db, sample_club):
-    """Unauthenticated visitors can browse public club rides."""
-    response = client.get(f'/clubs/{sample_club.slug}/rides/')
-    assert response.status_code == 200
+def test_guest_club_rides_list_requires_login(client, db, sample_club):
+    """Unauthenticated visitors are redirected to login for the rides calendar (v0.121)."""
+    response = client.get(f'/clubs/{sample_club.slug}/rides/', follow_redirects=False)
+    assert response.status_code == 302
+    assert '/auth/login' in response.headers.get('Location', '')
 
 
-def test_guest_club_ride_detail_is_public(client, db, sample_club, sample_rides):
-    """Unauthenticated visitors can view public ride details."""
+def test_guest_club_ride_detail_requires_login(client, db, sample_club, sample_rides):
+    """Unauthenticated visitors are redirected to login for ride detail (v0.121)."""
     ride = sample_rides[0]
-    response = client.get(f'/clubs/{sample_club.slug}/rides/{ride.id}')
-    assert response.status_code == 200
+    response = client.get(f'/clubs/{sample_club.slug}/rides/{ride.id}', follow_redirects=False)
+    assert response.status_code == 302
+    assert '/auth/login' in response.headers.get('Location', '')

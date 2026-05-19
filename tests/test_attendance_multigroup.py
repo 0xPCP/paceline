@@ -181,8 +181,9 @@ class TestMultiGroupCard:
 
     @patch('app.routes.clubs.get_weather_for_rides', return_value={})
     def test_single_ride_renders_as_ride_row(self, mock_w, client, db,
-                                              sample_club, sample_rides):
+                                              sample_club, sample_rides, regular_user):
         """When each day has one ride, ride-row class is used (no group card)."""
+        _login(client, regular_user.email)
         rv = client.get(f'/clubs/{sample_club.slug}/rides/')
         assert rv.status_code == 200
         assert b'ride-row' in rv.data
@@ -190,8 +191,9 @@ class TestMultiGroupCard:
 
     @patch('app.routes.clubs.get_weather_for_rides', return_value={})
     def test_same_day_rides_render_as_group_card(self, mock_w, client, db,
-                                                  sample_club):
+                                                  sample_club, regular_user):
         """Two rides on the same day render as a collapsible group card."""
+        _login(client, regular_user.email)
         self._make_future_rides_same_day(db, sample_club)
         rv = client.get(f'/clubs/{sample_club.slug}/rides/')
         assert rv.status_code == 200
@@ -199,23 +201,26 @@ class TestMultiGroupCard:
         assert b'2 group rides' in rv.data
 
     @patch('app.routes.clubs.get_weather_for_rides', return_value={})
-    def test_group_card_contains_both_rides(self, mock_w, client, db, sample_club):
+    def test_group_card_contains_both_rides(self, mock_w, client, db, sample_club, regular_user):
         """Both rides appear inside the collapsed section."""
+        _login(client, regular_user.email)
         self._make_future_rides_same_day(db, sample_club)
         rv = client.get(f'/clubs/{sample_club.slug}/rides/')
         assert b'A Group' in rv.data
         assert b'B Group' in rv.data
 
     @patch('app.routes.clubs.get_weather_for_rides', return_value={})
-    def test_group_card_has_collapse_target(self, mock_w, client, db, sample_club):
+    def test_group_card_has_collapse_target(self, mock_w, client, db, sample_club, regular_user):
         """Group card header has a Bootstrap data-bs-toggle collapse attribute."""
+        _login(client, regular_user.email)
         self._make_future_rides_same_day(db, sample_club)
         rv = client.get(f'/clubs/{sample_club.slug}/rides/')
         assert b'data-bs-toggle="collapse"' in rv.data
 
     @patch('app.routes.clubs.get_weather_for_rides', return_value={})
-    def test_mixed_days_separate_groups(self, mock_w, client, db, sample_club):
+    def test_mixed_days_separate_groups(self, mock_w, client, db, sample_club, regular_user):
         """A day with 2 rides and a day with 1 render correctly: one group card, one ride-row."""
+        _login(client, regular_user.email)
         future = date.today() + timedelta(days=5)
         single = Ride(club_id=sample_club.id, title='Solo Ride', date=future,
                       time=time(7, 0), meeting_location='HQ',
@@ -230,8 +235,9 @@ class TestMultiGroupCard:
 
     @patch('app.routes.clubs.get_weather_for_rides', return_value={})
     def test_pace_filter_can_reduce_group_to_single(self, mock_w, client, db,
-                                                     sample_club):
+                                                     sample_club, regular_user):
         """Filtering by pace=A on a 2-ride same-day group returns just the A ride as ride-row."""
+        _login(client, regular_user.email)
         self._make_future_rides_same_day(db, sample_club)
         rv = client.get(f'/clubs/{sample_club.slug}/rides/?pace=A')
         assert rv.status_code == 200

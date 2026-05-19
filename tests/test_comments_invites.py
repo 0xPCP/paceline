@@ -15,17 +15,19 @@ def _login(client, user, password='password123'):
 # ── Ride Comments ──────────────────────────────────────────────────────────────
 
 class TestRideComments:
-    def test_comment_section_on_ride_page(self, client, sample_club, sample_rides):
+    def test_comment_section_on_ride_page(self, client, sample_club, sample_rides, club_admin_user):
         ride = sample_rides[0]
+        _login(client, club_admin_user)
         resp = client.get(f'/clubs/{sample_club.slug}/rides/{ride.id}')
         assert resp.status_code == 200
         assert b'Discussion' in resp.data
 
     def test_no_comment_form_when_unauthenticated(self, client, sample_club, sample_rides):
         ride = sample_rides[0]
-        resp = client.get(f'/clubs/{sample_club.slug}/rides/{ride.id}')
-        assert b'Post Comment' not in resp.data
-        assert b'Sign in' in resp.data
+        resp = client.get(f'/clubs/{sample_club.slug}/rides/{ride.id}', follow_redirects=False)
+        # Unauthenticated users are now redirected to login — they cannot see the ride at all
+        assert resp.status_code == 302
+        assert '/auth/login' in resp.headers.get('Location', '')
 
     def test_post_comment_requires_login(self, client, sample_club, sample_rides):
         ride = sample_rides[0]
@@ -57,6 +59,7 @@ class TestRideComments:
             from app.extensions import db
             db.session.add(RideComment(ride_id=ride.id, user_id=club_admin_user.id, body='See you there!'))
             db.session.commit()
+        _login(client, club_admin_user)
         resp = client.get(f'/clubs/{sample_club.slug}/rides/{ride.id}')
         assert b'See you there!' in resp.data
 
@@ -128,6 +131,7 @@ class TestRideComments:
             db.session.add_all([c1, c2])
             db.session.commit()
 
+        _login(client, club_admin_user)
         resp = client.get(f'/clubs/{sample_club.slug}/rides/{ride.id}')
         body = resp.data.decode()
         assert body.index('First comment') < body.index('Second comment')

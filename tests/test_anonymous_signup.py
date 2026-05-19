@@ -112,10 +112,10 @@ class TestAnonymousClubSignup:
         ride = _make_club_ride(db, sample_club)
         _db.session.add(RideSignup(ride_id=ride.id, user_id=regular_user.id))
         _db.session.commit()
-        rv = client.get(f'/clubs/{sample_club.slug}/rides/{ride.id}')
-        assert rv.status_code == 200
-        assert b'Who\'s coming' not in rv.data
-        assert b'Sign in</a> to see who' in rv.data
+        # Unauthenticated users are redirected to login — they can't see any ride detail
+        rv = client.get(f'/clubs/{sample_club.slug}/rides/{ride.id}', follow_redirects=False)
+        assert rv.status_code == 302
+        assert '/auth/login' in rv.headers.get('Location', '')
 
 
 # ── Anonymous user ride signup ────────────────────────────────────────────────

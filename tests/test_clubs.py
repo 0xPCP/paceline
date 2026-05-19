@@ -144,23 +144,28 @@ class TestClubHome:
 # ── Club calendar ─────────────────────────────────────────────────────────────
 
 class TestClubCalendar:
-    def test_list_view_200(self, client, sample_club, mock_weather):
+    def test_list_view_200(self, client, sample_club, regular_user, mock_weather):
+        login(client)
         resp = client.get('/clubs/test-club/rides/')
         assert resp.status_code == 200
 
-    def test_week_view_200(self, client, sample_club, mock_weather):
+    def test_week_view_200(self, client, sample_club, regular_user, mock_weather):
+        login(client)
         resp = client.get('/clubs/test-club/rides/?view=week')
         assert resp.status_code == 200
 
-    def test_month_view_200(self, client, sample_club, mock_weather):
+    def test_month_view_200(self, client, sample_club, regular_user, mock_weather):
+        login(client)
         resp = client.get('/clubs/test-club/rides/?view=month')
         assert resp.status_code == 200
 
-    def test_shows_rides_in_list(self, client, sample_club, one_ride, mock_weather):
+    def test_shows_rides_in_list(self, client, sample_club, one_ride, regular_user, mock_weather):
+        login(client)
         resp = client.get('/clubs/test-club/rides/')
         assert b'Saturday Group Ride' in resp.data
 
-    def test_pace_filter_a(self, client, sample_club, sample_rides, mock_weather):
+    def test_pace_filter_a(self, client, sample_club, sample_rides, regular_user, mock_weather):
+        login(client)
         resp = client.get('/clubs/test-club/rides/?pace=A')
         html = resp.data.decode()
         assert 'Tuesday A Ride' in html
@@ -170,25 +175,29 @@ class TestClubCalendar:
 # ── Ride detail ───────────────────────────────────────────────────────────────
 
 class TestRideDetail:
-    def test_returns_200(self, client, sample_club, one_ride, mock_weather):
+    def test_returns_200(self, client, sample_club, one_ride, regular_user, mock_weather):
+        login(client)
         resp = client.get(f'/clubs/test-club/rides/{one_ride.id}')
         assert resp.status_code == 200
 
-    def test_shows_ride_title(self, client, sample_club, one_ride, mock_weather):
+    def test_shows_ride_title(self, client, sample_club, one_ride, regular_user, mock_weather):
+        login(client)
         resp = client.get(f'/clubs/test-club/rides/{one_ride.id}')
         assert b'Saturday Group Ride' in resp.data
 
-    def test_shows_ride_meta(self, client, sample_club, one_ride, mock_weather):
+    def test_shows_ride_meta(self, client, sample_club, one_ride, regular_user, mock_weather):
+        login(client)
         html = client.get(f'/clubs/test-club/rides/{one_ride.id}').data.decode()
         assert 'Lake Newport' in html
         assert '30' in html
         assert 'B' in html
 
-    def test_404_for_missing_ride(self, client, sample_club, mock_weather):
+    def test_404_for_missing_ride(self, client, sample_club, regular_user, mock_weather):
+        login(client)
         resp = client.get('/clubs/test-club/rides/99999')
         assert resp.status_code == 404
 
-    def test_404_for_ride_in_wrong_club(self, client, sample_club, second_club, db, mock_weather):
+    def test_404_for_ride_in_wrong_club(self, client, sample_club, second_club, db, regular_user, mock_weather):
         ride = Ride(
             club_id=second_club.id, title='Other Club Ride',
             date=date.today() + timedelta(days=1), time=time(8, 0),
@@ -196,39 +205,46 @@ class TestRideDetail:
         )
         db.session.add(ride)
         db.session.commit()
+        login(client)
         resp = client.get(f'/clubs/test-club/rides/{ride.id}')
         assert resp.status_code == 404
 
-    def test_weather_card_shown(self, client, sample_club, one_ride, mock_weather):
+    def test_weather_card_shown(self, client, sample_club, one_ride, regular_user, mock_weather):
+        login(client)
         resp = client.get(f'/clubs/test-club/rides/{one_ride.id}')
         assert b'Forecast' in resp.data
         assert b'AQI 42 Good' in resp.data
 
     def test_sign_in_prompt_for_anonymous(self, client, sample_club, one_ride, mock_weather):
-        resp = client.get(f'/clubs/test-club/rides/{one_ride.id}')
-        assert b'Sign in' in resp.data
+        resp = client.get(f'/clubs/test-club/rides/{one_ride.id}', follow_redirects=False)
+        assert resp.status_code == 302
+        assert '/auth/login' in resp.headers.get('Location', '')
 
     def test_signup_button_for_authenticated(self, client, sample_club, one_ride, regular_user, mock_weather):
         login(client)
         resp = client.get(f'/clubs/test-club/rides/{one_ride.id}')
         assert b'Sign Up for This Ride' in resp.data
 
-    def test_cancelled_ride_shows_badge(self, client, sample_club, cancelled_ride, mock_weather):
+    def test_cancelled_ride_shows_badge(self, client, sample_club, cancelled_ride, regular_user, mock_weather):
+        login(client)
         html = client.get(f'/clubs/test-club/rides/{cancelled_ride.id}').data.decode()
         assert 'Cancelled' in html
         assert 'Sign Up for This Ride' not in html
 
-    def test_back_to_calendar_link(self, client, sample_club, one_ride, mock_weather):
+    def test_back_to_calendar_link(self, client, sample_club, one_ride, regular_user, mock_weather):
+        login(client)
         resp = client.get(f'/clubs/test-club/rides/{one_ride.id}')
         assert b'Back to' in resp.data
 
-    def test_add_to_calendar_button_present(self, client, sample_club, one_ride, mock_weather):
+    def test_add_to_calendar_button_present(self, client, sample_club, one_ride, regular_user, mock_weather):
+        login(client)
         resp = client.get(f'/clubs/test-club/rides/{one_ride.id}')
         assert b'Add to Calendar' in resp.data
 
-    def test_shows_garmin_groupride_code(self, client, db, sample_club, one_ride, mock_weather):
+    def test_shows_garmin_groupride_code(self, client, db, sample_club, one_ride, regular_user, mock_weather):
         one_ride.garmin_groupride_code = '123456'
         db.session.commit()
+        login(client)
         resp = client.get(f'/clubs/test-club/rides/{one_ride.id}')
         assert b'Garmin GroupRide' in resp.data
         assert b'123456' in resp.data
