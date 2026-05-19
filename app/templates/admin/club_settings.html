@@ -298,7 +298,7 @@
             {{ form.membership_dues_required(class="form-check-input", role="switch", id="membership_dues_required") }}
             {{ form.membership_dues_required.label(class="form-check-label", for="membership_dues_required") }}
           </div>
-          <div class="form-text">Use this when dues must be paid before membership is active. Members pay your dues amount plus a $1 Paceline Sustainment Fee that keeps the platform running.</div>
+          <div class="form-text">When enabled, members must pay dues before their membership is active. Paceline deducts a $1 platform fee from each transaction before funds settle to your Stripe account.</div>
         </div>
 
         <div class="mb-3">
@@ -308,7 +308,7 @@
             {{ form.membership_dues_amount(class="form-control" + (" is-invalid" if form.membership_dues_amount.errors else ""), placeholder="40.00", min="1", step="0.01") }}
             {% for e in form.membership_dues_amount.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
           </div>
-          <div class="form-text">Your club's portion of the dues. Members will see this amount plus a separate $1 Paceline Sustainment Fee at checkout.</div>
+          <div class="form-text">The amount members pay at checkout. Paceline's $1 platform fee is deducted from your payout, not added to the member's total.</div>
         </div>
 
         <div class="mb-4">
@@ -347,7 +347,7 @@
               {% endif %}
             </div>
           </div>
-          <div class="form-text mt-2">Stripe handles the checkout and deposits your dues directly into the club's Stripe account. A $1 Paceline Sustainment Fee is added to the member's total at checkout.</div>
+          <div class="form-text mt-2">Stripe handles checkout and deposits dues directly into the club's Stripe account. Paceline deducts a $1 platform fee from each payout — members pay only the dues amount you set.</div>
         </div>
 
         </div>{# /membership-section #}

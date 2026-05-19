@@ -18,7 +18,29 @@
 <div class="container py-5">
   <div class="row justify-content-center">
     <div class="col-lg-9">
-      <div class="mb-5">
+
+      {# ── Table of Contents ────────────────────────────────────────────── #}
+      <div class="card mb-5">
+        <div class="card-body">
+          <h6 class="fw-semibold mb-2">On this page</h6>
+          <ol class="mb-0 ps-3">
+            <li><a href="#create">Create your club</a></li>
+            <li><a href="#go-public">Set up and go public</a></li>
+            <li><a href="#settings">Complete club settings</a></li>
+            <li><a href="#team">Add your management team</a></li>
+            <li><a href="#leaders">Add and manage ride leaders</a></li>
+            <li><a href="#rides">Publish rides</a></li>
+            <li><a href="#signups">Manage signups and attendance</a></li>
+            <li><a href="#comms">Keep members informed</a></li>
+            <li><a href="#roster">View and manage the member roster</a></li>
+            <li><a href="#dues">Handle paid club dues</a></li>
+            <li><a href="#embed">Embed rides on your website</a></li>
+          </ol>
+        </div>
+      </div>
+
+      {# ── 1. Create your club ──────────────────────────────────────────── #}
+      <div class="mb-5" id="create">
         <h2 class="section-heading h4">1. Create your club</h2>
         <p class="section-body">
           Sign in, choose <strong>Create a Club</strong>, and enter the club name,
@@ -60,7 +82,8 @@
         </figure>
       </div>
 
-      <div class="mb-5">
+      {# ── 2. Set up and go public ──────────────────────────────────────── #}
+      <div class="mb-5" id="go-public">
         <h2 class="section-heading h4">2. Set up and go public</h2>
         <p class="section-body">
           After creating your club you land on the admin dashboard. Complete these steps
@@ -80,7 +103,8 @@
         </p>
       </div>
 
-      <div class="mb-5">
+      {# ── 3. Complete club settings ─────────────────────────────────────── #}
+      <div class="mb-5" id="settings">
         <h2 class="section-heading h4">3. Complete club settings</h2>
         <p class="section-body">
           From your club page, open <strong>Admin</strong>, then <strong>Settings</strong>.
@@ -101,7 +125,8 @@
         </figure>
       </div>
 
-      <div class="mb-5">
+      {# ── 4. Add your management team ──────────────────────────────────── #}
+      <div class="mb-5" id="team">
         <h2 class="section-heading h4">4. Add your management team</h2>
         <p class="section-body">
           Open <strong>Admin</strong>, then <strong>Team</strong>. Add members by
@@ -113,18 +138,65 @@
           <li><strong>Content editor:</strong> updates news posts and club content.</li>
           <li><strong>Treasurer:</strong> views and exports member information.</li>
         </ul>
+        <p class="section-body">
+          The Team page also handles two membership queues:
+        </p>
+        <ul class="section-body">
+          <li><strong>Pending approval</strong> — riders who requested to join a club that
+              requires manual approval. Click <strong>Approve</strong> or <strong>Reject</strong>.</li>
+          <li><strong>Pending payment</strong> — members who joined a club with required dues
+              but have not yet paid. If you received payment outside Paceline, click
+              <strong>Confirm Paid</strong> to manually activate their membership for the
+              configured duration.</li>
+        </ul>
         <figure class="mb-0">
           <img class="img-fluid rounded border shadow-sm"
                src="{{ url_for('static', filename='img/help/club-team.png') }}"
                alt="Club Team page listing manager roles and invite controls">
           <figcaption class="small text-muted mt-2">
-            The Team page is where you assign manager roles for club operations.
+            The Team page is where you assign manager roles and review pending membership requests.
           </figcaption>
         </figure>
       </div>
 
-      <div class="mb-5">
-        <h2 class="section-heading h4">5. Publish rides</h2>
+      {# ── 5. Add and manage ride leaders ───────────────────────────────── #}
+      <div class="mb-5" id="leaders">
+        <h2 class="section-heading h4">5. Add and manage ride leaders</h2>
+        <p class="section-body">
+          Open <strong>Admin</strong>, then <strong>Leaders</strong>. Ride leaders are
+          displayed on your club's public <em>Leaders</em> page with their photo, name,
+          and a short bio.
+        </p>
+        <p class="section-body">
+          To add a leader, click <strong>Add Leader</strong>. Choose the member from the
+          dropdown — the list shows current active members. If the club requires paid dues,
+          only members with current dues appear. Fill in an optional one-line bio and a
+          display order number (lower numbers appear first). Click <strong>Save</strong>.
+        </p>
+        <p class="section-body">
+          The leader's photo is pulled automatically from their Paceline profile. If they
+          have uploaded a profile photo it appears as a circular avatar. If they have linked
+          Strava, their Strava profile photo is used as a fallback. Encourage leaders to
+          upload a profile photo directly on Paceline for the best result.
+        </p>
+        <p class="section-body">
+          To edit a leader's bio or display order, click the pencil icon in the leaders
+          table. To remove a leader from the list, click the trash icon — this removes
+          them from the public Leaders page but does not affect their club membership.
+        </p>
+        <figure class="mb-0">
+          <img class="img-fluid rounded border shadow-sm"
+               src="{{ url_for('static', filename='img/help/club-leaders-admin.png') }}"
+               alt="Admin ride leaders table showing avatar, member, bio, display order, and edit controls">
+          <figcaption class="small text-muted mt-2">
+            The Leaders admin page shows all current leaders with their photos, bios, and display order.
+          </figcaption>
+        </figure>
+      </div>
+
+      {# ── 6. Publish rides ──────────────────────────────────────────────── #}
+      <div class="mb-5" id="rides">
+        <h2 class="section-heading h4">6. Publish rides</h2>
         <p class="section-body">
           Go to <strong>Admin</strong>, then <strong>Rides</strong>, and choose
           <strong>New Ride</strong>. Add the ride title, date, start time, meeting
@@ -144,20 +216,23 @@
         </figure>
       </div>
 
-      <div class="mb-5">
-        <h2 class="section-heading h4">6. Manage signups and attendance</h2>
+      {# ── 7. Manage signups and attendance ─────────────────────────────── #}
+      <div class="mb-5" id="signups">
+        <h2 class="section-heading h4">7. Manage signups and attendance</h2>
         <p class="section-body">
           Open a ride from the admin ride list to view the roster. You can see who
           signed up, manage waitlists, and record attendance after the ride.
         </p>
         <p class="section-body">
           If a ride needs to be canceled, edit the ride and mark it as canceled.
-          Riders will see the cancellation on the ride page.
+          Riders will see the cancellation on the ride page and receive a notification
+          email if they have that option enabled.
         </p>
       </div>
 
-      <div class="mb-5">
-        <h2 class="section-heading h4">7. Keep members informed</h2>
+      {# ── 8. Keep members informed ─────────────────────────────────────── #}
+      <div class="mb-5" id="comms">
+        <h2 class="section-heading h4">8. Keep members informed</h2>
         <p class="section-body">
           Use <strong>News</strong> from the admin dashboard for club announcements,
           schedule updates, event reminders, and other short updates.
@@ -180,77 +255,191 @@
         </p>
       </div>
 
-      <div class="mb-5">
-        <h2 class="section-heading h4">8. Handle paid club dues</h2>
+      {# ── 9. View and manage the member roster ─────────────────────────── #}
+      <div class="mb-5" id="roster">
+        <h2 class="section-heading h4">9. View and manage the member roster</h2>
         <p class="section-body">
-          If your club collects dues, open <strong>Admin</strong>, then
-          <strong>Settings</strong>, and enable paid dues under membership settings.
-          Choose the workflow that matches how much automation you want.
+          Open <strong>Admin</strong>, then <strong>Members</strong> to see a full
+          roster of everyone who has joined the club. You can search by name or email
+          and filter by membership status:
+        </p>
+        <ul class="section-body">
+          <li><strong>Active</strong> — full members with access to all ride signups and
+              club features.</li>
+          <li><strong>Dues expired</strong> — previously active members whose paid
+              membership period has ended. They need to renew before Paceline marks them
+              active again.</li>
+          <li><strong>Pending payment</strong> — riders who joined but have not completed
+              dues payment. Use the Team page to manually confirm dues or wait for Stripe
+              to confirm automatically.</li>
+          <li><strong>Pending approval</strong> — riders waiting for a manual join
+              approval from the Team page.</li>
+        </ul>
+        <p class="section-body">
+          When the club has required dues enabled, the roster gains four additional
+          columns for each member:
+        </p>
+        <ul class="section-body">
+          <li><strong>Last Payment</strong> — the date dues were confirmed, either
+              automatically by Stripe or manually by an admin.</li>
+          <li><strong>Transaction ID</strong> — the Stripe payment intent ID for automatic
+              payments. Click the truncated ID to copy the full value to your clipboard.
+              Manual confirmations show "manual" instead of a transaction ID.</li>
+          <li><strong>Expires</strong> — the date the current membership period ends,
+              calculated from the payment date plus the configured duration.</li>
+          <li><strong>Dues Standing</strong> — a color-coded badge: green "Current" means
+              the membership is paid and active; yellow "Expires in N days" warns within
+              30 days; red "Expired N days ago" marks lapsed memberships; grey "No record"
+              means no payment has been recorded yet.</li>
+        </ul>
+        <p class="section-body">
+          Click <strong>Export CSV</strong> to download the full filtered roster as a
+          spreadsheet, including all dues columns. This is useful for record-keeping and
+          for sharing member data with treasurers or board members.
+        </p>
+        <figure class="mb-0">
+          <img class="img-fluid rounded border shadow-sm"
+               src="{{ url_for('static', filename='img/help/club-members-roster.png') }}"
+               alt="Member roster table with status, payment date, transaction ID, expiry, and dues standing columns">
+          <figcaption class="small text-muted mt-2">
+            The member roster shows dues status, payment history, and Stripe transaction IDs at a glance.
+          </figcaption>
+        </figure>
+      </div>
+
+      {# ── 10. Handle paid club dues ─────────────────────────────────────── #}
+      <div class="mb-5" id="dues">
+        <h2 class="section-heading h4">10. Handle paid club dues</h2>
+        <p class="section-body">
+          Paceline supports two dues workflows. You can run either independently
+          or switch between them at any time without losing membership records.
+        </p>
+
+        <h5 class="mt-4 mb-2">Manual confirmation</h5>
+        <p class="section-body">
+          Manual confirmation is the simplest setup — no Stripe account required.
+          Riders who join a club with required dues are placed in the
+          "pending payment" state. You collect payment using any method your club
+          prefers (Venmo, PayPal, cash, check, or your own Stripe payment link),
+          then go to <strong>Admin → Team</strong> and click <strong>Confirm Paid</strong>
+          for each member. Paceline marks the membership active for the configured duration
+          starting from the confirmation date.
+        </p>
+
+        <h5 class="mt-4 mb-2">Stripe Connect — automated dues</h5>
+        <p class="section-body">
+          Stripe Connect automates the entire payment and activation flow. When a
+          rider clicks <strong>Pay Club Dues</strong> on the club page, Paceline
+          opens a Stripe Checkout session. The rider enters their card details on
+          Stripe's secure hosted page. After payment Stripe notifies Paceline via
+          webhook, and Paceline immediately marks the membership active — no admin
+          action required.
         </p>
         <p class="section-body">
-          <strong>Phase 1</strong> is the simplest setup. Paste the payment link your
-          club owns, such as a Stripe, PayPal, or Square hosted checkout link. Riders
-          pay through that link, then a club admin confirms payment from the Team page.
+          Payments are processed as <strong>direct charges</strong> on your club's
+          connected Stripe account, meaning the funds go directly into your club's
+          Stripe balance. Paceline does not hold club dues — it acts only as a
+          platform facilitator. Paceline deducts a <strong>$1 platform fee</strong>
+          from each transaction before the funds settle to your Stripe account. The
+          rider sees only the dues amount you set; the $1 comes from the club's
+          payout, not from the member's card total. Clubs handle their own refunds,
+          payment questions, and disputes through their Stripe account. Paceline's
+          $1 platform fee is not refunded when a club refunds dues.
         </p>
         <p class="section-body">
-          <strong>Phase 2</strong> connects your club's Stripe account to Paceline.
-          Club admins complete Stripe-hosted onboarding from club settings. Paceline
-          uses direct charges, which means dues are processed on your connected Stripe
-          account and your club remains responsible for its own payments. Paceline then
-          sends riders to Stripe Checkout for the dues amount you configure. Stripe
-          deposits funds into your connected club account, and Paceline receives a
-          payment-success notification that activates the rider automatically.
+          This dues setup is also the foundation for a future club store feature,
+          where clubs can sell jerseys, shirts, and other club items through their
+          own connected Stripe account.
         </p>
+
+        <h5 class="mt-4 mb-2">Setting up Stripe Connect</h5>
         <p class="section-body">
-          Paceline does not hold club dues. For Stripe Connect payments, Paceline adds
-          a transparent <strong>$1 platform fee</strong> to each paid membership
-          transaction. That fee helps cover hosting, email delivery, storage, monitoring,
-          and continued development. The $1 Paceline platform fee is not refunded if a
-          club later refunds a member's dues. Clubs handle their own refunds, payment
-          questions, and disputes through their Stripe account.
+          You need a Stripe account before you start. If you do not have one,
+          Stripe's onboarding will walk you through creating one.
         </p>
+        <ol class="section-body">
+          <li>
+            Open <strong>Admin → Settings</strong> and scroll to the
+            <strong>Membership</strong> section.
+          </li>
+          <li>
+            Enable the <strong>Require dues for membership</strong> toggle.
+          </li>
+          <li>
+            Enter the <strong>Dues Amount</strong> — the amount your club charges
+            per membership period. This is what the member pays; Paceline's $1
+            platform fee comes from the club's payout.
+          </li>
+          <li>
+            Set the <strong>Membership Duration</strong> in months. Paceline
+            calculates the expiry date by adding this number of months to the
+            payment confirmation date.
+          </li>
+          <li>
+            Click <strong>Save Settings</strong>.
+          </li>
+          <li>
+            Under <strong>Stripe Connect</strong>, click <strong>Connect Stripe</strong>.
+            You are redirected to Stripe's hosted onboarding where you enter your
+            club's business information, bank account details, and verify identity.
+          </li>
+          <li>
+            Complete all steps in Stripe's onboarding and click the button to
+            return to Paceline.
+          </li>
+          <li>
+            Paceline verifies the connection. When onboarding is complete,
+            Settings shows a green <em>"Stripe onboarding has been completed"</em>
+            confirmation and the club account ID.
+          </li>
+        </ol>
         <p class="section-body">
-          In Phase 1, Paceline does not process the payment and does not add the $1
-          platform fee. The duration setting controls how long each manually confirmed
-          or automatically paid membership stays active.
+          Once connected, riders see a <strong>Pay Club Dues</strong> button on
+          the club page instead of the pending payment message. Stripe Checkout
+          handles payment collection, and Paceline activates the membership
+          automatically as soon as Stripe confirms payment.
         </p>
+
         <figure class="mb-4">
           <img class="img-fluid rounded border shadow-sm"
                src="{{ url_for('static', filename='img/help/club-dues-settings.png') }}"
-               alt="Club membership settings showing manual dues, Stripe Connect dues, amount, duration, and connection status">
+               alt="Club membership settings showing dues required toggle, amount, duration, and Stripe Connect status">
           <figcaption class="small text-muted mt-2">
-            Club settings let managers choose manual confirmation or Stripe Connect automation, set the dues amount, and control how long paid memberships stay active.
+            The Membership section in Settings is where you enable dues, set the amount and duration,
+            and connect Stripe for automated checkout.
           </figcaption>
         </figure>
-        <p class="section-body">
-          For Phase 2, riders who are waiting on dues see a <strong>Pay Club Dues</strong>
-          button on the club page. After Stripe confirms the payment, Paceline marks
-          the membership active automatically. If Stripe is not connected or the club
-          uses Phase 1, the rider follows the external dues link and waits for a club
-          admin to confirm payment from the Team page.
-        </p>
+
         <figure class="mb-4">
           <img class="img-fluid rounded border shadow-sm"
                src="{{ url_for('static', filename='img/help/club-dues-payment.png') }}"
-               alt="Club page showing Pay Club Dues button for a rider whose membership is waiting on payment">
+               alt="Club home page showing Pay Club Dues button for a rider with pending payment status">
           <figcaption class="small text-muted mt-2">
-            Riders with a pending paid membership can start checkout from the club page.
+            When Stripe is connected, riders with a pending membership see a Pay Club Dues button
+            that opens Stripe Checkout directly.
           </figcaption>
         </figure>
+
+        <h5 class="mt-4 mb-2">Disconnecting Stripe</h5>
         <p class="section-body">
-          When importing an existing roster, add a paid-through date for the whole batch
-          or add dates per row using <code>rider@example.com, 2026-12-31</code>.
+          You can disconnect Stripe at any time from <strong>Admin → Settings → Stripe Connect →
+          Disconnect</strong>. The club reverts to manual dues confirmation and the
+          "Pay Club Dues" checkout button is removed. Existing membership records are preserved —
+          active memberships remain active until they expire.
         </p>
+
+        <h5 class="mt-4 mb-2">Importing an existing roster</h5>
         <p class="section-body">
-          A future club store feature is planned after membership dues are complete. The
-          store will let clubs list items such as jerseys and T-shirts, with payment
-          completed through the club's connected Stripe account instead of Paceline
-          directly managing club merchandise money.
+          When importing an existing member roster, you can set a paid-through date for the
+          entire batch or specify a per-row date using the format
+          <code>rider@example.com, 2026-12-31</code>. Imported members with a future
+          paid-through date are added as active.
         </p>
       </div>
 
-      <div class="mb-5">
-        <h2 class="section-heading h4">9. Embed rides on your website</h2>
+      {# ── 11. Embed rides on your website ──────────────────────────────── #}
+      <div class="mb-5" id="embed">
+        <h2 class="section-heading h4">11. Embed rides on your website</h2>
         <p class="section-body">
           Every club gets an embeddable ride widget you can drop into any website —
           your club's WordPress site, Squarespace page, or any platform that accepts
