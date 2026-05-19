@@ -66,7 +66,9 @@ class Config:
     # Stripe Connect for optional automated club dues. These must be platform
     # keys stored in environment/secrets, never source control.
     STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '').strip()
+    STRIPE_CONNECT_WEBHOOK_SECRET = os.environ.get('STRIPE_CONNECT_WEBHOOK_SECRET', '').strip()
     STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '').strip()
+    STRIPE_PLATFORM_FEE_CENTS = int(os.environ.get('STRIPE_PLATFORM_FEE_CENTS', 100))
 
     # Comma-separated email allowlist for platform superadmins. These accounts
     # are promoted on startup and cannot have superadmin access revoked in-app.

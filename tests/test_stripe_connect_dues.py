@@ -138,7 +138,7 @@ def test_stripe_checkout_creates_payment_and_redirects(client, app, db, sample_c
 
 
 def test_stripe_webhook_activates_membership(client, app, db, sample_club, regular_user):
-    app.config['STRIPE_WEBHOOK_SECRET'] = 'whsec_test'
+    app.config['STRIPE_CONNECT_WEBHOOK_SECRET'] = 'whsec_test'
     sample_club.membership_dues_required = True
     sample_club.membership_dues_mode = 'stripe_connect'
     sample_club.membership_dues_amount_cents = 4500
@@ -174,6 +174,51 @@ def test_stripe_webhook_activates_membership(client, app, db, sample_club, regul
     assert membership.dues_confirmed_by_id is None
     assert payment.status == 'paid'
     assert payment.provider_payment_intent_id == 'pi_123'
+
+
+def test_stripe_connect_webhook_secret_takes_precedence(client, app, db, sample_club, regular_user):
+    """Direct-charge webhooks must verify with the Connect endpoint secret when configured."""
+    app.config['STRIPE_WEBHOOK_SECRET'] = 'whsec_platform'
+    app.config['STRIPE_CONNECT_WEBHOOK_SECRET'] = 'whsec_connect'
+    sample_club.membership_dues_required = True
+    sample_club.membership_dues_mode = 'stripe_connect'
+    sample_club.membership_dues_amount_cents = 4500
+    membership = ClubMembership(user_id=regular_user.id, club_id=sample_club.id, status='pending_payment')
+    db.session.add(membership)
+    db.session.flush()
+    payment = ClubMembershipPayment(
+        club_id=sample_club.id,
+        user_id=regular_user.id,
+        membership_id=membership.id,
+        provider_session_id='cs_connect_secret',
+        amount_cents=4500,
+    )
+    db.session.add(payment)
+    db.session.commit()
+
+    payload = json.dumps({
+        'type': 'checkout.session.completed',
+        'data': {'object': {'id': 'cs_connect_secret', 'payment_intent': 'pi_connect'}},
+    }).encode()
+
+    platform_response = client.post(
+        '/stripe/webhook',
+        data=payload,
+        headers={'Stripe-Signature': _stripe_signature(payload, 'whsec_platform')},
+        content_type='application/json',
+    )
+    assert platform_response.status_code == 400
+
+    connect_response = client.post(
+        '/stripe/webhook',
+        data=payload,
+        headers={'Stripe-Signature': _stripe_signature(payload, 'whsec_connect')},
+        content_type='application/json',
+    )
+
+    assert connect_response.status_code == 200
+    db.session.refresh(payment)
+    assert payment.status == 'paid'
 
 
 def test_create_checkout_session_direct_charge(app):
