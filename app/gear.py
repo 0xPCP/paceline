@@ -70,7 +70,7 @@ GEAR_CATALOG = {
     'Outerwear': [
         {'id': 'wind-vest',        'label': 'Wind vest'},
         {'id': 'wind-jacket',      'label': 'Wind jacket'},
-        {'id': 'rain-jacket',      'label': 'Rain jacket'},
+        {'id': 'rain-jacket',      'label': 'Rain cape'},
         {'id': 'jacket',           'label': 'Cycling jacket'},
         {'id': 'insulated-jacket', 'label': 'Insulated jacket'},
     ],

@@ -28,8 +28,12 @@
             {{ user.username[0].upper() }}
           </div>
           <div class="flex-grow-1 min-width-0">
+            {% if user.profile_is_public %}
             <a href="{{ url_for('main.public_profile', username=user.username) }}"
                class="fw-semibold text-decoration-none d-block text-truncate">{{ user.username }}</a>
+            {% else %}
+            <span class="fw-semibold d-block text-truncate">{{ user.username }}</span>
+            {% endif %}
             <div class="text-muted" style="font-size:.75rem">
               {% if user.id == owner_id %}
                 <span class="badge" style="background:var(--paceline-green,#2d6a4f);font-size:.65rem">Owner</span>

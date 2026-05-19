@@ -89,7 +89,7 @@
         <div class="mb-3">
           {{ form.bio.label(class="form-label fw-semibold") }}
           {{ form.bio(class="form-control" + (" is-invalid" if form.bio.errors else ""),
-                      placeholder="e.g. "20-year club veteran, loves gravel and early morning starts."",
+                      placeholder='e.g. "20-year club veteran, loves gravel and early morning starts."',
                       maxlength=200) }}
           <div class="form-text">Shown publicly under the leader's name. Keep it to one sentence.</div>
           {% for e in form.bio.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
