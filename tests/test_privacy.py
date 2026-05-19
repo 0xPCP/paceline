@@ -1,6 +1,7 @@
 from datetime import date, time, timedelta
 
-from app.models import Club, Ride, RideSignup, User
+from app.models import (Club, Ride, RideSignup, User, ClubBoardPost,
+                        ClubBoardReply, RideComment, SiteFeedback)
 from tests.conftest import login
 
 
@@ -98,3 +99,33 @@ def test_club_owner_must_transfer_or_delete_club_before_account_deletion(client,
     assert b'Transfer or delete clubs you own' in resp.data
     assert db.session.get(User, regular_user.id) is not None
     assert db.session.get(Club, club.id) is not None
+
+
+def test_delete_account_cleans_or_detaches_social_content(client, db, regular_user, sample_club, sample_rides):
+    ride = sample_rides[0]
+    board_post = ClubBoardPost(club_id=sample_club.id, author_id=regular_user.id, body='Remove board post')
+    db.session.add(board_post)
+    db.session.flush()
+    reply = ClubBoardReply(post_id=board_post.id, author_id=regular_user.id, body='Remove reply')
+    comment = RideComment(ride_id=ride.id, user_id=regular_user.id, body='Remove comment')
+    feedback = SiteFeedback(user_id=regular_user.id, name='Rider', email=regular_user.email, message='Detach feedback')
+    db.session.add_all([reply, comment, feedback])
+    db.session.commit()
+    post_id = board_post.id
+    reply_id = reply.id
+    comment_id = comment.id
+    feedback_id = feedback.id
+
+    login(client, regular_user.email)
+    resp = client.post('/auth/profile/delete-account', data={
+        'confirmation': f'DELETE {regular_user.email}',
+    }, follow_redirects=True)
+
+    assert resp.status_code == 200
+    assert db.session.get(User, regular_user.id) is None
+    assert db.session.get(ClubBoardPost, post_id) is None
+    assert db.session.get(ClubBoardReply, reply_id) is None
+    assert db.session.get(RideComment, comment_id) is None
+    feedback = db.session.get(SiteFeedback, feedback_id)
+    assert feedback is not None
+    assert feedback.user_id is None

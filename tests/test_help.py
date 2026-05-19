@@ -39,6 +39,11 @@ def test_club_manager_help_page(client):
     assert b'is not refunded' in resp.data
     assert b'Clubs handle their own refunds' in resp.data
     assert b'future club store feature' in resp.data
+    assert b'Use advanced ride options' in resp.data
+    assert b'Garmin GroupRide' in resp.data
+    assert b'Transfer club ownership' in resp.data
+    assert b'superadmin can' in resp.data
+    assert b'manually transfer ownership' in resp.data
     assert b'img/help/club-create.png' in resp.data
     assert b'img/help/club-settings.png' in resp.data
     assert b'img/help/club-dues-settings.png' in resp.data
@@ -54,6 +59,12 @@ def test_rider_help_page(client):
     assert b'Discover and sign up for rides' in resp.data
     assert b'Keep your profile current' in resp.data
     assert b'Manage email notifications' in resp.data
+    assert b'Protect your account' in resp.data
+    assert b'Control profile privacy' in resp.data
+    assert b'Use ride tools' in resp.data
+    assert b'Garmin GroupRide Code' in resp.data
+    assert b'Profiles are private by default' in resp.data
+    assert b'https://www.strava.com/athletes/123456' in resp.data
     assert b'Message board activity is bundled into a daily digest' in resp.data
     assert b'account and security emails are always sent' in resp.data
     assert b'img/help/find-clubs.png' in resp.data

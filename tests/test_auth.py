@@ -149,6 +149,22 @@ class TestLogin:
         assert Config.SESSION_COOKIE_SECURE is True
         assert Config.REMEMBER_COOKIE_SECURE is True
 
+    def test_production_secure_cookie_rejects_development_secret(self, monkeypatch):
+        from app import create_app
+        from app.config import Config
+
+        monkeypatch.setenv('COOKIE_SECURE', 'true')
+        monkeypatch.setenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+        monkeypatch.setenv('FLASK_SKIP_SCHEDULER', '1')
+
+        class ProdLikeConfig(Config):
+            TESTING = False
+
+        with pytest.raises(RuntimeError) as excinfo:
+            create_app(ProdLikeConfig)
+
+        assert 'SECRET_KEY' in str(excinfo.value)
+
     def test_login_with_bad_password(self, client, regular_user):
         resp = client.post('/auth/login', data={
             'email': 'rider@test.com',
