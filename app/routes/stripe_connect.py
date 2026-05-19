@@ -176,6 +176,8 @@ def webhook():
     )
     if not secret:
         abort(404)
+    # DEBUG: log secret prefix so we can confirm the right value is loaded
+    current_app.logger.info('STRIPE_DBG secret_prefix=%s len=%d', secret[:16], len(secret))
     raw = request.get_data()
     try:
         event = verify_webhook_payload(raw, request.headers.get('Stripe-Signature'), secret)
