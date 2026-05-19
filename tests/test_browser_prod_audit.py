@@ -12,7 +12,6 @@ Prerequisites
     pip install playwright pytest-playwright
     playwright install chromium
     # Credentials are read from environment variables (or fall back to dev defaults):
-    export PROD_BETA_PASSWORD=pacelinesarefun
     export PROD_USER_EMAIL=phil@pcp.dev
     export PROD_USER_PASSWORD="syv3u_cX2*@*mT8B"
 
@@ -47,7 +46,6 @@ from playwright.sync_api import Page, expect
 # paceline.club is Cloudflare-protected and blocks headless browsers.
 # Use the DigitalOcean direct URL to bypass Cloudflare for automated tests.
 PROD_URL    = os.environ.get("PROD_URL", "https://paceline-2akis.ondigitalocean.app")
-BETA_PASS   = os.environ.get("PROD_BETA_PASSWORD", "pacelinesarefun")
 USER_EMAIL  = os.environ.get("PROD_USER_EMAIL",    "phil@pcp.dev")
 USER_PASS   = os.environ.get("PROD_USER_PASSWORD", "syv3u_cX2*@*mT8B")
 
@@ -60,18 +58,8 @@ def ss(page: Page, name: str) -> None:
     page.screenshot(path=os.path.join(SCREENSHOTS, f"prod_audit_{name}.png"), full_page=True)
 
 
-def pass_beta_gate(page: Page) -> None:
-    """Fill and submit the beta access password gate if it appears."""
-    page.goto(PROD_URL)
-    if "Beta Access" in page.title():
-        page.fill('input[name="password"]', BETA_PASS)
-        page.click('button[type="submit"]')
-        page.wait_for_load_state("networkidle")
-
-
 def login(page: Page) -> None:
     """Authenticate as the configured prod user."""
-    pass_beta_gate(page)
     page.goto(f"{PROD_URL}/auth/login")
     page.wait_for_selector('input[name="email"]')
     page.fill('input[name="email"]', USER_EMAIL)
@@ -86,7 +74,6 @@ def login(page: Page) -> None:
 @pytest.mark.prod
 def test_A01_homepage_anonymous(page: Page):
     """Homepage loads with hero section and club cards."""
-    pass_beta_gate(page)
     page.goto(PROD_URL)
     page.wait_for_load_state("networkidle")
     ss(page, "A01_homepage_anon")
@@ -100,7 +87,6 @@ def test_A01_homepage_anonymous(page: Page):
 @pytest.mark.prod
 def test_A02_find_clubs_page(page: Page):
     """Find Clubs page lists clubs and shows search."""
-    pass_beta_gate(page)
     page.goto(f"{PROD_URL}/clubs/")
     page.wait_for_load_state("networkidle")
     ss(page, "A02_find_clubs")
@@ -112,7 +98,6 @@ def test_A02_find_clubs_page(page: Page):
 @pytest.mark.prod
 def test_A03_club_map(page: Page):
     """Club map loads Leaflet map with at least one club pin."""
-    pass_beta_gate(page)
     page.goto(f"{PROD_URL}/clubs/map/")
     page.wait_for_load_state("networkidle")
     # Wait for Leaflet to initialise (map container gets populated)
@@ -127,7 +112,6 @@ def test_A03_club_map(page: Page):
 @pytest.mark.prod
 def test_A04_discover_rides(page: Page):
     """Discover Rides page shows ride cards."""
-    pass_beta_gate(page)
     page.goto(f"{PROD_URL}/discover/")
     page.wait_for_load_state("networkidle")
     ss(page, "A04_discover_rides")
@@ -138,7 +122,6 @@ def test_A04_discover_rides(page: Page):
 @pytest.mark.prod
 def test_A05_demo_club_home(page: Page):
     """Demo club page renders without raw markdown syntax."""
-    pass_beta_gate(page)
     page.goto(f"{PROD_URL}/clubs/paceline-demo/")
     page.wait_for_load_state("networkidle")
     ss(page, "A05_demo_club_home")
@@ -184,7 +167,6 @@ def test_A07_calendar_views(page: Page):
 @pytest.mark.prod
 def test_A08_about_and_help(page: Page):
     """About and Help pages load without errors."""
-    pass_beta_gate(page)
     for path, expected_title in (("/about", "About"), ("/help/", "Help")):
         page.goto(f"{PROD_URL}{path}")
         page.wait_for_load_state("networkidle")
@@ -197,7 +179,6 @@ def test_A08_about_and_help(page: Page):
 @pytest.mark.prod
 def test_B01_register_page(page: Page):
     """Register page renders all fields and Google OAuth button."""
-    pass_beta_gate(page)
     page.goto(f"{PROD_URL}/auth/register")
     page.wait_for_load_state("networkidle")
     ss(page, "B01_register_page")
@@ -212,7 +193,6 @@ def test_B01_register_page(page: Page):
 @pytest.mark.prod
 def test_B02_login_page(page: Page):
     """Login page renders form with CSRF token."""
-    pass_beta_gate(page)
     page.goto(f"{PROD_URL}/auth/login")
     page.wait_for_load_state("networkidle")
     ss(page, "B02_login_page")
@@ -225,7 +205,6 @@ def test_B02_login_page(page: Page):
 @pytest.mark.prod
 def test_B03_invalid_login(page: Page):
     """Invalid credentials show an error flash, no 500."""
-    pass_beta_gate(page)
     page.goto(f"{PROD_URL}/auth/login")
     page.fill('input[name="email"]', "nobody@example.com")
     page.fill('input[name="password"]', "wrongpassword")
