@@ -11,13 +11,16 @@ from tests.conftest import login
 # ── Profile privacy ───────────────────────────────────────────────────────────
 
 class TestProfilePrivacy:
-    def test_private_profile_hides_details_from_stranger(self, client, regular_user, second_user):
+    def test_private_profile_hides_details_from_stranger(self, client, db, regular_user, second_user):
         # default is private
+        second_user.bio = 'Private training notes.'
+        db.session.commit()
         login(client)
         resp = client.get(f'/users/{second_user.username}')
         assert resp.status_code == 200
         assert b'This profile is private' in resp.data
         assert b'Ride history is private' in resp.data
+        assert b'Private training notes.' not in resp.data
 
     def test_public_profile_visible_to_all(self, client, db, regular_user, second_user):
         second_user.profile_is_public = True

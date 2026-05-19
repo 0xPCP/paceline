@@ -47,6 +47,7 @@ class WFTestConfig:
     WTF_CSRF_ENABLED = False
     SECRET_KEY = 'wf-anon-profile-secret'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    RATELIMIT_ENABLED = False
     STRAVA_CLIENT_ID = None
     STRAVA_CLIENT_SECRET = None
     STRAVA_CLUB_ID = None
@@ -79,6 +80,7 @@ def server_info():
             gender='female',
             bio='Avid gravel cyclist based in Reston, VA.',
             strava_id=99887766,
+            profile_is_public=True,
         )
         bob = User(
             username='bob', email='bob@wf.example.com',
@@ -736,7 +738,8 @@ def test_scenario_i_discover_shows_user_rides(server_info, browser):
     page = context.new_page()
 
     _login(page, base, 'bob@wf.example.com')
-    page.goto(f'{base}/discover/?range=two-weeks')
+    # source=all is required to include personal public rides (default is verified-clubs-only)
+    page.goto(f'{base}/discover/?range=two-weeks&source=all')
     page.wait_for_selector('h1')
     _shot(page, 'I01_discover_page_with_user_rides')
 

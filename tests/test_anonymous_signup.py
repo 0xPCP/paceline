@@ -167,6 +167,7 @@ class TestPublicProfile:
 
     def test_public_profile_shows_bio(self, client, db, regular_user, second_user):
         regular_user.bio = 'Avid gravel rider from Ashburn.'
+        regular_user.profile_is_public = True
         _db.session.commit()
         login(client, 'rider2@test.com')
         rv = client.get(f'/users/rider')
@@ -175,6 +176,7 @@ class TestPublicProfile:
 
     def test_public_profile_shows_strava_link(self, client, db, regular_user, second_user):
         regular_user.strava_id = 12345678
+        regular_user.profile_is_public = True
         _db.session.commit()
         login(client, 'rider2@test.com')
         rv = client.get(f'/users/rider')
@@ -183,6 +185,7 @@ class TestPublicProfile:
 
     def test_public_profile_shows_public_rides(self, client, db, sample_club,
                                                regular_user, second_user):
+        regular_user.profile_is_public = True
         past_date = TODAY - timedelta(days=10)
         ride = _make_club_ride(db, sample_club, date=past_date, title='Past Club Ride')
         _db.session.add(RideSignup(ride_id=ride.id, user_id=regular_user.id, is_anonymous=False))
@@ -194,6 +197,7 @@ class TestPublicProfile:
 
     def test_public_profile_hides_anonymous_rides(self, client, db, sample_club,
                                                   regular_user, second_user):
+        regular_user.profile_is_public = True
         past_date = TODAY - timedelta(days=5)
         ride = _make_club_ride(db, sample_club, date=past_date, title='Secret Ride')
         _db.session.add(RideSignup(ride_id=ride.id, user_id=regular_user.id, is_anonymous=True))

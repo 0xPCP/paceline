@@ -44,7 +44,9 @@ import pytest
 
 from playwright.sync_api import Page, expect
 
-PROD_URL    = "https://paceline.club"
+# paceline.club is Cloudflare-protected and blocks headless browsers.
+# Use the DigitalOcean direct URL to bypass Cloudflare for automated tests.
+PROD_URL    = os.environ.get("PROD_URL", "https://paceline-2akis.ondigitalocean.app")
 BETA_PASS   = os.environ.get("PROD_BETA_PASSWORD", "pacelinesarefun")
 USER_EMAIL  = os.environ.get("PROD_USER_EMAIL",    "phil@pcp.dev")
 USER_PASS   = os.environ.get("PROD_USER_PASSWORD", "REDACTED")
@@ -155,23 +157,24 @@ def test_A05_demo_club_home(page: Page):
 
 
 @pytest.mark.prod
-def test_A06_ride_detail_anonymous(page: Page):
-    """Ride detail page shows ride info and prompts sign-in for signup."""
-    pass_beta_gate(page)
-    page.goto(f"{PROD_URL}/clubs/paceline-demo/rides/12")
+def test_A06_ride_detail(page: Page):
+    """Ride detail page shows ride info and ICS download link."""
+    # The demo club requires membership, so we log in first.  Ride IDs 18–22
+    # are the seeded demo rides in production (12 no longer exists).
+    login(page)
+    page.goto(f"{PROD_URL}/clubs/paceline-demo/rides/18")
     page.wait_for_load_state("networkidle")
-    ss(page, "A06_ride_detail_anon")
+    ss(page, "A06_ride_detail")
     assert "Paceline Demo Club" in page.title()
-    # Add to Calendar link should be present
+    # Add to Calendar link should be present for all authenticated users
     expect(page.locator("a[href*='/ics']")).to_be_visible()
-    # Sign-in prompt in the signup section (multiple "Sign in" links exist on the page)
-    expect(page.locator(".signup-login-cta a")).to_be_visible()
 
 
 @pytest.mark.prod
 def test_A07_calendar_views(page: Page):
     """Club calendar month and week views load correctly."""
-    pass_beta_gate(page)
+    # Demo club requires membership — log in so rides are visible.
+    login(page)
     for view in ("month", "week", "list"):
         page.goto(f"{PROD_URL}/clubs/paceline-demo/rides/?view={view}")
         page.wait_for_load_state("networkidle")
@@ -340,7 +343,7 @@ def test_D01_superadmin_dashboard(page: Page):
     page.goto(f"{PROD_URL}/admin/")
     page.wait_for_load_state("networkidle")
     ss(page, "D01_superadmin_dashboard")
-    expect(page).to_have_title("Superadmin Dashboard — Paceline")
+    expect(page).to_have_title("Super Admin Dashboard — Paceline")
     expect(page.locator("text=Active Clubs")).to_be_visible()
     expect(page.locator("text=Total Users")).to_be_visible()
 

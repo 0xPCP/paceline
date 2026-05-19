@@ -43,6 +43,7 @@ class WFTestConfig:
     WTF_CSRF_ENABLED = False
     SECRET_KEY = 'wf-new-user-secret'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    RATELIMIT_ENABLED = False
     STRAVA_CLIENT_ID = None
     STRAVA_CLIENT_SECRET = None
     STRAVA_CLUB_ID = None
