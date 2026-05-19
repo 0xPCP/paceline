@@ -158,22 +158,21 @@ def test_A05_demo_club_home(page: Page):
 
 @pytest.mark.prod
 def test_A06_ride_detail(page: Page):
-    """Ride detail page shows ride info and ICS download link."""
-    # The demo club requires membership, so we log in first.  Ride IDs 18–22
-    # are the seeded demo rides in production (12 no longer exists).
+    """Ride detail page shows ride info and ICS download link (requires login)."""
+    # Ride views require authentication — anonymous users are redirected to login.
+    # Ride IDs 18–22 are the seeded demo rides in production (12 no longer exists).
     login(page)
     page.goto(f"{PROD_URL}/clubs/paceline-demo/rides/18")
     page.wait_for_load_state("networkidle")
     ss(page, "A06_ride_detail")
     assert "Paceline Demo Club" in page.title()
-    # Add to Calendar link should be present for all authenticated users
     expect(page.locator("a[href*='/ics']")).to_be_visible()
 
 
 @pytest.mark.prod
 def test_A07_calendar_views(page: Page):
-    """Club calendar month and week views load correctly."""
-    # Demo club requires membership — log in so rides are visible.
+    """Club calendar month and week views load correctly (requires login)."""
+    # Ride views require authentication — log in before testing calendar views.
     login(page)
     for view in ("month", "week", "list"):
         page.goto(f"{PROD_URL}/clubs/paceline-demo/rides/?view={view}")
