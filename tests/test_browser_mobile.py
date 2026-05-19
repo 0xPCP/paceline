@@ -30,6 +30,7 @@ class BrowserTestConfig:
     WTF_CSRF_ENABLED = False
     SECRET_KEY = 'browser-test-secret'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    RATELIMIT_ENABLED = False
     STRAVA_CLIENT_ID = None
     STRAVA_CLIENT_SECRET = None
     STRAVA_CLUB_ID = None

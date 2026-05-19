@@ -222,28 +222,32 @@ class TestDiscovery:
 
 class TestLeaderRoster:
     def test_add_leader(self, client, db, sample_club, club_admin_user):
+        db.session.add(ClubMembership(user_id=club_admin_user.id, club_id=sample_club.id, status='active'))
+        db.session.commit()
         login(client, email=club_admin_user.email)
         r = client.post(f'/admin/clubs/{sample_club.slug}/leaders/new', data={
-            'name': 'Dave K.',
+            'user_id': club_admin_user.id,
             'bio': 'Fast wheels since 2008.',
-            'photo_url': '',
             'display_order': 0,
         }, follow_redirects=True)
         assert r.status_code == 200
-        assert b'Leader added' in r.data
-        assert ClubLeader.query.filter_by(club_id=sample_club.id, name='Dave K.').first() is not None
+        assert b'added to the leaders roster' in r.data
+        assert ClubLeader.query.filter_by(club_id=sample_club.id, user_id=club_admin_user.id).first() is not None
 
     def test_edit_leader(self, client, db, sample_club, club_admin_user):
+        db.session.add(ClubMembership(user_id=club_admin_user.id, club_id=sample_club.id, status='active'))
+        db.session.commit()
         login(client, email=club_admin_user.email)
-        leader = ClubLeader(club_id=sample_club.id, name='Old Name', display_order=0)
+        leader = ClubLeader(club_id=sample_club.id, user_id=club_admin_user.id, name=club_admin_user.username, display_order=0)
         db.session.add(leader)
         db.session.commit()
         r = client.post(f'/admin/clubs/{sample_club.slug}/leaders/{leader.id}/edit', data={
-            'name': 'New Name', 'bio': '', 'photo_url': '', 'display_order': 1,
+            'user_id': club_admin_user.id, 'bio': 'Updated leader bio.', 'display_order': 1,
         }, follow_redirects=True)
         assert b'Leader updated' in r.data
         db.session.refresh(leader)
-        assert leader.name == 'New Name'
+        assert leader.name == club_admin_user.username
+        assert leader.bio == 'Updated leader bio.'
 
     def test_delete_leader(self, client, db, sample_club, club_admin_user):
         login(client, email=club_admin_user.email)

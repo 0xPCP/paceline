@@ -469,8 +469,7 @@ def test_browser_homepage_french(i18n_server, browser):
     switch_lang_browser(page, i18n_server, 'fr')
     page.goto(i18n_server)
     page.wait_for_selector('.hero-title')
-    title = page.locator('.hero-title').inner_text()
-    assert 'groupe' in title or 'Trouvez' in title
+    assert 'Connecter les cyclistes' in page.locator('.hero-title').inner_text()
     _screenshot(page, 'homepage_fr')
     page.close()
 
@@ -480,8 +479,7 @@ def test_browser_homepage_spanish(i18n_server, browser):
     switch_lang_browser(page, i18n_server, 'es')
     page.goto(i18n_server)
     page.wait_for_selector('.hero-title')
-    title = page.locator('.hero-title').inner_text()
-    assert 'grupo' in title or 'Encuentra' in title
+    assert 'Conectando ciclistas' in page.locator('.hero-title').inner_text()
     _screenshot(page, 'homepage_es')
     page.close()
 
@@ -491,8 +489,7 @@ def test_browser_homepage_german(i18n_server, browser):
     switch_lang_browser(page, i18n_server, 'de')
     page.goto(i18n_server)
     page.wait_for_selector('.hero-title')
-    title = page.locator('.hero-title').inner_text()
-    assert 'Gruppe' in title or 'Finde' in title
+    assert 'Radfahrende verbinden' in page.locator('.hero-title').inner_text()
     _screenshot(page, 'homepage_de')
     page.close()
 

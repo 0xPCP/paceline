@@ -47,6 +47,7 @@ class WFCreatorTestConfig:
     WTF_CSRF_ENABLED = False
     SECRET_KEY = 'wf-creator-secret'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    RATELIMIT_ENABLED = False
     STRAVA_CLIENT_ID = None
     STRAVA_CLIENT_SECRET = None
     STRAVA_CLUB_ID = None
@@ -71,8 +72,12 @@ def server_info():
     with app.app_context():
         _db.create_all()
 
-        # Pre-seed support users for team/member scenarios
+        # Pre-seed support users for team/member scenarios.
+        # founder is also seeded here so Scenario C can run independently
+        # (Scenario A creates founder via browser registration; that only
+        # persists within a full module run, not when C is run in isolation).
         support_users = [
+            ('founder',    'founder@wf.example.com',     'TestPass1!'),
             ('ridemgr',   'ridemgr@wf.example.com',    'TestPass1!'),
             ('fulladmin2', 'fulladmin2@wf.example.com',  'TestPass1!'),
             ('joiner_a',  'joiner_a@wf.example.com',    'TestPass1!'),
