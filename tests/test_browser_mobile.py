@@ -17,7 +17,7 @@ from datetime import date, timedelta, time as dtime
 
 from app import create_app
 from app.extensions import db as _db
-from app.models import Club, Ride
+from app.models import Club, Ride, User
 
 MOBILE_VIEWPORT = {'width': 390, 'height': 844}
 TEST_DB_PATH = os.path.join(os.path.dirname(__file__), '_browser_test.db')
@@ -48,6 +48,7 @@ def server_info():
 
     with app.app_context():
         _db.create_all()
+        from app.extensions import bcrypt
 
         today = date.today()
         next_monday = today + timedelta(days=7 - today.weekday())
@@ -75,6 +76,13 @@ def server_info():
         ]
         for r in rides:
             _db.session.add(r)
+
+        test_user = User(
+            username='mobiletest',
+            email='mobiletest@test.example.com',
+            password_hash=bcrypt.generate_password_hash('TestPass1!').decode(),
+        )
+        _db.session.add(test_user)
         _db.session.commit()
 
         club_slug = club.slug
@@ -108,6 +116,15 @@ def mobile_page(browser):
 
 def desktop_page(browser):
     return browser.new_page(viewport={'width': 1440, 'height': 900})
+
+
+def _login(page, base, email='mobiletest@test.example.com', password='TestPass1!'):
+    page.goto(f'{base}/auth/login')
+    page.wait_for_selector('input[name="email"]')
+    page.fill('input[name="email"]', email)
+    page.fill('input[name="password"]', password)
+    page.click('button[type="submit"], input[type="submit"]')
+    page.wait_for_load_state('networkidle')
 
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
@@ -144,6 +161,7 @@ def test_club_home_shows_rides(server_info, browser):
 def test_ride_list_renders_on_mobile(server_info, browser):
     base, slug, _ = server_info
     page = mobile_page(browser)
+    _login(page, base)
     page.goto(f'{base}/clubs/{slug}/rides/?view=list')
     page.wait_for_selector('.ride-row, .ride-card')
 
@@ -157,6 +175,7 @@ def test_week_view_has_scroll_wrapper(server_info, browser):
     """Week grid must be wrapped in .week-grid-wrap for overflow-x scrolling."""
     base, slug, _ = server_info
     page = mobile_page(browser)
+    _login(page, base)
     page.goto(f'{base}/clubs/{slug}/rides/?view=week')
     page.wait_for_selector('.week-grid-wrap')
 
@@ -172,6 +191,7 @@ def test_week_view_has_scroll_wrapper(server_info, browser):
 def test_month_view_renders_on_mobile(server_info, browser):
     base, slug, _ = server_info
     page = mobile_page(browser)
+    _login(page, base)
     page.goto(f'{base}/clubs/{slug}/rides/?view=month')
     page.wait_for_selector('.month-grid-wrap, .month-grid')
 
@@ -185,6 +205,7 @@ def test_ride_detail_signup_card_first_on_mobile(server_info, browser):
     """Signup card (order-1) must appear above ride details (order-2) on mobile."""
     base, slug, ride_id = server_info
     page = mobile_page(browser)
+    _login(page, base)
     page.goto(f'{base}/clubs/{slug}/rides/{ride_id}')
     page.wait_for_selector('.signup-card')
 

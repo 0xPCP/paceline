@@ -117,22 +117,26 @@ def test_no_theme_css_without_theme(client, sample_club, mock_weather):
     assert b'--paceline-green-dark' not in resp.data
 
 
-def test_theme_css_injected_on_calendar(client, sample_club, mock_weather):
+def test_theme_css_injected_on_calendar(client, sample_club, regular_user, mock_weather):
     """Club calendar list page also gets the theme CSS."""
+    from tests.conftest import login
     sample_club.theme_primary = '#880000'
     db.session.commit()
 
+    login(client)
     resp = client.get(f'/clubs/{sample_club.slug}/rides/')
     assert resp.status_code == 200
     assert b'--paceline-green' in resp.data
 
 
-def test_theme_css_injected_on_ride_detail(client, sample_club, sample_rides, mock_weather):
+def test_theme_css_injected_on_ride_detail(client, sample_club, sample_rides, regular_user, mock_weather):
     """Ride detail page gets the theme CSS."""
+    from tests.conftest import login
     sample_club.theme_accent = '#cc3300'
     db.session.commit()
 
     ride = sample_rides[0]
+    login(client)
     resp = client.get(f'/clubs/{sample_club.slug}/rides/{ride.id}')
     assert resp.status_code == 200
     assert b'--paceline-orange' in resp.data

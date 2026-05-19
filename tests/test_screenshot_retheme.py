@@ -44,7 +44,7 @@ def srv():
             tagline="Northern Virginia's premier road cycling community",
             description='Weekly rides for all levels — from beginner to racer.',
             city='Reston', state='VA', zip_code='20191',
-            is_active=True,
+            is_active=True, is_hidden=False,
         )
         _db.session.add(club)
         _db.session.flush()
@@ -139,12 +139,12 @@ def test_find_clubs_page(srv, browser):
 
 
 def test_club_home_nav(srv, browser):
-    """Club page nav should be white (not dark green)."""
+    """Club page tab bar is present."""
     page = browser.new_page(viewport=DESKTOP)
     page.goto(f'{srv}/clubs/test-rbc/')
-    page.wait_for_selector('.club-page-nav')
+    page.wait_for_selector('.club-tab-bar')
     page.wait_for_timeout(800)
-    nav = page.locator('.club-page-nav')
+    nav = page.locator('.club-tab-bar')
     nav.screenshot(path=f'{OUT_DIR}/06_club_nav_closeup.png')
     page.close()
 

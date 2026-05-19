@@ -42,6 +42,7 @@ def srv():
         # Club WITH banner, tagline, social, safety
         rbc = Club(
             slug='rbc', name='Reston Bike Club',
+            is_hidden=False,
             tagline="Northern Virginia's premier road cycling community since 1972",
             description=(
                 'One of the largest cycling clubs in Northern Virginia. '
@@ -69,6 +70,7 @@ def srv():
         # Club WITHOUT banner (solid color fallback)
         nvcc = Club(
             slug='nvcc', name='Northern Virginia Cycling Club',
+            is_hidden=False,
             tagline='Fast-paced road and gravel in the DC suburbs',
             description='Known for challenging Saturday hammerfests.',
             city='McLean', state='VA',

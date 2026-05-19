@@ -243,12 +243,16 @@ def _login(page, base, email, password='TestPass1!'):
 
 def test_scenario_a_auth_gate_unauthenticated(server_info, browser):
     """
-    Unauthenticated visitor can see ride info but NOT the signup list or profiles.
+    Unauthenticated visitors are redirected to login for protected content.
+
+    v0.121: Club ride detail requires login — anonymous visitors are redirected.
+    User-owned public rides still show a locked view without login.
+    Profile pages require login.
 
     Screenshots:
-      A01_anon_club_ride_detail  — ride detail, no signup list visible
-      A02_anon_public_ride       — user-owned public ride, no personal data
-      A03_profile_redirect       — /users/alice redirects to login
+      A01_anon_club_ride_redirect  — redirect to login for club ride detail
+      A02_anon_public_ride         — user-owned public ride, no personal data
+      A03_profile_redirect         — /users/alice redirects to login
     """
     base = server_info['base']
     slug = server_info['club_slug']
@@ -258,27 +262,30 @@ def test_scenario_a_auth_gate_unauthenticated(server_info, browser):
     context = browser.new_context()
     page = context.new_page()
 
-    # A01: Club ride detail — unauthenticated
+    # A01: Club ride detail — unauthenticated users are redirected to login (auth gate)
     page.goto(f'{base}/clubs/{slug}/rides/{ride_id}')
-    page.wait_for_selector('h1')
-    _shot(page, 'A01_anon_club_ride_detail')
+    page.wait_for_load_state('networkidle')
+    _shot(page, 'A01_anon_club_ride_redirect')
 
-    content = page.content()
-    assert 'Saturday Club Ride' in content, 'Ride title should be visible to all'
-    assert 'Town Hall Parking Lot' in content, 'Location should be visible'
-    assert "Who's coming" not in content, "Signup list must be hidden from anonymous visitors"
-    assert 'Sign in' in content, 'Sign-in prompt should appear'
+    # Must end up on the login page — ride data is protected
+    assert 'login' in page.url.lower(), \
+        f'Anonymous visitor should be redirected to login, got: {page.url}'
+    assert page.locator('input[name="email"]').is_visible(), \
+        'Login form must be shown to unauthenticated visitor'
 
-    # A02: User-owned public ride — unauthenticated
+    # A02: User-owned public ride — shows a locked view without login
     page.goto(f'{base}/my-rides/{alice_pub}')
-    page.wait_for_selector('h1')
+    page.wait_for_selector('h1, .card')
     _shot(page, 'A02_anon_public_ride_detail')
 
-    assert "Alice's Saturday Gravel Ride" in page.content()
-    assert "Who's coming" not in page.content()
+    content = page.content()
+    assert "Alice's Saturday Gravel Ride" in content, \
+        'Public ride title should be visible in locked view'
+    assert "Who's coming" not in content, \
+        "Signup list must be hidden from anonymous visitors"
 
     # A03: Public profile requires login
-    resp = page.goto(f'{base}/users/alice')
+    page.goto(f'{base}/users/alice')
     page.wait_for_load_state('networkidle')
     _shot(page, 'A03_profile_redirect_to_login')
     # Should be on the login page or show login form

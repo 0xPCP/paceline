@@ -1,4 +1,4 @@
-﻿"""
+"""
 Browser workflow tests: New User Registration â†’ Join Club â†’ Ride Signup
 
 Runs a real Flask dev server in a background thread and drives it with Playwright
@@ -50,7 +50,7 @@ class WFTestConfig:
     STRAVA_CLUB_REFRESH_TOKEN = None
 
 
-# â”€â”€ Module-level server fixture â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â"€â"€ Module-level server fixture â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 @pytest.fixture(scope='module')
 def server_info():
@@ -191,7 +191,7 @@ def server_info():
         pass
 
 
-# â”€â”€ Auth helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â"€â"€ Auth helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 def _register_user(page, base, username, email, password='TestPass1!'):
     """Fill and submit the registration form via the browser."""
@@ -230,23 +230,23 @@ def _shot(page, name):
     page.screenshot(path=path, full_page=True)
 
 
-# â”€â”€ Scenario A: Auto-approval club happy path â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â"€â"€ Scenario A: Auto-approval club happy path â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 def test_scenario_a_register_join_auto_club_signup(server_info, browser):
     """
     Complete new-user journey through a public auto-approval club.
 
     Screenshots:
-      01_homepage          â€” landing page before login
-      02_register          â€” registration form
-      03_after_register    â€” page after successful registration
-      04_club_directory    â€” /clubs/ listing
-      05_club_home         â€” club home page
-      06_after_join        â€” club home after joining (shows member state)
-      07_waiver            â€” waiver acceptance page
-      08_after_waiver      â€” page after signing waiver
-      09_ride_detail       â€” ride detail page with signup card
-      10_after_signup      â€” ride detail after signing up (roster count updated)
+      01_homepage          â€" landing page before login
+      02_register          â€" registration form
+      03_after_register    â€" page after successful registration
+      04_club_directory    â€" /clubs/ listing
+      05_club_home         â€" club home page
+      06_after_join        â€" club home after joining (shows member state)
+      07_waiver            â€" waiver acceptance page
+      08_after_waiver      â€" page after signing waiver
+      09_ride_detail       â€" ride detail page with signup card
+      10_after_signup      â€" ride detail after signing up (roster count updated)
     """
     base = server_info['base']
     slug = server_info['auto_club_slug']
@@ -335,19 +335,19 @@ def test_scenario_a_register_join_auto_club_signup(server_info, browser):
     context.close()
 
 
-# â”€â”€ Scenario B: Manual-approval club â€” pending state + admin approval â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â"€â"€ Scenario B: Manual-approval club â€" pending state + admin approval â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 def test_scenario_b_manual_club_pending_then_approved(server_info, browser):
     """
     Join a manual-approval club â†’ pending state shown â†’ admin approves â†’ access.
 
     Screenshots:
-      11_manual_club_home    â€” club home as non-member
-      12_after_join_pending  â€” club home after joining (pending state)
-      13_pending_blocked     â€” ride page showing membership required
-      14_admin_team_page     â€” admin team/membership management page
-      15_after_approval      â€” club home as newly approved member
-      16_member_ride_detail  â€” ride page accessible to approved member
+      11_manual_club_home    â€" club home as non-member
+      12_after_join_pending  â€" club home after joining (pending state)
+      13_pending_blocked     â€" ride page showing membership required
+      14_admin_team_page     â€" admin team/membership management page
+      15_after_approval      â€" club home as newly approved member
+      16_member_ride_detail  â€" ride page accessible to approved member
     """
     base = server_info['base']
     manual_slug = server_info['manual_club_slug']
@@ -375,7 +375,7 @@ def test_scenario_b_manual_club_pending_then_approved(server_info, browser):
     page.wait_for_load_state('networkidle')
     _shot(page, '12_after_join_pending')
 
-    # 13: Try to access a ride while pending â€” should see membership required
+    # 13: Try to access a ride while pending â€" should see membership required
     # Find a ride by navigating to rides page
     page.goto(f'{base}/clubs/{manual_slug}/rides/')
     page.wait_for_load_state('networkidle')
@@ -387,7 +387,7 @@ def test_scenario_b_manual_club_pending_then_approved(server_info, browser):
     page.wait_for_selector('h1, .card')
     _shot(page, '14_admin_team_page')
 
-    # Approve the pending member â€” find the approve button on the team page
+    # Approve the pending member â€" find the approve button on the team page
     approve_btn = page.locator(
         'form[action*="/approve"] button, button:has-text("Approve")'
     ).first
@@ -411,19 +411,19 @@ def test_scenario_b_manual_club_pending_then_approved(server_info, browser):
     context.close()
 
 
-# â”€â”€ Scenario C: Public pages (no login) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â"€â"€ Scenario C: Public pages (no login) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
 def test_scenario_c_public_pages_screenshot_tour(server_info, browser):
     """
-    Screenshot tour of all key public pages without logging in.
+    Screenshot tour of key pages. Club directory, map, and club home are public.
+    Ride list and ride detail require login (v0.121 auth gate).
 
     Screenshots:
-      20_public_club_directory  â€” /clubs/
-      21_public_club_map        â€” /clubs/map/
-      22_public_club_home       â€” /clubs/<slug>/
-      23_public_ride_list       â€” /clubs/<slug>/rides/?view=list
-      24_public_ride_detail     â€” /clubs/<slug>/rides/<id>
-      25_public_login_prompt    â€” join button redirects to login
+      20_public_club_directory  — /clubs/
+      21_public_club_map        — /clubs/map/
+      22_public_club_home       — /clubs/<slug>/
+      23_public_ride_list       — /clubs/<slug>/rides/?view=list (logged in)
+      24_public_ride_detail     — /clubs/<slug>/rides/<id> (logged in)
     """
     base = server_info['base']
     slug = server_info['auto_club_slug']
@@ -432,27 +432,28 @@ def test_scenario_c_public_pages_screenshot_tour(server_info, browser):
     context = browser.new_context()
     page = context.new_page()
 
-    # 20: Club directory
+    # 20: Club directory — public, no login needed
     page.goto(f'{base}/clubs/')
     page.wait_for_selector('h1')
     _shot(page, '20_public_club_directory')
 
-    # 21: Club map
+    # 21: Club map — public
     page.goto(f'{base}/clubs/map/')
     page.wait_for_selector('#map-subtitle, #map', timeout=5000)
     _shot(page, '21_public_club_map')
 
-    # 22: Club home
+    # 22: Club home — public
     page.goto(f'{base}/clubs/{slug}/')
     page.wait_for_selector('h1')
     _shot(page, '22_public_club_home')
 
-    # 23: Ride list
+    # 23+24: Ride list and detail require auth — log in first
+    _login_user(page, base, 'admin@rbc.example.com', 'AdminPass1!')
+
     page.goto(f'{base}/clubs/{slug}/rides/?view=list')
     page.wait_for_selector('.ride-row, .ride-card, h1')
     _shot(page, '23_public_ride_list')
 
-    # 24: Ride detail
     page.goto(f'{base}/clubs/{slug}/rides/{ride_id}')
     page.wait_for_selector('h1, .ride-title, .signup-card')
     _shot(page, '24_public_ride_detail')

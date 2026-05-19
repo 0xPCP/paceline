@@ -169,21 +169,25 @@ class TestVirtualDiscovery:
 # ── Club ride detail: virtual display ─────────────────────────────────────────
 
 class TestVirtualRideDetail:
-    def test_shows_virtual_badge(self, client, sample_club, virtual_club_ride, mock_weather):
+    def test_shows_virtual_badge(self, client, sample_club, virtual_club_ride, regular_user, mock_weather):
+        login(client)
         resp = client.get(f'/clubs/test-club/rides/{virtual_club_ride.id}')
         assert b'Virtual' in resp.data
 
-    def test_shows_join_link(self, client, sample_club, virtual_club_ride, mock_weather):
+    def test_shows_join_link(self, client, sample_club, virtual_club_ride, regular_user, mock_weather):
+        login(client)
         resp = client.get(f'/clubs/test-club/rides/{virtual_club_ride.id}')
         assert b'Join on Platform' in resp.data
         assert b'zwift.com' in resp.data
 
-    def test_no_meeting_location_shown_for_virtual(self, client, sample_club, virtual_club_ride, mock_weather):
+    def test_no_meeting_location_shown_for_virtual(self, client, sample_club, virtual_club_ride, regular_user, mock_weather):
+        login(client)
         resp = client.get(f'/clubs/test-club/rides/{virtual_club_ride.id}')
         html = resp.data.decode()
         assert 'Meeting Location' not in html
 
-    def test_physical_ride_still_shows_location(self, client, sample_club, physical_ride, mock_weather):
+    def test_physical_ride_still_shows_location(self, client, sample_club, physical_ride, regular_user, mock_weather):
+        login(client)
         resp = client.get(f'/clubs/test-club/rides/{physical_ride.id}')
         assert b'Lake Newport parking lot' in resp.data
 

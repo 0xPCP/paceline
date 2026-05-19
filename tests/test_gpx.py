@@ -113,17 +113,21 @@ def test_gpx_filename_derived_from_title(client, sample_club):
     assert 'a-ride' in cd.lower()
 
 
-def test_gpx_button_shown_on_ride_detail(client, sample_club, mock_weather):
+def test_gpx_button_shown_on_ride_detail(client, sample_club, regular_user, mock_weather):
     """Download GPX button appears on ride detail for rides with a RideWithGPS route."""
+    from tests.conftest import login
     ride = _make_ride(db, sample_club, route_url='https://ridewithgps.com/routes/42')
+    login(client)
     resp = client.get(f'/clubs/{sample_club.slug}/rides/{ride.id}')
     assert resp.status_code == 200
     assert b'Download GPX' in resp.data
 
 
-def test_gpx_button_hidden_without_route(client, sample_club, mock_weather):
+def test_gpx_button_hidden_without_route(client, sample_club, regular_user, mock_weather):
     """Download GPX button is absent when ride has no route URL."""
+    from tests.conftest import login
     ride = _make_ride(db, sample_club, route_url=None)
+    login(client)
     resp = client.get(f'/clubs/{sample_club.slug}/rides/{ride.id}')
     assert resp.status_code == 200
     assert b'Download GPX' not in resp.data
