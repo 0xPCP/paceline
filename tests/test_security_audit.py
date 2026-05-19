@@ -29,7 +29,8 @@ from app import create_app
 from app.extensions import db as _db
 from app.models import (
     Club, ClubAdmin, ClubMembership, Ride, RideSignup, User,
-    ClubWaiver, WaiverSignature,
+    ClubWaiver, WaiverSignature, ClubBoardPost, ClubBoardReply,
+    RideComment, PlatformPost, SiteFeedback,
 )
 
 
@@ -613,6 +614,87 @@ class TestInjectionAndXSS:
         # ORM parameterises queries; injection attempts should return 404, not 500
         resp = client.get("/users/'; DROP TABLE users; --")
         assert resp.status_code in (404, 302)   # 302 if login redirect fires first
+
+    def test_club_board_post_and_reply_xss_not_rendered_raw(self, client, app, db):
+        club = _make_club(db, slug='board-xss')
+        member = _make_user(db, app, username='member', email='member@t.com')
+        db.session.add(ClubMembership(user_id=member.id, club_id=club.id, status='active'))
+        db.session.commit()
+        post = ClubBoardPost(
+            club_id=club.id,
+            author_id=member.id,
+            body='Board payload <script>alert(1)</script> @member',
+        )
+        db.session.add(post)
+        db.session.flush()
+        db.session.add(ClubBoardReply(
+            post_id=post.id,
+            author_id=member.id,
+            body='Reply payload <img src=x onerror=alert(1)>',
+        ))
+        db.session.commit()
+
+        _login(client, 'member@t.com')
+        resp = client.get(f'/clubs/{club.slug}/board/')
+        assert resp.status_code == 200
+        assert b'<script>alert(1)</script>' not in resp.data
+        assert b'<img src=x onerror=alert(1)>' not in resp.data
+        assert b'&lt;script&gt;alert(1)&lt;/script&gt;' in resp.data
+        assert b'&lt;img src=x onerror=alert(1)&gt;' in resp.data
+        assert b'board-mention' in resp.data
+
+    def test_ride_comment_xss_not_rendered_raw(self, client, app, db):
+        club = _make_club(db, slug='comment-xss')
+        member = _make_user(db, app, username='member', email='member@t.com')
+        db.session.add(ClubMembership(user_id=member.id, club_id=club.id, status='active'))
+        db.session.commit()
+        ride = _make_ride(db, club, title='Comment Ride')
+        db.session.add(RideComment(
+            ride_id=ride.id,
+            user_id=member.id,
+            body='Comment payload <svg/onload=alert(1)>',
+        ))
+        db.session.commit()
+
+        _login(client, 'member@t.com')
+        resp = client.get(f'/clubs/{club.slug}/rides/{ride.id}')
+        assert resp.status_code == 200
+        assert b'<svg/onload=alert(1)>' not in resp.data
+        assert b'&lt;svg/onload=alert(1)&gt;' in resp.data
+
+    def test_platform_post_markdown_escapes_malicious_html_and_links(self, client, app, db):
+        post = PlatformPost(
+            title='Security update',
+            summary='Safe summary',
+            body='### Update\n<script>alert(1)</script>\n[unsafe](javascript:alert(1))',
+            is_published=True,
+        )
+        db.session.add(post)
+        db.session.commit()
+
+        resp = client.get(f'/news/{post.id}')
+        assert resp.status_code == 200
+        assert b'<script>alert(1)</script>' not in resp.data
+        assert b'href="javascript:alert(1)' not in resp.data
+        assert b'&lt;script&gt;alert(1)&lt;/script&gt;' in resp.data
+
+    def test_feedback_xss_not_rendered_raw_in_superadmin_panel(self, client, app, db):
+        _make_user(db, app, username='sa', email='sa@t.com', is_admin=True)
+        db.session.add(SiteFeedback(
+            name='<script>alert(1)</script>',
+            email='feedback@example.com',
+            message='Feedback payload <img src=x onerror=alert(1)>',
+            source='donate',
+        ))
+        db.session.commit()
+
+        _login(client, 'sa@t.com')
+        resp = client.get('/admin/feedback/')
+        assert resp.status_code == 200
+        assert b'<script>alert(1)</script>' not in resp.data
+        assert b'<img src=x onerror=alert(1)>' not in resp.data
+        assert b'&lt;script&gt;alert(1)&lt;/script&gt;' in resp.data
+        assert b'&lt;img src=x onerror=alert(1)&gt;' in resp.data
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

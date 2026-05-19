@@ -462,6 +462,7 @@ Run:
 
 ```bash
 .venv/bin/python -m pytest tests/test_security.py tests/test_privacy.py tests/test_auth.py -q
+.venv/bin/python -m pytest tests/test_security_audit.py -q
 ```
 
 Manually verify:
@@ -478,6 +479,8 @@ Pass criteria:
 
 - No XSS path survives in club posts, ride comments, board posts, or profile fields.
 - Session theft risk controls remain intact.
+- Superadmin destructive actions create audit records.
+- Production-like config rejects development secrets when secure cookies are enabled.
 
 ### Phase 11: Performance and Capacity
 

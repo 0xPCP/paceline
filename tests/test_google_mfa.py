@@ -92,6 +92,28 @@ def test_google_callback_links_existing_verified_email(client, app, regular_user
     assert regular_user.username_finalized is True
 
 
+def test_google_sub_login_does_not_reassign_to_different_email(client, app, regular_user):
+    """Once a Google subject is linked, a changed email claim keeps the same account."""
+    _enable_google(app)
+    regular_user.google_sub = 'stable-google-sub'
+    db.session.commit()
+    with client.session_transaction() as sess:
+        sess['_google_oauth_state'] = 'state-token'
+
+    with patch('app.routes.auth.requests.post', return_value=_json_response({'access_token': 'token'})), \
+         patch('app.routes.auth.requests.get', return_value=_json_response({
+             'sub': 'stable-google-sub',
+             'email': 'changed-google-email@example.com',
+             'email_verified': True,
+         })):
+        resp = client.get('/auth/google/callback?state=state-token&code=auth-code')
+
+    assert resp.status_code == 302
+    db.session.refresh(regular_user)
+    assert regular_user.email == 'rider@test.com'
+    assert User.query.filter_by(email='changed-google-email@example.com').first() is None
+
+
 def test_google_user_must_set_unique_username_before_using_app(client, app):
     _enable_google(app)
     db.session.add(User(

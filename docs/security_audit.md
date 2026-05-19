@@ -156,3 +156,18 @@ Run this audit again (or update this document) when:
 - A new blueprint with admin-level routes is added
 - Dependencies are upgraded (check CVEs)
 - Infrastructure changes (proxy topology, new CDN layer)
+
+## Automated Regression Suite
+
+The expanded regression suite lives in `tests/test_security_audit.py`. It should
+be run before public beta releases and after any security-sensitive change:
+
+```bash
+.venv/bin/python -m pytest tests/test_security_audit.py -q
+```
+
+The suite covers authentication and session security, vertical and horizontal
+authorization, cross-club isolation, CSRF, open redirects, XSS/injection on
+posted content surfaces, sensitive data exposure, security headers, auth rate
+limiting, account enumeration resistance, Stripe webhook signatures, upload
+security, session invalidation, and inactive-account lockout.
