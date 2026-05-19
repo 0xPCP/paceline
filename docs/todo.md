@@ -27,7 +27,7 @@ with that model.
 - Create database backup and restore runbook.
 - Create TrueNAS-to-DigitalOcean database migration runbook.
 - Create TrueNAS-to-Spaces media migration runbook.
-- Add production smoke-test checklist.
+- Run the large pre-beta test deployment in `docs/large_test_deployment.md`.
 - Add billing alert in DigitalOcean.
 
 ### Future Design Constraint

@@ -194,6 +194,9 @@ Before cutting DNS, verify the code + Spaces work together on TrueNAS:
 
 ## Step 6 — Smoke test checklist
 
+For the full pre-beta rehearsal, use `docs/large_test_deployment.md`. The list
+below is the shorter cutover smoke check to run during production deployment.
+
 Run these checks against the target deployment (TrueNAS+Spaces pre-cutover, then again post-cutover on App Platform).
 
 ### Auth
