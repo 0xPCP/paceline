@@ -13,7 +13,7 @@ if ROOT_DIR not in sys.path:
 
 from app import create_app
 from app.extensions import bcrypt, db
-from app.models import Club, ClubAdmin, ClubMembership, Ride, RideSignup, User
+from app.models import Club, ClubAdmin, ClubLeader, ClubMembership, ClubMembershipPayment, Ride, RideSignup, User
 
 
 OUTPUT_DIR = os.path.join(ROOT_DIR, 'app', 'static', 'img', 'help')
@@ -111,12 +111,49 @@ def seed_data(app):
         db.session.add(club)
         db.session.flush()
 
+        rider2 = User(
+            username='sarah',
+            email='sarah@example.com',
+            password_hash=bcrypt.generate_password_hash('TestPass1!').decode(),
+            zip_code='20191',
+        )
+        rider3 = User(
+            username='mike',
+            email='mike@example.com',
+            password_hash=bcrypt.generate_password_hash('TestPass1!').decode(),
+            zip_code='20191',
+        )
+        db.session.add_all([rider2, rider3])
+        db.session.flush()
+
+        paid_through = date.today() + timedelta(days=330)
+        expiring_through = date.today() + timedelta(days=18)
+
+        admin_membership = ClubMembership(
+            user_id=admin.id, club_id=club.id, status='active',
+            dues_paid_until=paid_through,
+        )
+        rider_membership = ClubMembership(
+            user_id=rider.id, club_id=club.id, status='pending_payment',
+        )
+        leader_membership = ClubMembership(
+            user_id=leader.id, club_id=club.id, status='active',
+            dues_paid_until=paid_through,
+        )
+        rider2_membership = ClubMembership(
+            user_id=rider2.id, club_id=club.id, status='active',
+            dues_paid_until=expiring_through,
+        )
+        rider3_membership = ClubMembership(
+            user_id=rider3.id, club_id=club.id, status='active',
+            dues_paid_until=date.today() - timedelta(days=5),
+        )
         db.session.add_all([
             ClubAdmin(user_id=admin.id, club_id=club.id, role='admin'),
-            ClubMembership(user_id=admin.id, club_id=club.id, status='active'),
-            ClubMembership(user_id=rider.id, club_id=club.id, status='pending_payment'),
-            ClubMembership(user_id=leader.id, club_id=club.id, status='active'),
+            admin_membership, rider_membership, leader_membership,
+            rider2_membership, rider3_membership,
         ])
+        db.session.flush()
 
         today = date.today()
         next_saturday = today + timedelta(days=(5 - today.weekday()) % 7 or 7)
@@ -176,6 +213,36 @@ def seed_data(app):
             RideSignup(ride_id=road_ride.id, user_id=rider.id),
             RideSignup(ride_id=completed_ride.id, user_id=rider.id, attended=True),
         ])
+
+        db.session.add_all([
+            ClubLeader(
+                club_id=club.id, user_id=leader.id, name='rideleader',
+                bio='10+ years leading B and C groups around Reston. Flat-repair pro.',
+                display_order=1,
+            ),
+            ClubLeader(
+                club_id=club.id, user_id=admin.id, name='phil',
+                bio='Club founder and Saturday Road Ride organizer.',
+                display_order=2,
+            ),
+        ])
+
+        admin_payment = ClubMembershipPayment(
+            club_id=club.id, user_id=admin.id, membership_id=admin_membership.id,
+            amount_cents=4500, currency='usd', status='paid',
+            provider_session_id='cs_test_admin001',
+            provider_payment_intent_id='pi_3TYPseXYZABCadmin001',
+            paid_at=datetime.now(timezone.utc) - timedelta(days=35),
+        )
+        leader_payment = ClubMembershipPayment(
+            club_id=club.id, user_id=leader.id, membership_id=leader_membership.id,
+            amount_cents=4500, currency='usd', status='paid',
+            provider_session_id='cs_test_leader002',
+            provider_payment_intent_id='pi_3TYPseXYZABCldr002',
+            paid_at=datetime.now(timezone.utc) - timedelta(days=12),
+        )
+        db.session.add_all([admin_payment, leader_payment])
+
         db.session.commit()
         return road_ride.id
 
@@ -233,6 +300,12 @@ def main():
 
             page.goto(f'{BASE_URL}/admin/clubs/nova-paceline/rides')
             shot(page, 'club-rides-admin.png', 'h1')
+
+            page.goto(f'{BASE_URL}/admin/clubs/nova-paceline/leaders')
+            shot(page, 'club-leaders-admin.png', 'h1')
+
+            page.goto(f'{BASE_URL}/admin/clubs/nova-paceline/members')
+            shot(page, 'club-members-roster.png', 'h1')
 
             page.goto(f'{BASE_URL}/clubs/')
             shot(page, 'find-clubs.png', 'h1')

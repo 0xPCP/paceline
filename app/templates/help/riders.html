@@ -18,15 +18,36 @@
 <div class="container py-5">
   <div class="row justify-content-center">
     <div class="col-lg-9">
-      <div class="mb-5">
+
+      {# ── Table of Contents ────────────────────────────────────────────── #}
+      <div class="card mb-5">
+        <div class="card-body">
+          <h6 class="fw-semibold mb-2">On this page</h6>
+          <ol class="mb-0 ps-3">
+            <li><a href="#account">Create an account</a></li>
+            <li><a href="#find-clubs">Find clubs near you</a></li>
+            <li><a href="#join">Join a club and pay dues</a></li>
+            <li><a href="#discover">Discover and sign up for rides</a></li>
+            <li><a href="#my-rides">Manage your rides</a></li>
+            <li><a href="#profile">Set up your profile</a></li>
+            <li><a href="#photo">Upload a profile photo</a></li>
+            <li><a href="#notifications">Manage email notifications</a></li>
+          </ol>
+        </div>
+      </div>
+
+      {# ── 1. Create an account ─────────────────────────────────────────── #}
+      <div class="mb-5" id="account">
         <h2 class="section-heading h4">1. Create an account</h2>
         <p class="section-body">
           Create a free account so you can join clubs, sign up for rides, manage
-          your profile, and see ride details that are limited to members.
+          your profile, and see ride details that are limited to members. You can
+          sign up with an email and password or with your Google account.
         </p>
       </div>
 
-      <div class="mb-5">
+      {# ── 2. Find clubs near you ───────────────────────────────────────── #}
+      <div class="mb-5" id="find-clubs">
         <h2 class="section-heading h4">2. Find clubs near you</h2>
         <p class="section-body">
           Use <strong>Find Clubs</strong> to search by name, city, state, or zip
@@ -46,8 +67,9 @@
         </figure>
       </div>
 
-      <div class="mb-5">
-        <h2 class="section-heading h4">3. Join a club</h2>
+      {# ── 3. Join a club and pay dues ──────────────────────────────────── #}
+      <div class="mb-5" id="join">
+        <h2 class="section-heading h4">3. Join a club and pay dues</h2>
         <p class="section-body">
           On a club page, choose <strong>Join Club</strong>. Some clubs approve
           members automatically. Others review requests manually before you become
@@ -57,9 +79,52 @@
           Some clubs also require a waiver before you can sign up for rides.
           If a waiver is required, Paceline will show you the next step.
         </p>
+
+        <h6 class="mt-3 mb-1 fw-semibold">When a club requires dues</h6>
+        <p class="section-body">
+          If the club requires paid dues, your membership starts in a
+          <strong>pending payment</strong> state after joining. You will see a
+          <strong>Pay Club Dues</strong> button at the top of the club page.
+        </p>
+        <p class="section-body">
+          Clicking that button opens <strong>Stripe Checkout</strong> — a secure
+          payment page hosted by Stripe, not Paceline. Enter your card details and
+          complete the payment. Stripe processes the charge on the club's Stripe
+          account and notifies Paceline immediately. Paceline marks your membership
+          active automatically — you do not need to wait for a club admin to confirm.
+        </p>
+        <p class="section-body">
+          The amount you see at Stripe Checkout is exactly what the club set as
+          their dues amount. Paceline does not add any fees visible to you.
+        </p>
+        <figure class="mb-0">
+          <img class="img-fluid rounded border shadow-sm"
+               src="{{ url_for('static', filename='img/help/club-dues-payment.png') }}"
+               alt="Club page showing Pay Club Dues button for a rider with a pending membership">
+          <figcaption class="small text-muted mt-2">
+            When dues are required and the club uses Stripe, the Pay Club Dues button takes you
+            directly to Stripe Checkout.
+          </figcaption>
+        </figure>
+
+        <h6 class="mt-3 mb-1 fw-semibold">If the club uses manual dues</h6>
+        <p class="section-body">
+          Some clubs collect dues outside Paceline and confirm payment manually.
+          Your membership will show as pending until the club admin confirms your
+          payment. The club's description or contact page will tell you where to
+          pay.
+        </p>
+
+        <h6 class="mt-3 mb-1 fw-semibold">Renewing your membership</h6>
+        <p class="section-body">
+          Paceline shows the Pay Club Dues button again when your membership
+          expires or is within 30 days of expiring. You can renew early at any
+          time the button is visible.
+        </p>
       </div>
 
-      <div class="mb-5">
+      {# ── 4. Discover and sign up for rides ───────────────────────────── #}
+      <div class="mb-5" id="discover">
         <h2 class="section-heading h4">4. Discover and sign up for rides</h2>
         <p class="section-body">
           Use <strong>Discover Rides</strong> to browse upcoming rides across
@@ -69,6 +134,10 @@
         <p class="section-body">
           Open a ride page to review the start time, distance, pace, meeting
           location, route details, signup count, weather, and discussion.
+        </p>
+        <p class="section-body">
+          The who's coming list shows signed-up riders with their profile photo
+          and username so you can see familiar faces before the ride.
         </p>
         <figure class="mb-0">
           <img class="img-fluid rounded border shadow-sm"
@@ -80,7 +149,8 @@
         </figure>
       </div>
 
-      <div class="mb-5">
+      {# ── 5. Manage your rides ─────────────────────────────────────────── #}
+      <div class="mb-5" id="my-rides">
         <h2 class="section-heading h4">5. Manage your rides</h2>
         <p class="section-body">
           Your home page shows upcoming rides from your clubs and rides you have
@@ -97,17 +167,54 @@
         </figure>
       </div>
 
-      <div class="mb-5">
-        <h2 class="section-heading h4">6. Keep your profile current</h2>
+      {# ── 6. Set up your profile ───────────────────────────────────────── #}
+      <div class="mb-5" id="profile">
+        <h2 class="section-heading h4">6. Set up your profile</h2>
         <p class="section-body">
-          Add your zip code for better recommendations. You can also add optional
-          profile details, emergency contact information, gear inventory, and a
-          Strava connection.
+          Keep your profile current from <strong>Profile</strong> in the top navigation.
+          Add your zip code for better ride recommendations. Other optional details
+          include emergency contact information, a gear inventory, and a Strava connection.
+        </p>
+        <p class="section-body">
+          The <strong>Club Memberships</strong> section on your profile shows all
+          the clubs you have joined and each membership's current status, so you
+          can track which memberships are active or expiring soon.
         </p>
       </div>
 
-      <div class="mb-5">
-        <h2 class="section-heading h4">7. Manage email notifications</h2>
+      {# ── 7. Upload a profile photo ────────────────────────────────────── #}
+      <div class="mb-5" id="photo">
+        <h2 class="section-heading h4">7. Upload a profile photo</h2>
+        <p class="section-body">
+          A profile photo appears as a circular avatar next to your username
+          everywhere on Paceline — the who's coming list on ride pages, the ride
+          leaders section, and club member listings.
+        </p>
+        <p class="section-body">
+          To upload a photo, open <strong>Profile</strong> and click
+          <strong>Upload Photo</strong> in the Profile Photo card. Choose a JPEG,
+          PNG, WebP, or GIF file from your device.
+        </p>
+        <p class="section-body">
+          A crop tool opens automatically. Drag the image to center your face
+          inside the circular preview, then click <strong>Save Photo</strong>.
+          Paceline crops the image to a square, resizes it, and stores it securely.
+          Your avatar updates immediately.
+        </p>
+        <p class="section-body">
+          If you do not upload a photo but have connected Strava, Paceline uses
+          your Strava profile photo as a fallback. If neither is available, your
+          username initial appears in a green circle.
+        </p>
+        <p class="section-body">
+          To remove your profile photo, click <strong>Remove photo</strong> beneath
+          the avatar. This reverts to the Strava fallback or the initial letter.
+        </p>
+      </div>
+
+      {# ── 8. Manage email notifications ───────────────────────────────── #}
+      <div class="mb-5" id="notifications">
+        <h2 class="section-heading h4">8. Manage email notifications</h2>
         <p class="section-body">
           Paceline notifications are sent by email. Open <strong>Profile</strong>
           and use the <strong>Email Notifications</strong> section to choose which
