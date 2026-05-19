@@ -7,6 +7,7 @@ To remove permanently: delete this file and the register_beta_gate() call in app
 """
 import os
 from flask import request, session, redirect, url_for, render_template_string
+from ..utils import is_safe_url
 
 _PAGE = """<!doctype html>
 <html lang="en">
@@ -62,7 +63,8 @@ def register_beta_gate(app):
     @app.route('/_beta', methods=['GET', 'POST'], endpoint='_beta_login')
     @csrf.exempt
     def _beta_login():
-        next_url = request.args.get('next') or request.form.get('next') or '/'
+        requested_next = request.args.get('next') or request.form.get('next') or '/'
+        next_url = requested_next if is_safe_url(requested_next) else '/'
         if request.method == 'POST':
             if request.form.get('password') == password:
                 session['_beta_ok'] = True

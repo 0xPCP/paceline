@@ -41,7 +41,7 @@
 4. Plan: Basic, 1 shared vCPU / 1 GiB RAM ($12/mo).
 5. Add all environment variables (see Step 2 below) before first deploy.
 6. HTTP port: leave as App Platform default (`8080`) — the `$PORT` env var wires it up.
-7. Health check path: `/`.
+7. Health check path: `/health`.
 
 ---
 
@@ -72,6 +72,10 @@ Set these in App Platform's environment variable panel (encrypted at rest):
 | `SPACES_PUBLIC_BASE_URL` | CDN URL if enabled, otherwise blank |
 | `GOOGLE_OAUTH_CLIENT_ID` | From Google Cloud Console |
 | `GOOGLE_OAUTH_CLIENT_SECRET` | From Google Cloud Console |
+
+Never put secret placeholders into `.do/app.yaml`; App Platform can overwrite
+live secret values when a spec is applied. Use `docs/restore_secrets.md` as the
+secret verification checklist.
 
 ---
 

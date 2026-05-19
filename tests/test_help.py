@@ -36,6 +36,7 @@ def test_club_manager_help_page(client):
     assert b'does not hold club dues' in resp.data
     assert b'direct charges' in resp.data
     assert b'$1 platform fee' in resp.data
+    assert b'$45 dues are charged as $46 total' in resp.data
     assert b'is not refunded' in resp.data
     assert b'Clubs handle their own refunds' in resp.data
     assert b'future club store feature' in resp.data

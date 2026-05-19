@@ -318,7 +318,8 @@ Test Stripe Connect dues in test mode:
 - Checkout includes `Stripe-Account: acct_...`.
 - Checkout includes `application_fee_amount=100`.
 - Checkout does not include `transfer_data[destination]`.
-- Rider sees only the club dues line item.
+- Rider sees the club dues line item plus a separate `$1` Paceline platform fee.
+- A $45 dues setting charges the rider $46 total.
 - Successful payment activates membership from signed webhook.
 - Duplicate webhook does not extend membership twice.
 - Unknown checkout session returns `200` to prevent Stripe retry loops.
@@ -339,6 +340,7 @@ Pass criteria:
 - Membership activation only happens from webhook, never from browser redirect.
 - Paceline fee remains exactly `$1`.
 - Club dues remain associated with the club's connected Stripe account.
+- The member-paid total is dues plus the `$1` platform fee.
 
 ### Phase 5: Ride Management
 
@@ -532,6 +534,7 @@ Run this only after sandbox passes.
 5. Pay dues with a real payment method.
 6. Confirm:
    - membership activates from webhook
+   - Stripe Checkout charges dues plus `$1`
    - club Stripe account sees the charge
    - Paceline receives the `$1` application fee
    - dashboard logs/counts update

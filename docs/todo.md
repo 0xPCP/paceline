@@ -29,6 +29,7 @@ with that model.
 - Create TrueNAS-to-Spaces media migration runbook.
 - Run the large pre-beta test deployment in `docs/large_test_deployment.md`.
 - Add billing alert in DigitalOcean.
+- Complete the owner checklist in `docs/launch_readiness.md`.
 
 ### Future Design Constraint
 
