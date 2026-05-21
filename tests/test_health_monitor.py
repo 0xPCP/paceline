@@ -10,9 +10,13 @@ from scripts.health_monitor import (
     build_latency_recovery_email,
     build_recovery_email,
     load_state,
+    load_history,
+    record_history,
+    render_dashboard,
     save_state,
     should_send_down_alert,
     should_send_latency_alert,
+    summarize_monitor,
 )
 
 
@@ -142,3 +146,61 @@ def test_latency_alert_cooldown_is_respected():
     }
 
     assert not should_send_latency_alert(state, slow_before_alert=3, cooldown_seconds=1800)
+
+
+def test_record_history_keeps_recent_checks(tmp_path):
+    path = tmp_path / 'history.json'
+    state = {'alert_active': False, 'latency_alert_active': False}
+
+    for i in range(5):
+        record_history(str(path), state, CheckResult(ok=True, status_code=200, elapsed_ms=100 + i), limit=3)
+
+    history = load_history(str(path))
+
+    assert len(history) == 3
+    assert history[0]['elapsed_ms'] == 102
+    assert history[-1]['elapsed_ms'] == 104
+
+
+def test_dashboard_summary_status_colors():
+    state = {'alert_active': False, 'latency_alert_active': False}
+    history = [
+        {'ok': True, 'status_code': 200, 'elapsed_ms': 200, 'checked_at': '2026-05-21T10:00:00+00:00'},
+        {'ok': True, 'status_code': 200, 'elapsed_ms': 4500, 'checked_at': '2026-05-21T10:01:00+00:00'},
+    ]
+
+    summary = summarize_monitor(state, history, latency_threshold_ms=3000)
+
+    assert summary['status_color'] == 'yellow'
+    assert summary['status_label'] == 'Slow'
+    assert summary['checks_recorded'] == 2
+    assert summary['slow_checks_recorded'] == 1
+    assert summary['avg_latency_ms'] == 2350
+
+
+def test_dashboard_summary_red_when_down():
+    state = {'alert_active': True, 'latency_alert_active': False}
+    history = [
+        {'ok': False, 'status_code': 503, 'elapsed_ms': 120, 'checked_at': '2026-05-21T10:00:00+00:00'},
+    ]
+
+    summary = summarize_monitor(state, history, latency_threshold_ms=3000)
+
+    assert summary['status_color'] == 'red'
+    assert summary['status_label'] == 'Down'
+    assert summary['failures_recorded'] == 1
+
+
+def test_render_dashboard_contains_status_and_trend():
+    summary = summarize_monitor(
+        {'alert_active': False, 'latency_alert_active': False, 'last_success_at': '2026-05-21T10:00:00+00:00'},
+        [{'ok': True, 'status_code': 200, 'elapsed_ms': 180, 'checked_at': '2026-05-21T10:00:00+00:00'}],
+        latency_threshold_ms=3000,
+    )
+
+    html = render_dashboard(summary, 'https://paceline.club/health', 60)
+
+    assert 'Paceline Pulse' in html
+    assert 'Healthy' in html
+    assert 'Latency trend' in html
+    assert 'https://paceline.club/health' in html

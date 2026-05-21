@@ -11,8 +11,11 @@ import json
 import os
 import socket
 import ssl
+import threading
 import time
 import traceback
+from http import HTTPStatus
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -21,6 +24,8 @@ from urllib import error, request
 
 
 DEFAULT_STATE_PATH = '/state/paceline-pulse.json'
+DEFAULT_HISTORY_PATH = '/state/paceline-pulse-history.json'
+DEFAULT_HISTORY_LIMIT = 1440
 
 
 @dataclass
@@ -59,6 +64,7 @@ def load_state(path: str) -> dict[str, Any]:
             'last_slow_at': None,
             'last_alert_at': None,
             'last_latency_alert_at': None,
+            'consecutive_slow_checks': 0,
         }
     try:
         return json.loads(state_path.read_text())
@@ -72,6 +78,7 @@ def load_state(path: str) -> dict[str, Any]:
             'last_slow_at': None,
             'last_alert_at': None,
             'last_latency_alert_at': None,
+            'consecutive_slow_checks': 0,
         }
 
 
@@ -81,6 +88,44 @@ def save_state(path: str, state: dict[str, Any]) -> None:
     tmp = state_path.with_suffix('.tmp')
     tmp.write_text(json.dumps(state, indent=2, sort_keys=True))
     tmp.replace(state_path)
+
+
+def load_history(path: str) -> list[dict[str, Any]]:
+    history_path = Path(path)
+    if not history_path.exists():
+        return []
+    try:
+        data = json.loads(history_path.read_text())
+    except Exception:
+        return []
+    if not isinstance(data, list):
+        return []
+    return [item for item in data if isinstance(item, dict)]
+
+
+def save_history(path: str, history: list[dict[str, Any]]) -> None:
+    history_path = Path(path)
+    history_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = history_path.with_suffix('.tmp')
+    tmp.write_text(json.dumps(history, indent=2, sort_keys=True))
+    tmp.replace(history_path)
+
+
+def record_history(path: str, state: dict[str, Any], result: CheckResult, limit: int | None = None) -> None:
+    limit = limit or _env_int('MONITOR_HISTORY_LIMIT', DEFAULT_HISTORY_LIMIT)
+    history = load_history(path)
+    history.append({
+        'checked_at': _iso(),
+        'ok': result.ok,
+        'status_code': result.status_code,
+        'elapsed_ms': result.elapsed_ms,
+        'error': result.error,
+        'alert_active': bool(state.get('alert_active')),
+        'latency_alert_active': bool(state.get('latency_alert_active')),
+    })
+    if limit > 0:
+        history = history[-limit:]
+    save_history(path, history)
 
 
 def check_url(url: str, timeout: int, expected_text: str = '') -> CheckResult:
@@ -340,13 +385,257 @@ def should_send_latency_alert(state: dict[str, Any], slow_before_alert: int, coo
     return (_utc_now() - last_alert).total_seconds() >= cooldown_seconds
 
 
-def run_once(url: str, state_path: str) -> CheckResult:
+def _percentile(values: list[int], percentile: float) -> int | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    index = min(len(ordered) - 1, max(0, round((len(ordered) - 1) * percentile)))
+    return ordered[index]
+
+
+def summarize_monitor(
+    state: dict[str, Any],
+    history: list[dict[str, Any]],
+    latency_threshold_ms: int,
+) -> dict[str, Any]:
+    latest = history[-1] if history else {}
+    recent = history[-1440:]
+    latencies = [
+        int(item['elapsed_ms'])
+        for item in recent
+        if isinstance(item.get('elapsed_ms'), int) and item.get('ok')
+    ]
+    checks = len(recent)
+    failures = sum(1 for item in recent if not item.get('ok'))
+    slow = sum(
+        1
+        for item in recent
+        if item.get('ok')
+        and isinstance(item.get('elapsed_ms'), int)
+        and latency_threshold_ms > 0
+        and item['elapsed_ms'] > latency_threshold_ms
+    )
+    if latest.get('ok') is False or state.get('alert_active'):
+        color = 'red'
+        label = 'Down'
+    elif state.get('latency_alert_active') or (
+        latest.get('ok') and latency_threshold_ms > 0 and (latest.get('elapsed_ms') or 0) > latency_threshold_ms
+    ):
+        color = 'yellow'
+        label = 'Slow'
+    elif latest:
+        color = 'green'
+        label = 'Healthy'
+    else:
+        color = 'gray'
+        label = 'Waiting for first check'
+    uptime = None
+    if checks:
+        uptime = round(((checks - failures) / checks) * 100, 2)
+    return {
+        'name': 'Paceline Pulse',
+        'status_color': color,
+        'status_label': label,
+        'latest': latest,
+        'checks_recorded': checks,
+        'failures_recorded': failures,
+        'slow_checks_recorded': slow,
+        'uptime_percent': uptime,
+        'avg_latency_ms': round(sum(latencies) / len(latencies)) if latencies else None,
+        'p95_latency_ms': _percentile(latencies, 0.95),
+        'max_latency_ms': max(latencies) if latencies else None,
+        'latency_threshold_ms': latency_threshold_ms,
+        'state': state,
+        'history': recent[-180:],
+    }
+
+
+def render_dashboard(summary: dict[str, Any], monitored_url: str, interval_seconds: int) -> str:
+    history = summary['history']
+    max_latency = max(
+        [summary.get('latency_threshold_ms') or 0]
+        + [item.get('elapsed_ms') or 0 for item in history if item.get('ok')]
+        + [100]
+    )
+    bars = []
+    for item in history[-90:]:
+        elapsed = item.get('elapsed_ms') or 0
+        height = max(5, min(100, round((elapsed / max_latency) * 100))) if item.get('ok') else 100
+        if not item.get('ok'):
+            css = 'bar red'
+        elif summary['latency_threshold_ms'] > 0 and elapsed > summary['latency_threshold_ms']:
+            css = 'bar yellow'
+        else:
+            css = 'bar green'
+        title = f"{item.get('checked_at')} - {item.get('status_code') or 'error'} - {elapsed} ms"
+        bars.append(f'<span class="{css}" title="{_html_escape(title)}" style="height:{height}%"></span>')
+    latest = summary.get('latest') or {}
+    state = summary.get('state') or {}
+    status_class = summary['status_color']
+    cards = [
+        ('Current status', summary['status_label']),
+        ('Latest latency', _format_ms(latest.get('elapsed_ms'))),
+        ('24h uptime', _format_percent(summary.get('uptime_percent'))),
+        ('Average latency', _format_ms(summary.get('avg_latency_ms'))),
+        ('P95 latency', _format_ms(summary.get('p95_latency_ms'))),
+        ('Slow checks', str(summary.get('slow_checks_recorded') or 0)),
+        ('Failures', str(summary.get('failures_recorded') or 0)),
+        ('Last success', state.get('last_success_at') or 'unknown'),
+    ]
+    card_html = ''.join(
+        f'<section class="card"><div class="label">{_html_escape(label)}</div>'
+        f'<div class="value">{_html_escape(value)}</div></section>'
+        for label, value in cards
+    )
+    return f'''<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="30">
+  <title>Paceline Pulse</title>
+  <style>
+    :root {{ color-scheme: light; --ink:#17211b; --muted:#607064; --line:#dfe7e1; --bg:#f6f8f5; --card:#fff; }}
+    * {{ box-sizing:border-box; }}
+    body {{ margin:0; font-family:Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:var(--bg); color:var(--ink); }}
+    main {{ max-width:1180px; margin:0 auto; padding:32px 20px 48px; }}
+    header {{ display:flex; align-items:flex-start; justify-content:space-between; gap:24px; margin-bottom:28px; }}
+    h1 {{ margin:0; font-size:2rem; letter-spacing:0; }}
+    .subtle {{ color:var(--muted); margin-top:6px; }}
+    .pill {{ display:inline-flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:999px; padding:10px 14px; background:#fff; font-weight:700; }}
+    .dot {{ width:14px; height:14px; border-radius:50%; display:inline-block; }}
+    .green .dot, .bar.green {{ background:#16803c; }}
+    .yellow .dot, .bar.yellow {{ background:#d89a00; }}
+    .red .dot, .bar.red {{ background:#b42318; }}
+    .gray .dot {{ background:#8b9490; }}
+    .grid {{ display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:14px; }}
+    .card {{ background:var(--card); border:1px solid var(--line); border-radius:8px; padding:18px; min-height:104px; }}
+    .label {{ color:var(--muted); font-size:.86rem; margin-bottom:10px; }}
+    .value {{ font-size:1.35rem; font-weight:750; overflow-wrap:anywhere; }}
+    .panel {{ margin-top:18px; background:#fff; border:1px solid var(--line); border-radius:8px; padding:20px; }}
+    .panel h2 {{ margin:0 0 14px; font-size:1.05rem; }}
+    .bars {{ height:180px; display:flex; align-items:flex-end; gap:3px; border-bottom:1px solid var(--line); padding-top:16px; }}
+    .bar {{ flex:1; min-width:3px; border-radius:3px 3px 0 0; opacity:.9; }}
+    .details {{ display:grid; grid-template-columns:180px 1fr; gap:10px 18px; margin:0; }}
+    .details dt {{ color:var(--muted); }}
+    .details dd {{ margin:0; overflow-wrap:anywhere; }}
+    @media (max-width: 820px) {{ header {{ flex-direction:column; }} .grid {{ grid-template-columns:repeat(2, minmax(0, 1fr)); }} .details {{ grid-template-columns:1fr; }} }}
+    @media (max-width: 520px) {{ main {{ padding:22px 12px 36px; }} .grid {{ grid-template-columns:1fr; }} h1 {{ font-size:1.55rem; }} }}
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Paceline Pulse</h1>
+        <div class="subtle">Monitoring {_html_escape(monitored_url)} every {_html_escape(interval_seconds)} seconds</div>
+      </div>
+      <div class="pill {status_class}"><span class="dot"></span>{_html_escape(summary['status_label'])}</div>
+    </header>
+    <div class="grid">{card_html}</div>
+    <section class="panel">
+      <h2>Latency trend</h2>
+      <div class="bars">{''.join(bars) or '<div class="subtle">Waiting for check history.</div>'}</div>
+      <p class="subtle">Last 90 checks. Green is healthy, yellow is above threshold, red is failed.</p>
+    </section>
+    <section class="panel">
+      <h2>Latest check</h2>
+      <dl class="details">
+        <dt>Checked at</dt><dd>{_html_escape(latest.get('checked_at') or 'unknown')}</dd>
+        <dt>Status code</dt><dd>{_html_escape(latest.get('status_code') or 'none')}</dd>
+        <dt>Error</dt><dd>{_html_escape(latest.get('error') or 'none')}</dd>
+        <dt>Consecutive failures</dt><dd>{_html_escape(state.get('consecutive_failures') or 0)}</dd>
+        <dt>Consecutive slow checks</dt><dd>{_html_escape(state.get('consecutive_slow_checks') or 0)}</dd>
+        <dt>Last failure</dt><dd>{_html_escape(state.get('last_failure_at') or 'none')}</dd>
+        <dt>Last slow check</dt><dd>{_html_escape(state.get('last_slow_at') or 'none')}</dd>
+      </dl>
+    </section>
+  </main>
+</body>
+</html>'''
+
+
+def _format_ms(value: Any) -> str:
+    return f'{value} ms' if value is not None else 'unknown'
+
+
+def _format_percent(value: Any) -> str:
+    return f'{value}%' if value is not None else 'unknown'
+
+
+def make_dashboard_handler(state_path: str, history_path: str, monitored_url: str, interval_seconds: int):
+    class DashboardHandler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:
+            if not self._authorized():
+                self.send_response(HTTPStatus.UNAUTHORIZED)
+                self.send_header('WWW-Authenticate', 'Basic realm="Paceline Pulse"')
+                self.end_headers()
+                return
+            latency_threshold_ms = _env_int('MONITOR_LATENCY_ALERT_MS', 3000)
+            state = load_state(state_path)
+            history = load_history(history_path)
+            summary = summarize_monitor(state, history, latency_threshold_ms)
+            if self.path == '/api/status':
+                body = json.dumps(summary, sort_keys=True).encode('utf-8')
+                self.send_response(HTTPStatus.OK)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Cache-Control', 'no-store')
+                self.send_header('Content-Length', str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
+            if self.path not in ('/', '/dashboard'):
+                self.send_error(HTTPStatus.NOT_FOUND)
+                return
+            body = render_dashboard(summary, monitored_url, interval_seconds).encode('utf-8')
+            self.send_response(HTTPStatus.OK)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Cache-Control', 'no-store')
+            self.send_header('Content-Length', str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, fmt: str, *args: Any) -> None:
+            print(f'{_iso()} Dashboard {self.address_string()} {fmt % args}', flush=True)
+
+        def _authorized(self) -> bool:
+            username = os.environ.get('MONITOR_DASHBOARD_USERNAME', '').strip()
+            password = os.environ.get('MONITOR_DASHBOARD_PASSWORD', '').strip()
+            if not username and not password:
+                return True
+            import base64
+            header = self.headers.get('Authorization', '')
+            if not header.startswith('Basic '):
+                return False
+            try:
+                decoded = base64.b64decode(header.removeprefix('Basic ').strip()).decode('utf-8')
+            except Exception:
+                return False
+            return decoded == f'{username}:{password}'
+
+    return DashboardHandler
+
+
+def start_dashboard_server(state_path: str, history_path: str, monitored_url: str, interval_seconds: int) -> None:
+    if os.environ.get('MONITOR_DASHBOARD_ENABLED', 'true').lower() in ('0', 'false', 'no'):
+        return
+    host = os.environ.get('MONITOR_DASHBOARD_HOST', '0.0.0.0').strip()
+    port = _env_int('MONITOR_DASHBOARD_PORT', 8080)
+    handler = make_dashboard_handler(state_path, history_path, monitored_url, interval_seconds)
+    server = ThreadingHTTPServer((host, port), handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    print(f'{_iso()} Paceline Pulse dashboard listening on http://{host}:{port}', flush=True)
+
+
+def run_once(url: str, state_path: str, history_path: str | None = None) -> CheckResult:
     timeout = _env_int('MONITOR_TIMEOUT_SECONDS', 10)
     failures_before_alert = _env_int('MONITOR_FAILURES_BEFORE_ALERT', 3)
     latency_threshold_ms = _env_int('MONITOR_LATENCY_ALERT_MS', 3000)
     slow_before_alert = _env_int('MONITOR_LATENCY_FAILURES_BEFORE_ALERT', 3)
     cooldown_seconds = _env_int('MONITOR_ALERT_COOLDOWN_SECONDS', 1800)
     expected_text = os.environ.get('MONITOR_EXPECTED_TEXT', '').strip()
+    history_path = history_path or os.environ.get('MONITOR_HISTORY_PATH', DEFAULT_HISTORY_PATH).strip()
 
     state = load_state(state_path)
     result = check_url(url, timeout, expected_text)
@@ -379,6 +668,7 @@ def run_once(url: str, state_path: str) -> CheckResult:
                     flush=True,
                 )
             save_state(state_path, state)
+            record_history(history_path, state, result)
             return result
 
         if state.get('latency_alert_active'):
@@ -388,6 +678,7 @@ def run_once(url: str, state_path: str) -> CheckResult:
         state['latency_alert_active'] = False
         state['last_success_at'] = _iso()
         save_state(state_path, state)
+        record_history(history_path, state, result)
         print(f'{_iso()} OK {url} status={result.status_code} elapsed_ms={result.elapsed_ms}', flush=True)
         return result
 
@@ -403,6 +694,7 @@ def run_once(url: str, state_path: str) -> CheckResult:
     else:
         print(f'{_iso()} FAIL {url} failures={state["consecutive_failures"]} error={result.error}', flush=True)
     save_state(state_path, state)
+    record_history(history_path, state, result)
     return result
 
 
@@ -410,10 +702,12 @@ def main() -> int:
     url = os.environ.get('MONITOR_URL', 'https://paceline.club/health').strip()
     interval = _env_int('MONITOR_INTERVAL_SECONDS', 60)
     state_path = os.environ.get('MONITOR_STATE_PATH', DEFAULT_STATE_PATH).strip()
+    history_path = os.environ.get('MONITOR_HISTORY_PATH', DEFAULT_HISTORY_PATH).strip()
     print(f'{_iso()} Starting Paceline Pulse url={url} interval={interval}s', flush=True)
+    start_dashboard_server(state_path, history_path, url, interval)
     while True:
         try:
-            run_once(url, state_path)
+            run_once(url, state_path, history_path)
         except Exception as exc:
             print(f'{_iso()} Monitor internal error: {type(exc).__name__}: {exc}', flush=True)
             traceback.print_exc()

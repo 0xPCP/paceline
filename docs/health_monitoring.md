@@ -13,6 +13,9 @@ The monitor is intentionally independent of Flask and the production database.
 If the Paceline app or database is down, the monitor can still send email through
 Resend directly.
 
+Paceline Pulse also includes a small read-only dashboard UI for checking the
+current status from the TrueNAS network.
+
 ## What It Checks
 
 Default URL:
@@ -32,6 +35,44 @@ Default behavior:
   the threshold.
 - Persist state in a Docker volume so container restarts do not create alert
   loops.
+- Record recent check history for latency and uptime trends.
+
+## Dashboard
+
+The dashboard runs inside the same container on port `8080`.
+
+If TrueNAS maps the container port directly, the URL will be:
+
+```text
+http://<truenas-host-or-ip>:8080/
+```
+
+For example:
+
+```text
+http://192.168.50.189:8080/
+```
+
+The dashboard shows:
+
+- green/yellow/red current status
+- latest latency
+- rolling uptime percentage
+- average latency
+- p95 latency
+- max latency
+- slow check count
+- failure count
+- last success/failure timestamps
+- a visual trend of the last checks
+
+Green means the health endpoint is passing and latency is below the configured
+threshold. Yellow means the site is reachable but slow. Red means the health
+check is failing or an outage alert is active.
+
+Set `MONITOR_DASHBOARD_USERNAME` and `MONITOR_DASHBOARD_PASSWORD` to require
+basic auth. If those are left blank, the dashboard is open to anyone who can
+reach the TrueNAS host and mapped port, so it should only be exposed on the LAN.
 
 ## Email Provider
 
@@ -99,6 +140,12 @@ services:
       RESEND_API_URL: "https://api.resend.com/emails"
       RESEND_TIMEOUT_SECONDS: "10"
       MAIL_DEFAULT_SENDER: "Paceline Monitor <noreply@paceline.club>"
+      MONITOR_DASHBOARD_ENABLED: "true"
+      MONITOR_DASHBOARD_PORT: "8080"
+      MONITOR_DASHBOARD_USERNAME: "${MONITOR_DASHBOARD_USERNAME:-}"
+      MONITOR_DASHBOARD_PASSWORD: "${MONITOR_DASHBOARD_PASSWORD:-}"
+    ports:
+      - "8080:8080"
     volumes:
       - paceline_health_monitor_state:/state
 
@@ -120,6 +167,13 @@ volumes:
 | `MONITOR_ALERT_COOLDOWN_SECONDS` | `1800` | Minimum seconds between repeated down alerts |
 | `MONITOR_ALERT_TO` | `phil@pcp.dev` | Comma-separated alert recipients |
 | `MONITOR_STATE_PATH` | `/state/paceline-pulse.json` | Persistent state file |
+| `MONITOR_HISTORY_PATH` | `/state/paceline-pulse-history.json` | Persistent check history file |
+| `MONITOR_HISTORY_LIMIT` | `1440` | Number of recent checks retained for dashboard trends |
+| `MONITOR_DASHBOARD_ENABLED` | `true` | Enable the dashboard UI |
+| `MONITOR_DASHBOARD_HOST` | `0.0.0.0` | Dashboard bind address inside the container |
+| `MONITOR_DASHBOARD_PORT` | `8080` | Dashboard port inside the container |
+| `MONITOR_DASHBOARD_USERNAME` | empty | Optional basic-auth username |
+| `MONITOR_DASHBOARD_PASSWORD` | empty | Optional basic-auth password |
 | `RESEND_API_KEY` | required | Resend API key |
 | `RESEND_API_URL` | `https://api.resend.com/emails` | Resend email API endpoint |
 | `MAIL_DEFAULT_SENDER` | `Paceline Monitor <noreply@paceline.club>` | From address |
@@ -133,11 +187,16 @@ After starting the container:
    docker logs -f paceline-pulse
    ```
 2. Confirm logs show `OK`.
-3. Temporarily set `MONITOR_URL` to an invalid URL and restart the container.
-4. Wait for 3 failed checks.
-5. Confirm the critical alert email arrives.
-6. Restore `MONITOR_URL=https://paceline.club/health`.
-7. Confirm the recovery email arrives.
+3. Open the dashboard:
+   ```text
+   http://<truenas-host-or-ip>:8080/
+   ```
+4. Confirm the dashboard shows green status and current latency.
+5. Temporarily set `MONITOR_URL` to an invalid URL and restart the container.
+6. Wait for 3 failed checks.
+7. Confirm the dashboard turns red and the critical alert email arrives.
+8. Restore `MONITOR_URL=https://paceline.club/health`.
+9. Confirm the dashboard returns green and the recovery email arrives.
 
 Do not leave the monitor pointed at an invalid URL after testing.
 
