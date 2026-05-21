@@ -36,6 +36,19 @@ with that model.
 When designing new features, treat the app server as disposable. Store durable
 customer data in PostgreSQL or object storage, not in the app container.
 
+### Future Beta/Staging Environment
+
+Status: deferred until Paceline has several active clubs or production usage
+that justifies the cost.
+
+The pre-master testing strategy is documented in
+`docs/digitalocean_deployment.md`. For now, test `post-beta` locally and merge
+to `master` only after automated tests and manual smoke checks pass.
+
+When usage increases, create `beta.paceline.club` backed by the `post-beta`
+branch with separate staging database, staging media storage, Stripe test keys,
+and test OAuth/email configuration.
+
 ### Post-Dues Product Backlog
 
 - Add a club store after Stripe Connect dues are complete. Clubs should be able
