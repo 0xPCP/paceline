@@ -1,0 +1,10 @@
+New club message for {{ club.name }}
+
+From: {{ sender.username }} <{{ sender.email }}>
+Subject: {{ subject }}
+
+Message:
+{{ message }}
+
+Replying to this email may not reach the rider directly. Use the rider's email
+above if you want to respond outside Paceline.

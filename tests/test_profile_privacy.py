@@ -3,6 +3,7 @@ Tests for profile privacy and club members page.
 """
 import pytest
 from datetime import date, time, timedelta
+from unittest.mock import patch
 from app.models import User, Club, ClubMembership, ClubAdmin, Ride, RideSignup
 from app.extensions import db
 from tests.conftest import login
@@ -121,11 +122,12 @@ class TestClubMembersPage:
         self._add_member(db, regular_user, sample_club)
         login(client)
         resp = client.get(f'/clubs/{sample_club.slug}/')
-        assert b'members/' in resp.data
+        assert b'class="css-item css-item-link"' in resp.data
+        assert f'/clubs/{sample_club.slug}/members/'.encode() in resp.data
 
     def test_member_count_is_not_linked_for_non_member(self, client, db, sample_club, regular_user):
         resp = client.get(f'/clubs/{sample_club.slug}/')
-        assert b'members/' not in resp.data
+        assert b'class="css-item css-item-link"' not in resp.data
 
     def test_public_profile_members_have_links(self, client, db, sample_club, regular_user):
         regular_user.profile_is_public = True
@@ -142,3 +144,35 @@ class TestClubMembersPage:
         login(client)
         resp = client.get(f'/clubs/{sample_club.slug}/members/')
         assert f'/users/{regular_user.username}'.encode() not in resp.data
+
+    def test_club_contact_email_not_exposed_on_homepage(self, client, db, sample_club, regular_user):
+        sample_club.contact_email = 'club-admin-private@example.com'
+        self._add_member(db, regular_user, sample_club)
+        db.session.commit()
+        login(client)
+
+        resp = client.get(f'/clubs/{sample_club.slug}/')
+
+        assert b'Message the Club' in resp.data
+        assert b'club-admin-private@example.com' not in resp.data
+        assert b'mailto:' not in resp.data
+
+    def test_club_contact_relays_message_to_private_recipient(self, client, db, sample_club, regular_user):
+        sample_club.contact_email = 'club-admin-private@example.com'
+        db.session.commit()
+        login(client)
+
+        with patch('app.email._send', return_value=True) as send_mock:
+            resp = client.post(
+                f'/clubs/{sample_club.slug}/contact',
+                data={
+                    'subject': 'Route question',
+                    'message': 'Can someone tell me which lot the ride starts from?',
+                },
+                follow_redirects=True,
+            )
+
+        assert resp.status_code == 200
+        assert b'Your message was sent' in resp.data
+        recipients = send_mock.call_args.args[1]
+        assert recipients == ['club-admin-private@example.com']
