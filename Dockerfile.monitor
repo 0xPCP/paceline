@@ -11,5 +11,6 @@ RUN adduser -D -u 10001 monitor \
 
 USER monitor
 VOLUME ["/state"]
+EXPOSE 8080
 
 CMD ["python", "/monitor/health_monitor.py"]
