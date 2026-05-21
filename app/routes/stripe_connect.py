@@ -6,12 +6,13 @@ from sqlalchemy.exc import IntegrityError
 
 from ..extensions import csrf, db
 from ..membership_dues import activate_membership_dues
-from ..models import Club, ClubMembership, ClubMembershipPayment
+from ..models import Club, ClubMembership, ClubMembershipPayment, ClubShopItem, ClubShopOrder
 from ..stripe_connect import (
     StripeConnectError,
     connect_enabled,
     create_connected_account,
     create_checkout_session,
+    create_shop_checkout_session,
     create_onboarding_link,
     retrieve_connected_account,
     verify_webhook_payload,
@@ -166,6 +167,59 @@ def dues_checkout(slug):
     return redirect(checkout['url'])
 
 
+@stripe_connect_bp.route('/clubs/<slug>/shop/<int:item_id>/checkout', methods=['POST'])
+@login_required
+def shop_checkout(slug, item_id):
+    club = _visible_club_or_404(slug)
+    if not club.stripe_connect_ready:
+        flash('Online shop checkout is not available for this club yet.', 'warning')
+        return redirect(url_for('clubs.club_shop', slug=slug))
+
+    item = ClubShopItem.query.filter_by(
+        id=item_id,
+        club_id=club.id,
+        is_active=True,
+    ).first_or_404()
+
+    platform_fee_cents = current_app.config.get('STRIPE_PLATFORM_FEE_CENTS', 100)
+    order = ClubShopOrder(
+        club_id=club.id,
+        item_id=item.id,
+        user_id=current_user.id,
+        item_amount_cents=item.price_cents,
+        platform_fee_cents=platform_fee_cents,
+        amount_cents=item.price_cents + platform_fee_cents,
+        currency=item.currency or 'usd',
+        customer_email=current_user.email,
+    )
+    db.session.add(order)
+    db.session.flush()
+
+    try:
+        checkout = create_shop_checkout_session(
+            club=club,
+            user=current_user,
+            item=item,
+            order=order,
+            success_url=url_for('clubs.club_shop', slug=slug, shop='success', _external=True),
+            cancel_url=url_for('clubs.club_shop', slug=slug, shop='cancel', _external=True),
+        )
+    except StripeConnectError as exc:
+        current_app.logger.warning('Stripe shop checkout failed for club %s/item %s/user %s: %s', club.id, item.id, current_user.id, exc)
+        db.session.rollback()
+        flash('Stripe checkout is temporarily unavailable. Please contact the club admin.', 'danger')
+        return redirect(url_for('clubs.club_shop', slug=slug))
+
+    order.provider_session_id = checkout['id']
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        flash('A checkout session already exists. Please try again.', 'warning')
+        return redirect(url_for('clubs.club_shop', slug=slug))
+    return redirect(checkout['url'])
+
+
 @stripe_connect_bp.route('/webhook', methods=['POST'])
 @csrf.exempt
 def webhook():
@@ -194,18 +248,38 @@ def webhook():
             return {'status': 'missing session id'}, 400
 
         payment = ClubMembershipPayment.query.filter_by(provider_session_id=session_id).first()
-        if not payment:
-            current_app.logger.warning('Stripe webhook had unknown checkout session %s', session_id)
-            return {'status': 'unknown session'}, 200
-        if payment.status == 'paid':
-            return {'status': 'already processed'}
+        if payment:
+            if payment.status == 'paid':
+                return {'status': 'already processed'}
 
-        payment.status = 'paid'
-        payment.provider_payment_intent_id = obj.get('payment_intent')
-        payment.paid_at = datetime.now(timezone.utc)
-        activate_membership_dues(payment.membership, paid_at=payment.paid_at)
-        db.session.commit()
-        return {'status': 'processed'}
+            payment.status = 'paid'
+            payment.provider_payment_intent_id = obj.get('payment_intent')
+            payment.paid_at = datetime.now(timezone.utc)
+            activate_membership_dues(payment.membership, paid_at=payment.paid_at)
+            db.session.commit()
+            return {'status': 'processed'}
+
+        order = ClubShopOrder.query.filter_by(provider_session_id=session_id).first()
+        if order:
+            if order.status == 'paid':
+                return {'status': 'already processed'}
+            order.status = 'paid'
+            order.provider_payment_intent_id = obj.get('payment_intent')
+            order.amount_cents = obj.get('amount_total') or order.amount_cents
+            total_details = obj.get('total_details') or {}
+            order.tax_amount_cents = total_details.get('amount_tax') or 0
+            shipping_cost = obj.get('shipping_cost') or {}
+            order.shipping_amount_cents = shipping_cost.get('amount_total') or 0
+            customer_details = obj.get('customer_details') or {}
+            order.customer_email = customer_details.get('email') or order.customer_email
+            order.customer_name = customer_details.get('name')
+            order.shipping_details = obj.get('shipping_details') or customer_details.get('address')
+            order.paid_at = datetime.now(timezone.utc)
+            db.session.commit()
+            return {'status': 'shop order processed'}
+
+        current_app.logger.warning('Stripe webhook had unknown checkout session %s', session_id)
+        return {'status': 'unknown session'}, 200
 
     # ── Payment failure ───────────────────────────────────────────────────────
     if event_type in ('payment_intent.payment_failed', 'charge.failed'):

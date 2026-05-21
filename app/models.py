@@ -6,6 +6,8 @@ from .extensions import db, login_manager
 from .security import video_embed_url
 from .sports import DEFAULT_SPORT, normalize_sport, normalize_sport_preferences
 
+RIDE_TYPE_VALUES = ('road', 'gravel', 'social', 'training', 'event', 'night', 'virtual')
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -60,6 +62,12 @@ class User(db.Model, UserMixin):
     language = db.Column(db.String(5), nullable=True)   # preferred UI language code
     sport_preferences = db.Column(db.JSON, nullable=True)  # dormant multi-sport support
     email_preferences = db.Column(db.JSON, nullable=True)
+    recommendations_enabled = db.Column(db.Boolean, default=True, nullable=False)
+    recommendation_location_enabled = db.Column(db.Boolean, default=True, nullable=False)
+    recommendation_history_enabled = db.Column(db.Boolean, default=True, nullable=False)
+    recommendation_friend_activity_enabled = db.Column(db.Boolean, default=True, nullable=False)
+    dashboard_recommendations_hidden = db.Column(db.Boolean, default=False, nullable=False)
+    recommendation_ride_types = db.Column(db.JSON, nullable=True)
 
     # Strava linking
     strava_id = db.Column(db.BigInteger, unique=True, nullable=True)
@@ -154,6 +162,11 @@ class User(db.Model, UserMixin):
 
     def set_sport_preferences(self, sports):
         self.sport_preferences = normalize_sport_preferences(sports)
+
+    @property
+    def preferred_ride_types(self):
+        values = self.recommendation_ride_types or []
+        return [v for v in values if v in RIDE_TYPE_VALUES]
 
     def user_rides_this_week(self):
         """Count of user-owned rides in the current calendar week (Mon–Sun)."""
@@ -256,6 +269,10 @@ class Club(db.Model):
     membership_duration_months = db.Column(db.Integer, default=12, nullable=False)
     stripe_account_id = db.Column(db.String(255), nullable=True)
     stripe_account_connected_at = db.Column(db.DateTime, nullable=True)
+    shop_tax_enabled = db.Column(db.Boolean, default=False, nullable=False)
+    shop_shipping_enabled = db.Column(db.Boolean, default=False, nullable=False)
+    shop_shipping_fee_cents = db.Column(db.Integer, nullable=True)
+    shop_shipping_countries = db.Column(db.String(255), default='US', nullable=False)
 
     # Strava integration
     strava_club_id = db.Column(db.BigInteger, nullable=True)  # numeric Strava club ID
@@ -268,6 +285,7 @@ class Club(db.Model):
     instagram_url    = db.Column(db.String(500), nullable=True)
     twitter_url      = db.Column(db.String(500), nullable=True)
     newsletter_url   = db.Column(db.String(500), nullable=True)
+    whatsapp_url     = db.Column(db.String(500), nullable=True)
 
     # Governance / resources
     bylaws_url          = db.Column(db.String(500), nullable=True)
@@ -290,6 +308,9 @@ class Club(db.Model):
                               order_by='ClubLeader.display_order.asc()', cascade='all, delete-orphan')
     sponsors = db.relationship('ClubSponsor', backref='club', lazy=True,
                                order_by='ClubSponsor.display_order.asc()', cascade='all, delete-orphan')
+    shop_items = db.relationship('ClubShopItem', backref='club', lazy=True,
+                                 order_by='ClubShopItem.display_order.asc(), ClubShopItem.name.asc()',
+                                 cascade='all, delete-orphan')
     owner = db.relationship('User', foreign_keys=[owner_id])
 
     @property
@@ -313,11 +334,14 @@ class Club(db.Model):
                 .first())
 
     @property
+    def stripe_connect_ready(self):
+        return bool(self.stripe_account_id and self.stripe_account_connected_at)
+
+    @property
     def stripe_dues_ready(self):
         return bool(
             self.membership_dues_mode == 'stripe_connect'
-            and self.stripe_account_id
-            and self.stripe_account_connected_at
+            and self.stripe_connect_ready
             and self.membership_dues_amount_cents
         )
 
@@ -377,6 +401,76 @@ class ClubMembershipPayment(db.Model):
     club = db.relationship('Club')
     user = db.relationship('User')
     membership = db.relationship('ClubMembership')
+
+
+class ClubShopItem(db.Model):
+    """Simple club-managed store item sold through Stripe Connect."""
+    __tablename__ = 'club_shop_items'
+
+    id = db.Column(db.Integer, primary_key=True)
+    club_id = db.Column(db.Integer, db.ForeignKey('clubs.id'), nullable=False)
+    name = db.Column(db.String(120), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    image_url = db.Column(db.String(500), nullable=True)
+    price_cents = db.Column(db.Integer, nullable=False)
+    currency = db.Column(db.String(3), default='usd', nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    display_order = db.Column(db.Integer, default=0, nullable=False)
+    fulfillment_notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+    orders = db.relationship('ClubShopOrder', backref='item', lazy=True)
+
+    @property
+    def price_display(self):
+        return f'{self.price_cents / 100:.2f}'
+
+
+class ClubShopOrder(db.Model):
+    """Tracks Stripe Checkout orders for club shop items."""
+    __tablename__ = 'club_shop_orders'
+
+    id = db.Column(db.Integer, primary_key=True)
+    club_id = db.Column(db.Integer, db.ForeignKey('clubs.id'), nullable=False)
+    item_id = db.Column(db.Integer, db.ForeignKey('club_shop_items.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    provider = db.Column(db.String(20), default='stripe', nullable=False)
+    provider_session_id = db.Column(db.String(255), unique=True, nullable=True)
+    provider_payment_intent_id = db.Column(db.String(255), nullable=True)
+    item_amount_cents = db.Column(db.Integer, nullable=False)
+    platform_fee_cents = db.Column(db.Integer, default=100, nullable=False)
+    tax_amount_cents = db.Column(db.Integer, default=0, nullable=False)
+    shipping_amount_cents = db.Column(db.Integer, default=0, nullable=False)
+    amount_cents = db.Column(db.Integer, nullable=False)
+    currency = db.Column(db.String(3), default='usd', nullable=False)
+    status = db.Column(db.String(20), default='pending', nullable=False)
+    customer_email = db.Column(db.String(255), nullable=True)
+    customer_name = db.Column(db.String(255), nullable=True)
+    shipping_details = db.Column(db.JSON, nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    paid_at = db.Column(db.DateTime, nullable=True)
+
+    club = db.relationship('Club')
+    user = db.relationship('User')
+
+
+class UserRecommendationHidden(db.Model):
+    """User feedback for recommendations the rider does not want to see again."""
+    __tablename__ = 'user_recommendation_hidden'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    target_type = db.Column(db.String(20), nullable=False)  # ride | club
+    target_id = db.Column(db.Integer, nullable=False)
+    reason = db.Column(db.String(40), default='hidden', nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    user = db.relationship('User')
+
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'target_type', 'target_id', name='uq_user_recommendation_hidden'),
+    )
 
 
 class ClubAdmin(db.Model):

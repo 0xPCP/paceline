@@ -16,7 +16,7 @@ from ..models import (AdminAuditLog, AppErrorLog, BoardDigestItem, Club,
                       ClubMembershipPayment, ClubOwnershipTransfer, ClubPost,
                       PlatformPost, Ride, RideComment, RideMedia, RideSignup,
                       SiteFeedback, User, UserBike, UserEmailLog, UserRideInvite,
-                      WaiverSignature)
+                      UserRecommendationHidden, WaiverSignature)
 from ..forms import (
     AccountSetupForm, DisableMfaForm, MfaCodeForm, PasswordResetRequestForm, RegisterForm,
     LoginForm, ProfileForm, SetPasswordForm, UsernameSetupForm,
@@ -123,6 +123,7 @@ def _delete_current_user_account(user):
     ClubInvite.query.filter_by(created_by=user.id).delete(synchronize_session=False)
     BoardDigestItem.query.filter_by(user_id=user.id).delete(synchronize_session=False)
     UserEmailLog.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+    UserRecommendationHidden.query.filter_by(user_id=user.id).delete(synchronize_session=False)
 
     db.session.delete(user)
     return True, 'Your account has been deleted.'
@@ -553,6 +554,11 @@ def profile():
     }
     if request.method == 'GET':
         form.profile_is_public.data = current_user.profile_is_public
+        form.recommendations_enabled.data = current_user.recommendations_enabled
+        form.recommendation_location_enabled.data = current_user.recommendation_location_enabled
+        form.recommendation_history_enabled.data = current_user.recommendation_history_enabled
+        form.recommendation_friend_activity_enabled.data = current_user.recommendation_friend_activity_enabled
+        form.dashboard_recommendations_hidden.data = current_user.dashboard_recommendations_hidden
         prefs = email_preferences_for(current_user)
         for key, field_name in pref_fields.items():
             getattr(form, field_name).data = prefs.get(key, DEFAULT_EMAIL_PREFERENCES.get(key, True))
@@ -579,6 +585,14 @@ def profile():
         current_user.emergency_contact_name  = (form.emergency_contact_name.data or '').strip() or None
         current_user.emergency_contact_phone = (form.emergency_contact_phone.data or '').strip() or None
         current_user.profile_is_public = bool(form.profile_is_public.data)
+        current_user.recommendations_enabled = bool(form.recommendations_enabled.data)
+        current_user.recommendation_location_enabled = bool(form.recommendation_location_enabled.data)
+        current_user.recommendation_history_enabled = bool(form.recommendation_history_enabled.data)
+        current_user.recommendation_friend_activity_enabled = bool(form.recommendation_friend_activity_enabled.data)
+        current_user.dashboard_recommendations_hidden = bool(form.dashboard_recommendations_hidden.data)
+        valid_ride_types = {'road', 'gravel', 'social', 'training', 'event', 'night', 'virtual'}
+        selected_ride_types = [v for v in request.form.getlist('recommendation_ride_types') if v in valid_ride_types]
+        current_user.recommendation_ride_types = selected_ride_types or None
         current_user.email_preferences = {
             key: bool(getattr(form, field_name).data)
             for key, field_name in pref_fields.items()
@@ -634,7 +648,17 @@ def profile():
     return render_template('profile.html', form=form,
                            disable_mfa_form=DisableMfaForm(),
                            gear_catalog=GEAR_CATALOG, owned_gear=owned,
-                           past_signups=past_signups, ytd_stats=ytd_stats)
+                           past_signups=past_signups, ytd_stats=ytd_stats,
+                           recommendation_ride_types=[
+                               ('road', 'Road'),
+                               ('gravel', 'Gravel'),
+                               ('social', 'Social'),
+                               ('training', 'Training'),
+                               ('event', 'Event'),
+                               ('night', 'Night'),
+                               ('virtual', 'Virtual'),
+                           ],
+                           selected_recommendation_ride_types=set(current_user.recommendation_ride_types or []))
 
 
 @auth_bp.route('/profile/photo', methods=['POST'])

@@ -63,6 +63,24 @@ def ensure_runtime_schema():
     if 'email_preferences' not in user_columns:
         db.session.execute(text('ALTER TABLE users ADD COLUMN email_preferences JSON'))
         changed = True
+    if 'recommendations_enabled' not in user_columns:
+        db.session.execute(text('ALTER TABLE users ADD COLUMN recommendations_enabled BOOLEAN DEFAULT TRUE NOT NULL'))
+        changed = True
+    if 'recommendation_location_enabled' not in user_columns:
+        db.session.execute(text('ALTER TABLE users ADD COLUMN recommendation_location_enabled BOOLEAN DEFAULT TRUE NOT NULL'))
+        changed = True
+    if 'recommendation_history_enabled' not in user_columns:
+        db.session.execute(text('ALTER TABLE users ADD COLUMN recommendation_history_enabled BOOLEAN DEFAULT TRUE NOT NULL'))
+        changed = True
+    if 'recommendation_friend_activity_enabled' not in user_columns:
+        db.session.execute(text('ALTER TABLE users ADD COLUMN recommendation_friend_activity_enabled BOOLEAN DEFAULT TRUE NOT NULL'))
+        changed = True
+    if 'dashboard_recommendations_hidden' not in user_columns:
+        db.session.execute(text('ALTER TABLE users ADD COLUMN dashboard_recommendations_hidden BOOLEAN DEFAULT FALSE NOT NULL'))
+        changed = True
+    if 'recommendation_ride_types' not in user_columns:
+        db.session.execute(text('ALTER TABLE users ADD COLUMN recommendation_ride_types JSON'))
+        changed = True
 
     club_columns = {col['name'] for col in inspector.get_columns('clubs')} if 'clubs' in inspector.get_table_names() else set()
     if club_columns and 'sport_type' not in club_columns:
@@ -100,6 +118,21 @@ def ensure_runtime_schema():
         changed = True
     if club_columns and 'featured_rank' not in club_columns:
         db.session.execute(text('ALTER TABLE clubs ADD COLUMN featured_rank INTEGER'))
+        changed = True
+    if club_columns and 'whatsapp_url' not in club_columns:
+        db.session.execute(text('ALTER TABLE clubs ADD COLUMN whatsapp_url VARCHAR(500)'))
+        changed = True
+    if club_columns and 'shop_tax_enabled' not in club_columns:
+        db.session.execute(text('ALTER TABLE clubs ADD COLUMN shop_tax_enabled BOOLEAN DEFAULT FALSE NOT NULL'))
+        changed = True
+    if club_columns and 'shop_shipping_enabled' not in club_columns:
+        db.session.execute(text('ALTER TABLE clubs ADD COLUMN shop_shipping_enabled BOOLEAN DEFAULT FALSE NOT NULL'))
+        changed = True
+    if club_columns and 'shop_shipping_fee_cents' not in club_columns:
+        db.session.execute(text('ALTER TABLE clubs ADD COLUMN shop_shipping_fee_cents INTEGER'))
+        changed = True
+    if club_columns and 'shop_shipping_countries' not in club_columns:
+        db.session.execute(text("ALTER TABLE clubs ADD COLUMN shop_shipping_countries VARCHAR(255) DEFAULT 'US' NOT NULL"))
         changed = True
 
     membership_columns = (
@@ -168,6 +201,38 @@ def ensure_runtime_schema():
     if 'club_membership_payments' not in inspector.get_table_names():
         from .models import ClubMembershipPayment
         ClubMembershipPayment.__table__.create(db.engine, checkfirst=True)
+        changed = True
+
+    if 'club_shop_items' not in inspector.get_table_names():
+        from .models import ClubShopItem
+        ClubShopItem.__table__.create(db.engine, checkfirst=True)
+        changed = True
+
+    if 'club_shop_orders' not in inspector.get_table_names():
+        from .models import ClubShopOrder
+        ClubShopOrder.__table__.create(db.engine, checkfirst=True)
+        changed = True
+    else:
+        order_columns = {col['name'] for col in inspector.get_columns('club_shop_orders')}
+        if 'tax_amount_cents' not in order_columns:
+            db.session.execute(text('ALTER TABLE club_shop_orders ADD COLUMN tax_amount_cents INTEGER DEFAULT 0 NOT NULL'))
+            changed = True
+        if 'shipping_amount_cents' not in order_columns:
+            db.session.execute(text('ALTER TABLE club_shop_orders ADD COLUMN shipping_amount_cents INTEGER DEFAULT 0 NOT NULL'))
+            changed = True
+        if 'customer_email' not in order_columns:
+            db.session.execute(text('ALTER TABLE club_shop_orders ADD COLUMN customer_email VARCHAR(255)'))
+            changed = True
+        if 'customer_name' not in order_columns:
+            db.session.execute(text('ALTER TABLE club_shop_orders ADD COLUMN customer_name VARCHAR(255)'))
+            changed = True
+        if 'shipping_details' not in order_columns:
+            db.session.execute(text('ALTER TABLE club_shop_orders ADD COLUMN shipping_details JSON'))
+            changed = True
+
+    if 'user_recommendation_hidden' not in inspector.get_table_names():
+        from .models import UserRecommendationHidden
+        UserRecommendationHidden.__table__.create(db.engine, checkfirst=True)
         changed = True
 
     if 'site_settings' not in inspector.get_table_names():

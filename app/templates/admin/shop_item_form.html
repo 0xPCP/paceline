@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} — {{ club.name }} Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{{ url_for('clubs.home', slug=club.slug) }}">{{ club.name }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.club_dashboard', slug=club.slug) }}">Admin</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.club_shop', slug=club.slug) }}">Shop</a></li>
+        <li class="breadcrumb-item active">{{ title }}</li>
+      </ol>
+    </nav>
+    <h1>{{ title }}</h1>
+  </div>
+</div>
+
+<div class="container py-4">
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <form method="post" novalidate>
+        {{ form.hidden_tag() }}
+
+        <div class="mb-3">
+          {{ form.name.label(class="form-label") }}
+          {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="Club jersey") }}
+          {% for e in form.name.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+        </div>
+
+        <div class="mb-3">
+          {{ form.description.label(class="form-label") }}
+          {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else ""), rows="4", placeholder="Sizing, pickup timing, or ordering details.") }}
+          {% for e in form.description.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+        </div>
+
+        <div class="mb-3">
+          {{ form.image_url.label(class="form-label") }}
+          {{ form.image_url(class="form-control" + (" is-invalid" if form.image_url.errors else ""), placeholder="https://...") }}
+          <div class="form-text">Optional image URL shown on the shop page and in Stripe Checkout.</div>
+          {% for e in form.image_url.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+        </div>
+
+        <div class="row g-3">
+          <div class="col-sm-6">
+            {{ form.price.label(class="form-label") }}
+            <div class="input-group">
+              <span class="input-group-text">$</span>
+              {{ form.price(class="form-control" + (" is-invalid" if form.price.errors else ""), min="1", step="0.01") }}
+              {% for e in form.price.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="form-text">The customer also sees Paceline's separate $1 platform fee at checkout.</div>
+          </div>
+          <div class="col-sm-6">
+            {{ form.display_order.label(class="form-label") }}
+            {{ form.display_order(class="form-control" + (" is-invalid" if form.display_order.errors else "")) }}
+            <div class="form-text">Lower numbers appear first.</div>
+            {% for e in form.display_order.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          </div>
+        </div>
+
+        <div class="my-3">
+          <div class="form-check form-switch">
+            {{ form.is_active(class="form-check-input", role="switch", id="is_active") }}
+            {{ form.is_active.label(class="form-check-label", for="is_active") }}
+          </div>
+        </div>
+
+        <div class="mb-4">
+          {{ form.fulfillment_notes.label(class="form-label") }}
+          {{ form.fulfillment_notes(class="form-control" + (" is-invalid" if form.fulfillment_notes.errors else ""), rows="3", placeholder="Pickup at rides, shipping handled by club, delivery timing, etc.") }}
+          {% for e in form.fulfillment_notes.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+        </div>
+
+        <div class="d-flex gap-2">
+          {{ form.submit(class="btn btn-paceline") }}
+          <a href="{{ url_for('admin.club_shop', slug=club.slug) }}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+    <div class="col-lg-5">
+      <div class="detail-card">
+        <h5 class="detail-card-title">Checkout model</h5>
+        <p class="small text-muted mb-2">The club owns the Stripe account and manages fulfillment. Paceline adds a fixed $1 platform fee as a separate line item.</p>
+        <p class="small text-muted mb-2">If Stripe Tax or shipping is enabled in shop settings, Stripe Checkout adds those amounts during checkout.</p>
+        <p class="small text-muted mb-0">For example, a $65 jersey is shown as $66 before any taxes or shipping. Taxes, shipping, refunds, and product issues are the club's responsibility.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

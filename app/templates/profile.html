@@ -153,6 +153,40 @@
           </div>
 
           <hr class="my-3">
+          <h6 class="mb-1">Recommendations</h6>
+          <p class="text-muted small mb-2">Paceline can suggest rides and clubs based on your location, ride history, and friend activity. Suggestions are optional and can be hidden at any time.</p>
+          <div class="row g-2 mb-3">
+            {% for field in [
+              form.recommendations_enabled,
+              form.recommendation_location_enabled,
+              form.recommendation_history_enabled,
+              form.recommendation_friend_activity_enabled,
+              form.dashboard_recommendations_hidden
+            ] %}
+            <div class="col-md-6">
+              <div class="form-check">
+                {{ field(class="form-check-input") }}
+                {{ field.label(class="form-check-label") }}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="mb-3">
+            <div class="form-label small fw-semibold">Ride types to recommend</div>
+            <div class="d-flex flex-wrap gap-2">
+              {% for value, label in recommendation_ride_types %}
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" name="recommendation_ride_types"
+                       id="rec-type-{{ value }}" value="{{ value }}"
+                       {% if value in selected_recommendation_ride_types %}checked{% endif %}>
+                <label class="form-check-label" for="rec-type-{{ value }}">{{ label }}</label>
+              </div>
+              {% endfor %}
+            </div>
+            <div class="form-text">Leave all unchecked to let Paceline infer ride types from your signup history. Virtual rides are only recommended if selected or previously ridden.</div>
+          </div>
+
+          <hr class="my-3">
           <h6 class="mb-1">Email Notifications</h6>
           <p class="text-muted small mb-3">Choose which Paceline emails you want to receive. Account security emails are always sent.</p>
           <div class="row g-2 mb-3">
@@ -204,6 +238,24 @@
           {% if current_user.profile_is_public %}
           <input type="hidden" name="profile_is_public" value="y">
           {% endif %}
+          {% if current_user.recommendations_enabled %}
+          <input type="hidden" name="recommendations_enabled" value="y">
+          {% endif %}
+          {% if current_user.recommendation_location_enabled %}
+          <input type="hidden" name="recommendation_location_enabled" value="y">
+          {% endif %}
+          {% if current_user.recommendation_history_enabled %}
+          <input type="hidden" name="recommendation_history_enabled" value="y">
+          {% endif %}
+          {% if current_user.recommendation_friend_activity_enabled %}
+          <input type="hidden" name="recommendation_friend_activity_enabled" value="y">
+          {% endif %}
+          {% if current_user.dashboard_recommendations_hidden %}
+          <input type="hidden" name="dashboard_recommendations_hidden" value="y">
+          {% endif %}
+          {% for ride_type in current_user.recommendation_ride_types or [] %}
+          <input type="hidden" name="recommendation_ride_types" value="{{ ride_type }}">
+          {% endfor %}
           {% for key, field_name in {
             'ride_cancellations': 'notify_ride_cancellations',
             'ride_reminders': 'notify_ride_reminders',
