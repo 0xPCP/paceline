@@ -1,0 +1,40 @@
+services:
+  paceline-pulse:
+    build:
+      context: .
+      dockerfile: Dockerfile.monitor
+    image: paceline-health-monitor:latest
+    container_name: paceline-pulse
+    restart: unless-stopped
+    environment:
+      MONITOR_URL: "https://paceline.club/health"
+      MONITOR_INTERVAL_SECONDS: "60"
+      MONITOR_TIMEOUT_SECONDS: "10"
+      MONITOR_FAILURES_BEFORE_ALERT: "3"
+      MONITOR_LATENCY_ALERT_MS: "3000"
+      MONITOR_LATENCY_FAILURES_BEFORE_ALERT: "3"
+      MONITOR_ALERT_COOLDOWN_SECONDS: "1800"
+      MONITOR_ALERT_TO: "${MONITOR_ALERT_TO:-phil@pcp.dev}"
+      MONITOR_DASHBOARD_ENABLED: "true"
+      MONITOR_DASHBOARD_PORT: "8080"
+      MONITOR_DASHBOARD_USERNAME: "${MONITOR_DASHBOARD_USERNAME:-}"
+      MONITOR_DASHBOARD_PASSWORD: "${MONITOR_DASHBOARD_PASSWORD:-}"
+      RESEND_API_KEY: "${RESEND_API_KEY}"
+      RESEND_API_URL: "https://api.resend.com/emails"
+      RESEND_TIMEOUT_SECONDS: "10"
+      MAIL_DEFAULT_SENDER: "${MAIL_DEFAULT_SENDER:-Paceline Monitor <noreply@paceline.club>}"
+    expose:
+      - "8080"
+    volumes:
+      - paceline_pulse_state:/state
+
+  paceline-pulse-tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: paceline-pulse-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARED_TUNNEL_TOKEN}
+    depends_on:
+      - paceline-pulse
+
+volumes:
+  paceline_pulse_state:

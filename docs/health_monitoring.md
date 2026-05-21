@@ -41,7 +41,17 @@ Default behavior:
 
 The dashboard runs inside the same container on port `8080`.
 
-If TrueNAS maps the container port directly, the URL will be:
+Production dashboard URL:
+
+```text
+https://paceline-pulse.pcp.dev/
+```
+
+This should be exposed through a Cloudflare Tunnel, not by opening an inbound
+port on the TrueNAS firewall.
+
+If TrueNAS maps the container port directly for LAN-only testing, the local URL
+will be:
 
 ```text
 http://<truenas-host-or-ip>:8080/
@@ -71,8 +81,59 @@ threshold. Yellow means the site is reachable but slow. Red means the health
 check is failing or an outage alert is active.
 
 Set `MONITOR_DASHBOARD_USERNAME` and `MONITOR_DASHBOARD_PASSWORD` to require
-basic auth. If those are left blank, the dashboard is open to anyone who can
-reach the TrueNAS host and mapped port, so it should only be exposed on the LAN.
+basic auth at the container. For the public hostname, also protect
+`paceline-pulse.pcp.dev` with Cloudflare Access so only approved users can open
+the dashboard.
+
+## Cloudflare Tunnel Setup
+
+Use a sidecar `cloudflared` container on the same Docker network as
+Paceline Pulse. Cloudflare Tunnel makes outbound connections from TrueNAS to
+Cloudflare, so no inbound firewall rule is required.
+
+The repo includes a dedicated compose file:
+
+```bash
+docker compose -f docker-compose.pulse.yml up -d --build
+```
+
+Required environment variables:
+
+```text
+RESEND_API_KEY=...
+CLOUDFLARED_TUNNEL_TOKEN=...
+MONITOR_DASHBOARD_USERNAME=...
+MONITOR_DASHBOARD_PASSWORD=...
+```
+
+Recommended Cloudflare Zero Trust setup:
+
+1. In Cloudflare Zero Trust, create a tunnel named `paceline-pulse`.
+2. Add a Docker connector and copy the tunnel token into
+   `CLOUDFLARED_TUNNEL_TOKEN`.
+3. Add a public hostname:
+   ```text
+   paceline-pulse.pcp.dev
+   ```
+4. Route that hostname to the Docker service:
+   ```text
+   http://paceline-pulse:8080
+   ```
+5. Create a Cloudflare Access self-hosted application for:
+   ```text
+   https://paceline-pulse.pcp.dev
+   ```
+6. Add an Access policy that only allows approved admin email addresses.
+7. Keep the `MONITOR_DASHBOARD_USERNAME` and `MONITOR_DASHBOARD_PASSWORD`
+   enabled as a second layer of protection.
+
+Cloudflare's documented Docker token flow runs `cloudflared` with:
+
+```bash
+cloudflared tunnel --no-autoupdate run --token <TUNNEL_TOKEN>
+```
+
+The compose file uses the same flow.
 
 ## Email Provider
 
@@ -152,6 +213,9 @@ services:
 volumes:
   paceline_health_monitor_state:
 ```
+
+For the Cloudflare Tunnel deployment, prefer `docker-compose.pulse.yml` instead
+of this single-container example.
 
 ## Optional Configuration
 
