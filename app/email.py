@@ -317,6 +317,31 @@ def send_club_news_notification(post):
     return sent
 
 
+def send_club_contact_message(club, sender, subject, message):
+    """Relay a logged-in user's message to a club without exposing admin email addresses."""
+    from .models import ClubAdmin
+
+    recipients = set()
+    if club.contact_email:
+        recipients.add(club.contact_email)
+    if club.owner and club.owner.email:
+        recipients.add(club.owner.email)
+    admin_rows = ClubAdmin.query.filter_by(club_id=club.id, role='admin').all()
+    recipients.update(row.user.email for row in admin_rows if row.user and row.user.email)
+
+    recipients = sorted(email for email in recipients if email)
+    if not recipients:
+        return False
+
+    html = render_template('email/club_contact.html',
+                           club=club, sender=sender, subject=subject, message=message)
+    text = render_template('email/club_contact.txt',
+                           club=club, sender=sender, subject=subject, message=message)
+    sent = _send(f'[{club.name}] Message from {sender.username}: {subject}', recipients, html, text)
+    logger.info('Club contact message for club %d sent to %d recipient(s)', club.id, len(recipients))
+    return sent
+
+
 def send_waitlist_promoted(signup):
     """Notify a user they've been promoted from the waitlist to confirmed."""
     ride = signup.ride

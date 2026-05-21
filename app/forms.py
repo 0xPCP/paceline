@@ -355,6 +355,12 @@ class FeedbackForm(FlaskForm):
     submit = SubmitField('Send Feedback')
 
 
+class ClubContactForm(FlaskForm):
+    subject = StringField('Subject', validators=[DataRequired(), Length(min=3, max=120)])
+    message = TextAreaField('Message', validators=[DataRequired(), Length(min=10, max=2000)])
+    submit = SubmitField('Send Message')
+
+
 VIRTUAL_PLATFORM_CHOICES = [
     ('',          '— Select platform —'),
     ('zwift',     'Zwift'),

@@ -10,7 +10,7 @@ from ..models import Club, ClubAdmin, ClubMembership, Ride, RideComment, ClubInv
 from ..weather import get_weather_for_rides
 from ..geocoding import clubs_near_zip
 from .strava import get_club_activities
-from ..forms import ClubCreateForm, RideCommentForm
+from ..forms import ClubContactForm, ClubCreateForm, RideCommentForm
 from ..geocoding import geocode_zip
 from ..utils import is_safe_url
 from ..storage import get_storage
@@ -269,6 +269,7 @@ def create():
 @clubs_bp.route('/<slug>/')
 def home(slug):
     club = _get_club_or_404(slug)
+    contact_form = ClubContactForm()
     today = date.today()
     upcoming = (Ride.query
                 .filter_by(club_id=club.id, is_cancelled=False)
@@ -326,6 +327,7 @@ def home(slug):
                            user_membership=user_membership,
                            today=today, strava_activities=strava_activities,
                            club_stats=club_stats,
+                           contact_form=contact_form,
                            board_posts=board_posts,
                            board_is_subscribed=board_is_subscribed,
                            board_is_admin=board_is_admin,
@@ -405,6 +407,29 @@ def club_members(slug):
     return render_template('clubs/members.html', club=club, sections=sections,
                            attendance=attendance, admin_user_ids=admin_user_ids,
                            owner_id=owner_id)
+
+
+@clubs_bp.route('/<slug>/contact', methods=['POST'])
+@login_required
+def club_contact(slug):
+    club = _get_club_or_404(slug)
+    form = ClubContactForm()
+    if not form.validate_on_submit():
+        flash('Please add a subject and message before sending.', 'danger')
+        return redirect(url_for('clubs.home', slug=club.slug) + '#contact')
+
+    from ..email import send_club_contact_message
+    sent = send_club_contact_message(
+        club,
+        current_user,
+        form.subject.data.strip(),
+        form.message.data.strip(),
+    )
+    if sent:
+        flash(f'Your message was sent to {club.name}.', 'success')
+    else:
+        flash('This club does not have a contact recipient configured yet.', 'warning')
+    return redirect(url_for('clubs.home', slug=club.slug) + '#contact')
 
 
 # ── Club calendar ─────────────────────────────────────────────────────────────

@@ -312,6 +312,20 @@ body.club-page {
   border-right: 1px solid var(--paceline-border);
   border-bottom: 1px solid var(--paceline-border);
 }
+.css-item-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  transition: background-color .15s ease;
+}
+.css-item-link:hover,
+.css-item-link:focus {
+  background: rgba(45, 106, 79, .08);
+}
+.css-item-link:hover .css-label,
+.css-item-link:focus .css-label {
+  color: var(--paceline-primary);
+}
 .css-item:nth-child(even) { border-right: none; }
 .css-item:nth-child(3),
 .css-item:nth-child(4) { border-bottom: none; }

@@ -1,0 +1,24 @@
+{% extends "email/_base.html" %}
+{% block preheader %}New message for {{ club.name }} from Paceline{% endblock %}
+{% block body %}
+<div class="club-tag">{{ club.name }}</div>
+<h1>New club message</h1>
+
+<table class="meta-table" role="presentation" cellpadding="0" cellspacing="0">
+  <tr>
+    <td>From</td>
+    <td>{{ sender.username }} &lt;{{ sender.email }}&gt;</td>
+  </tr>
+  <tr>
+    <td>Subject</td>
+    <td>{{ subject }}</td>
+  </tr>
+</table>
+
+<p style="white-space:pre-line">{{ message }}</p>
+
+<p style="color:#6b7280;font-size:.85rem">
+  Replying to this email may not reach the rider directly. Use the rider's email
+  above if you want to respond outside Paceline.
+</p>
+{% endblock %}
