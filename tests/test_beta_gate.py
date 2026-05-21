@@ -1,5 +1,9 @@
+import pytest
+
 from app import create_app
 from app.config import Config
+
+pytestmark = pytest.mark.skip(reason='Beta password gate was removed for public launch.')
 
 
 class BetaGateConfig(Config):
