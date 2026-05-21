@@ -33,10 +33,19 @@ C  Authenticated user workflows
    dashboard → profile → my rides → club board → ride signup prompt
 
 D  Club admin workflows (superadmin)
-   superadmin dashboard → user list → club admin page
+   superadmin dashboard → user list → club admin page → user detail
 
 E  Club creation wizard (step 1 only — does NOT submit)
    navigate through wizard steps without creating a real club
+
+F  Health & system
+   /health liveness probe
+
+G  Member roster & contact relay (v0.124+)
+   roster auth gate → roster page → contact auth gate → contact form
+
+H  Club shop tab (v0.125+)
+   shop tab visible → shop listing page loads (NO checkout — live Stripe)
 """
 import os
 import pytest
@@ -359,3 +368,121 @@ def test_E01_club_wizard_step1(page: Page):
     # Step 1 fields only (description textarea is on a later wizard step)
     expect(page.locator('input[name="name"]')).to_be_visible()
     expect(page.locator('input[name="city"]')).to_be_visible()
+
+
+# ── Scenario F: Health & system ───────────────────────────────────────────────
+
+@pytest.mark.prod
+def test_F01_health_endpoint(page: Page):
+    """Liveness probe returns 200 JSON with status ok."""
+    page.goto(f"{PROD_URL}/health")
+    page.wait_for_load_state("networkidle")
+    ss(page, "F01_health_endpoint")
+    import json
+    body = page.content()
+    # Strip HTML wrapper that Playwright adds around raw JSON responses
+    import re
+    match = re.search(r'\{.*\}', body, re.DOTALL)
+    assert match, f"No JSON object found in /health response: {body[:200]}"
+    data = json.loads(match.group(0))
+    assert data.get("status") == "ok", f"Expected status=ok, got: {data}"
+
+
+# ── Scenario G: Member roster & contact relay ─────────────────────────────────
+
+@pytest.mark.prod
+def test_G01_member_roster_auth_gate(page: Page):
+    """Anonymous access to member roster redirects to login."""
+    page.goto(f"{PROD_URL}/clubs/paceline-demo/members/", wait_until="commit")
+    page.wait_for_load_state("networkidle")
+    ss(page, "G01_roster_auth_gate")
+    assert "login" in page.url.lower(), f"Expected redirect to login, got {page.url}"
+    expect(page.locator('input[name="email"]')).to_be_visible()
+
+
+@pytest.mark.prod
+def test_G02_member_roster_authenticated(page: Page):
+    """Active member can view club member roster."""
+    login(page)
+    page.goto(f"{PROD_URL}/clubs/paceline-demo/members/")
+    page.wait_for_load_state("networkidle")
+    ss(page, "G02_member_roster")
+    assert "Paceline Demo Club" in page.title() or "Members" in page.title()
+    # Roster renders at least one member card (Bootstrap card layout)
+    expect(page.locator(".card.border-0.shadow-sm").first).to_be_visible()
+
+
+@pytest.mark.prod
+def test_G03_contact_page_auth_gate(page: Page):
+    """Anonymous access to club contact page redirects to login."""
+    page.goto(f"{PROD_URL}/clubs/paceline-demo/contact", wait_until="commit")
+    page.wait_for_load_state("networkidle")
+    ss(page, "G03_contact_auth_gate")
+    assert "login" in page.url.lower(), f"Expected redirect to login, got {page.url}"
+    expect(page.locator('input[name="email"]')).to_be_visible()
+
+
+@pytest.mark.prod
+def test_G04_contact_page_authenticated(page: Page):
+    """Authenticated user sees contact relay form (GET only — does NOT submit)."""
+    login(page)
+    page.goto(f"{PROD_URL}/clubs/paceline-demo/contact")
+    page.wait_for_load_state("networkidle")
+    ss(page, "G04_contact_form")
+    assert "Paceline Demo Club" in page.title() or "Contact" in page.title()
+    expect(page.locator('input[name="subject"], textarea[name="subject"]')).to_be_visible()
+    expect(page.locator('textarea[name="message"]')).to_be_visible()
+    # Submit button is present but we do NOT click it (would send real email)
+    expect(page.locator('[type="submit"]')).to_be_visible()
+
+
+# ── Scenario H: Club shop tab ─────────────────────────────────────────────────
+
+@pytest.mark.prod
+def test_H01_shop_tab_behaviour(page: Page):
+    """Shop tab only appears in the tab bar when the club has active shop items.
+
+    With no items configured, the tab must be absent (not broken/erroring).
+    With items configured, the tab appears as a link (Stripe connected) or
+    disabled span (Stripe not connected). Either state is acceptable here.
+    """
+    login(page)
+    page.goto(f"{PROD_URL}/clubs/paceline-demo/")
+    page.wait_for_load_state("networkidle")
+    ss(page, "H01_shop_tab")
+    # Page must load cleanly
+    assert "500" not in page.title()
+    assert "404" not in page.title()
+    # Count shop tab occurrences — 0 means no items configured (correct), 1 means items exist
+    shop_tabs = page.locator("#clubTabNav").get_by_text("Shop", exact=True)
+    count = shop_tabs.count()
+    assert count in (0, 1), f"Unexpected shop tab count: {count}"
+
+
+@pytest.mark.prod
+def test_H02_shop_page_loads(page: Page):
+    """Club shop listing page returns 200 or 404 (no items), never 500."""
+    login(page)
+    response = page.goto(f"{PROD_URL}/clubs/paceline-demo/shop/")
+    page.wait_for_load_state("networkidle")
+    ss(page, "H02_shop_page")
+    assert response.status in (200, 404), f"Unexpected status {response.status} on shop page"
+    assert "500" not in page.title(), f"500 error on shop page: {page.title()}"
+
+
+# ── Scenario D extensions: Superadmin user detail ────────────────────────────
+
+@pytest.mark.prod
+def test_D04_superadmin_user_detail(page: Page):
+    """Superadmin user detail page loads with permanent delete panel visible."""
+    login(page)
+    # Visit another user's detail page (id=3 = wazup16) — delete panel hidden for self-view
+    # Do NOT click delete — read-only audit only
+    page.goto(f"{PROD_URL}/admin/users/3")
+    page.wait_for_load_state("networkidle")
+    ss(page, "D04_user_detail")
+    # Title pattern: "<username> — User Detail"
+    assert "User Detail" in page.title(), f"Unexpected title: {page.title()}"
+    # Permanent delete panel present when viewing another user (panel hidden for self-view)
+    # Do NOT click delete — this is a read-only audit
+    expect(page.locator('[data-testid="delete-user-panel"]')).to_be_visible()

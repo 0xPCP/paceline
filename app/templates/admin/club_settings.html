@@ -342,10 +342,7 @@
             </div>
             <div class="d-flex gap-2 align-items-start">
               {% if club.stripe_account_id %}
-              <form method="post" action="{{ url_for('stripe_connect.disconnect_club', slug=club.slug) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                <button class="btn btn-outline-danger btn-sm">Disconnect</button>
-              </form>
+              <button type="submit" form="stripe-disconnect-form" class="btn btn-outline-danger btn-sm">Disconnect</button>
               {% if not club.stripe_account_connected_at %}
               <a class="btn btn-outline-primary btn-sm" href="{{ url_for('stripe_connect.connect_club', slug=club.slug) }}">Continue Onboarding</a>
               {% endif %}
@@ -457,6 +454,11 @@
           <a href="{{ url_for('admin.club_dashboard', slug=club.slug) }}" class="btn btn-outline-secondary">Cancel</a>
         </div>
       </form>
+      {% if club.stripe_account_id %}
+      <form id="stripe-disconnect-form" method="post" action="{{ url_for('stripe_connect.disconnect_club', slug=club.slug) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      </form>
+      {% endif %}
     </div>
 
     <div class="col-lg-4">
