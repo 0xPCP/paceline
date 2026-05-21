@@ -401,6 +401,94 @@ class TestDeleteTestUser:
         assert AdminAuditLog.query.filter_by(action='delete_test_user').first() is not None
 
 
+class TestDeleteUser:
+
+    def test_detail_shows_permanent_delete_for_other_user(self, client, db, admin_user, regular_user):
+        login_as(client, admin_user)
+        resp = client.get(f'/admin/users/{regular_user.id}')
+        assert resp.status_code == 200
+        assert b'data-testid="delete-user-panel"' in resp.data
+        assert f'DELETE USER {regular_user.email}'.encode() in resp.data
+
+    def test_detail_hides_permanent_delete_for_self(self, client, db, admin_user):
+        login_as(client, admin_user)
+        resp = client.get(f'/admin/users/{admin_user.id}')
+        assert resp.status_code == 200
+        assert b'data-testid="delete-user-panel"' not in resp.data
+
+    def test_delete_user_requires_exact_confirmation(self, client, db, admin_user, regular_user):
+        login_as(client, admin_user)
+        resp = client.post(
+            f'/admin/users/{regular_user.id}/delete',
+            data={'confirmation': 'DELETE'},
+            follow_redirects=True,
+        )
+        assert f'DELETE USER {regular_user.email}'.encode() in resp.data
+        assert db.session.get(User, regular_user.id) is not None
+
+    def test_superadmin_can_permanently_delete_user_and_detach_owned_club(self, client, db, admin_user):
+        doomed = make_user(db, 'delete_me', 'delete-me@test.com')
+        owned_club = Club(slug='delete-me-club', name='Delete Me Club', owner_id=doomed.id)
+        db.session.add(owned_club)
+        db.session.commit()
+        personal_ride = Ride(
+            owner_id=doomed.id,
+            title='Delete Me Personal Ride',
+            date=date.today() + timedelta(days=3),
+            time=time(9, 0),
+            meeting_location='Test lot',
+            distance_miles=12,
+            pace_category='B',
+            ride_type='road',
+        )
+        club_ride = Ride(
+            club_id=owned_club.id,
+            leader_id=doomed.id,
+            created_by=doomed.id,
+            title='Delete Me Club Ride',
+            date=date.today() + timedelta(days=4),
+            time=time(9, 0),
+            meeting_location='Test lot',
+            distance_miles=20,
+            pace_category='B',
+            ride_type='road',
+        )
+        db.session.add_all([
+            personal_ride,
+            club_ride,
+            ClubMembership(user_id=doomed.id, club_id=owned_club.id, status='active'),
+        ])
+        db.session.commit()
+
+        login_as(client, admin_user)
+        resp = client.post(
+            f'/admin/users/{doomed.id}/delete',
+            data={'confirmation': 'DELETE USER delete-me@test.com'},
+            follow_redirects=True,
+        )
+
+        assert resp.status_code == 200
+        assert b'Permanently deleted user' in resp.data
+        assert db.session.get(User, doomed.id) is None
+        assert db.session.get(Ride, personal_ride.id) is None
+        db.session.refresh(owned_club)
+        db.session.refresh(club_ride)
+        assert owned_club.owner_id is None
+        assert club_ride.leader_id is None
+        assert club_ride.created_by is None
+        assert AdminAuditLog.query.filter_by(action='delete_user').first() is not None
+
+    def test_delete_user_blocks_self(self, client, db, admin_user):
+        login_as(client, admin_user)
+        resp = client.post(
+            f'/admin/users/{admin_user.id}/delete',
+            data={'confirmation': f'DELETE USER {admin_user.email}'},
+            follow_redirects=True,
+        )
+        assert b'cannot permanently delete your own account' in resp.data
+        assert db.session.get(User, admin_user.id) is not None
+
+
 # ── Deactivated user cannot log in ────────────────────────────────────────────
 
 class TestDeactivatedLogin:

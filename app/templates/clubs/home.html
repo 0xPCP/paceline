@@ -38,7 +38,11 @@
         {# Meta #}
         <p class="club-hero-meta mb-3">
           {% if club.city %}📍 {{ club.city }}, {{ club.state }} &bull; {% endif %}
+          {% if is_member %}
           <a href="{{ url_for('clubs.club_members', slug=club.slug) }}" class="text-decoration-none" style="color:inherit">{{ club.member_count }} member{{ 's' if club.member_count != 1 else '' }}</a>
+          {% else %}
+          {{ club.member_count }} member{{ 's' if club.member_count != 1 else '' }}
+          {% endif %}
           {% if club_stats.founded %} &bull; Est. {{ club_stats.founded }}{% endif %}
         </p>
 
@@ -123,6 +127,9 @@
         {% endif %}
         {% if current_user.is_authenticated and current_user.is_club_admin(club) %}
         <a href="{{ url_for('admin.club_dashboard', slug=club.slug) }}" class="btn btn-outline-light">Admin</a>
+        {% endif %}
+        {% if is_member %}
+        <a href="{{ url_for('clubs.club_members', slug=club.slug) }}" class="btn btn-outline-light">Members</a>
         {% endif %}
         {% if has_shop_items %}
         <a href="{{ url_for('clubs.club_shop', slug=club.slug) }}" class="btn btn-outline-light">Shop</a>
