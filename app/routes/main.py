@@ -4,12 +4,13 @@ from flask import Blueprint, render_template, request, redirect, url_for, curren
 from flask_login import current_user, login_required
 from sqlalchemy import or_, and_, text
 from ..forms import FeedbackForm
-from ..models import Club, Ride, RideSignup, ClubMembership, PlatformPost, SiteFeedback, User, UserFriend
+from ..models import Club, Ride, RideSignup, ClubMembership, PlatformPost, SiteFeedback, User, UserFriend, UserRecommendationHidden
 from ..storage import get_storage
 from ..extensions import db
 from ..email import send_feedback_notification
 from ..weather import get_weather_for_rides
 from ..geocoding import geocode_zip, haversine_miles
+from ..recommendations import recommend_clubs_for_user, recommend_rides_for_user
 
 main_bp = Blueprint('main', __name__)
 
@@ -130,6 +131,11 @@ def _user_dashboard(today, platform_posts=None):
         .filter_by(addressee_id=current_user.id, status='pending')
         .all()
     )
+    recommended_rides = []
+    recommended_clubs = []
+    if not current_user.dashboard_recommendations_hidden:
+        recommended_rides = recommend_rides_for_user(current_user, today=today, limit=4)
+        recommended_clubs = recommend_clubs_for_user(current_user, today=today, limit=4)
 
     return render_template('dashboard.html',
                            my_rides=my_rides,
@@ -143,7 +149,46 @@ def _user_dashboard(today, platform_posts=None):
                            signup_eligible=signup_eligible,
                            platform_posts=platform_posts or [],
                            pending_friend_requests=pending_friend_requests,
-                           friend_counts=friend_counts)
+                           friend_counts=friend_counts,
+                           recommended_rides=recommended_rides,
+                           recommended_clubs=recommended_clubs)
+
+
+@main_bp.route('/recommendations/hide', methods=['POST'])
+@login_required
+def hide_recommendation():
+    target_type = request.form.get('target_type', '').strip()
+    try:
+        target_id = int(request.form.get('target_id', '0'))
+    except ValueError:
+        target_id = 0
+    if target_type not in ('ride', 'club') or target_id <= 0:
+        flash('Recommendation could not be hidden.', 'warning')
+        return redirect(url_for('main.index'))
+    existing = UserRecommendationHidden.query.filter_by(
+        user_id=current_user.id,
+        target_type=target_type,
+        target_id=target_id,
+    ).first()
+    if not existing:
+        db.session.add(UserRecommendationHidden(
+            user_id=current_user.id,
+            target_type=target_type,
+            target_id=target_id,
+            reason=request.form.get('reason', 'hidden')[:40] or 'hidden',
+        ))
+        db.session.commit()
+    flash('Recommendation hidden.', 'info')
+    return redirect(request.form.get('next') or url_for('main.index'))
+
+
+@main_bp.route('/recommendations/hide-dashboard', methods=['POST'])
+@login_required
+def hide_dashboard_recommendations():
+    current_user.dashboard_recommendations_hidden = True
+    db.session.commit()
+    flash('Dashboard recommendations hidden. You can turn them back on from your profile.', 'info')
+    return redirect(url_for('main.index'))
 
 
 def _friends_upcoming_rides(viewer, today, viewer_signup_ids, viewer_club_ids):
@@ -385,6 +430,11 @@ def discover():
     pace       = request.args.get('pace', '')
     ride_type  = request.args.get('type', '')
     date_range = request.args.get('range', 'week')
+    sort       = request.args.get('sort', 'soonest')
+    if sort not in ('soonest', 'recommended'):
+        sort = 'soonest'
+    if sort == 'recommended' and not current_user.is_authenticated:
+        sort = 'soonest'
 
     # Location — either lat/lng (from geolocation) or zip code
     lat_arg = request.args.get('lat', type=float)
@@ -497,6 +547,12 @@ def discover():
                 filtered.append(r)
         rides = filtered
 
+    if sort == 'recommended':
+        recs = recommend_rides_for_user(current_user, today=today, limit=200)
+        score_by_id = {rec.ride.id: rec.score for rec in recs}
+        rides = [ride for ride in rides if ride.id in score_by_id]
+        rides.sort(key=lambda ride: (-score_by_id.get(ride.id, 0), ride.date, ride.time))
+
     weather = get_weather_for_rides(rides)
     friend_counts = {}
     if current_user.is_authenticated:
@@ -509,6 +565,7 @@ def discover():
         active_pace=pace,
         active_type=ride_type,
         active_range=date_range,
+        active_sort=sort,
         source=source,
         zip_q=zip_q,
         lat_arg=lat_arg,

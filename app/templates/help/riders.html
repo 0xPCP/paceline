@@ -27,7 +27,9 @@
             <li><a href="#account">Create an account</a></li>
             <li><a href="#find-clubs">Find clubs near you</a></li>
             <li><a href="#join">Join a club and pay dues</a></li>
+            <li><a href="#shop">Buy club merchandise</a></li>
             <li><a href="#discover">Discover and sign up for rides</a></li>
+            <li><a href="#recommendations">Use recommendations</a></li>
             <li><a href="#my-rides">Manage your rides</a></li>
             <li><a href="#profile">Set up your profile</a></li>
             <li><a href="#photo">Upload a profile photo</a></li>
@@ -127,9 +129,30 @@
         </p>
       </div>
 
-      {# ── 4. Discover and sign up for rides ───────────────────────────── #}
+      {# ── 4. Buy club merchandise ─────────────────────────────────────── #}
+      <div class="mb-5" id="shop">
+        <h2 class="section-heading h4">4. Buy club merchandise</h2>
+        <p class="section-body">
+          Some clubs list jerseys, shirts, or other merchandise in a club shop.
+          Open the club page and choose <strong>Shop</strong> when the club has
+          items available.
+        </p>
+        <p class="section-body">
+          Shop checkout is handled by Stripe. The item amount goes to the club's
+          Stripe account and Paceline adds a separate $1 platform fee at checkout.
+          If the club enables Stripe Tax or shipping, taxes and shipping may also
+          be added during checkout.
+        </p>
+        <p class="section-body">
+          Clubs manage their own fulfillment, taxes, refunds, shipping, and product
+          questions. Contact the club directly if you have a question about an item,
+          delivery, pickup, or refund.
+        </p>
+      </div>
+
+      {# ── 5. Discover and sign up for rides ───────────────────────────── #}
       <div class="mb-5" id="discover">
-        <h2 class="section-heading h4">4. Discover and sign up for rides</h2>
+        <h2 class="section-heading h4">5. Discover and sign up for rides</h2>
         <p class="section-body">
           Use <strong>Discover Rides</strong> to browse upcoming rides across
           clubs and public user-created rides. Filter by date range, pace, ride
@@ -153,9 +176,33 @@
         </figure>
       </div>
 
-      {# ── 5. Manage your rides ─────────────────────────────────────────── #}
+      {# ── 6. Use recommendations ──────────────────────────────────────── #}
+      <div class="mb-5" id="recommendations">
+        <h2 class="section-heading h4">6. Use recommendations</h2>
+        <p class="section-body">
+          Signed-in riders may see a <strong>Recommended for You</strong> section
+          on the dashboard and can sort Discover Rides by <strong>Recommended</strong>.
+          Paceline uses simple signals like your saved location, clubs, ride signup
+          history, ride type preferences, and friend activity.
+        </p>
+        <p class="section-body">
+          Recommendations avoid rides you are already signed up for and avoid
+          recommending another ride on a day when you already have a ride scheduled.
+          They also respect your ride type preferences, so virtual rides are not
+          suggested unless you choose virtual rides or have ridden them before.
+        </p>
+        <p class="section-body">
+          You can hide individual recommendations with <strong>Not for me</strong>
+          or hide the dashboard section entirely. Open <strong>Profile →
+          Recommendations</strong> to turn recommendations off, hide them from your
+          dashboard, choose which signals Paceline can use, or explicitly select
+          ride types such as road, gravel, or virtual.
+        </p>
+      </div>
+
+      {# ── 7. Manage your rides ─────────────────────────────────────────── #}
       <div class="mb-5" id="my-rides">
-        <h2 class="section-heading h4">5. Manage your rides</h2>
+        <h2 class="section-heading h4">7. Manage your rides</h2>
         <p class="section-body">
           Your home page shows upcoming rides from your clubs and rides you have
           joined. Use <strong>My Rides</strong> to create personal rides, manage
@@ -171,9 +218,9 @@
         </figure>
       </div>
 
-      {# ── 6. Set up your profile ───────────────────────────────────────── #}
+      {# ── 8. Set up your profile ───────────────────────────────────────── #}
       <div class="mb-5" id="profile">
-        <h2 class="section-heading h4">6. Set up your profile</h2>
+        <h2 class="section-heading h4">8. Set up your profile</h2>
         <p class="section-body">
           Keep your profile current from <strong>Profile</strong> in the top navigation.
           Add your zip code for better ride recommendations. Other optional details
@@ -186,9 +233,9 @@
         </p>
       </div>
 
-      {# ── 7. Upload a profile photo ────────────────────────────────────── #}
+      {# ── 9. Upload a profile photo ────────────────────────────────────── #}
       <div class="mb-5" id="photo">
-        <h2 class="section-heading h4">7. Upload a profile photo</h2>
+        <h2 class="section-heading h4">9. Upload a profile photo</h2>
         <p class="section-body">
           A profile photo appears as a circular avatar next to your username
           everywhere on Paceline — the who's coming list on ride pages, the ride
@@ -216,9 +263,9 @@
         </p>
       </div>
 
-      {# ── 8. Manage email notifications ───────────────────────────────── #}
+      {# ── 10. Manage email notifications ──────────────────────────────── #}
       <div class="mb-5" id="notifications">
-        <h2 class="section-heading h4">8. Manage email notifications</h2>
+        <h2 class="section-heading h4">10. Manage email notifications</h2>
         <p class="section-body">
           Paceline notifications are sent by email. Open <strong>Profile</strong>
           and use the <strong>Email Notifications</strong> section to choose which
@@ -243,9 +290,9 @@
         </p>
       </div>
 
-      {# ── 9. Protect your account ─────────────────────────────────────── #}
+      {# ── 11. Protect your account ────────────────────────────────────── #}
       <div class="mb-5" id="security">
-        <h2 class="section-heading h4">9. Protect your account</h2>
+        <h2 class="section-heading h4">11. Protect your account</h2>
         <p class="section-body">
           You can sign in with an email and password or with Google. Google-created
           accounts still use one Paceline username, and the first Google sign-in
@@ -271,9 +318,9 @@
         </p>
       </div>
 
-      {# ── 10. Control profile privacy ─────────────────────────────────── #}
+      {# ── 12. Control profile privacy ─────────────────────────────────── #}
       <div class="mb-5" id="privacy">
-        <h2 class="section-heading h4">10. Control profile privacy</h2>
+        <h2 class="section-heading h4">12. Control profile privacy</h2>
         <p class="section-body">
           Profiles are private by default. When your profile is private, strangers
           cannot see your bio, Strava link, ride history, or upcoming rides. Accepted
@@ -293,9 +340,9 @@
         </p>
       </div>
 
-      {# ── 11. Use ride tools ──────────────────────────────────────────── #}
+      {# ── 13. Use ride tools ──────────────────────────────────────────── #}
       <div class="mb-5" id="ride-tools">
-        <h2 class="section-heading h4">11. Use ride tools</h2>
+        <h2 class="section-heading h4">13. Use ride tools</h2>
         <p class="section-body">
           Ride pages may show weather and AQI. AQI is the air quality index; higher
           numbers mean worse air. Paceline only calls attention to weather or air

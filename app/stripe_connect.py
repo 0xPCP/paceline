@@ -151,6 +151,77 @@ def create_checkout_session(*, club, user, membership, payment, success_url, can
     return payload
 
 
+def create_shop_checkout_session(*, club, user, item, order, success_url, cancel_url):
+    """Create a Checkout Session for a club shop item as a direct charge."""
+    if not club.stripe_account_id:
+        raise StripeConnectError('This club has not connected Stripe.')
+
+    platform_fee_cents = current_app.config.get('STRIPE_PLATFORM_FEE_CENTS', 100)
+    if order.item_amount_cents <= 0 or order.platform_fee_cents != platform_fee_cents:
+        raise StripeConnectError('Invalid shop order amount for checkout.')
+
+    data = {
+        'mode': 'payment',
+        'success_url': success_url,
+        'cancel_url': cancel_url,
+        'client_reference_id': f'shop_order:{order.id}',
+        'customer_email': user.email,
+        'line_items[0][quantity]': '1',
+        'line_items[0][price_data][currency]': item.currency or 'usd',
+        'line_items[0][price_data][unit_amount]': str(order.item_amount_cents),
+        'line_items[0][price_data][product_data][name]': item.name,
+        'line_items[0][price_data][product_data][description]': item.description or 'Club shop item',
+        'line_items[1][quantity]': '1',
+        'line_items[1][price_data][currency]': item.currency or 'usd',
+        'line_items[1][price_data][unit_amount]': str(platform_fee_cents),
+        'line_items[1][price_data][product_data][name]': 'Paceline platform fee',
+        'line_items[1][price_data][product_data][description]': 'Supports Paceline payment processing and platform development',
+        'payment_intent_data[application_fee_amount]': str(platform_fee_cents),
+        'metadata[kind]': 'club_shop_order',
+        'metadata[order_id]': str(order.id),
+        'metadata[club_id]': str(club.id),
+        'metadata[item_id]': str(item.id),
+        'metadata[user_id]': str(user.id),
+        'metadata[item_amount_cents]': str(order.item_amount_cents),
+        'metadata[platform_fee_cents]': str(platform_fee_cents),
+    }
+    if club.shop_tax_enabled:
+        data['automatic_tax[enabled]'] = 'true'
+    if club.shop_shipping_enabled:
+        countries = [
+            c.strip().upper()
+            for c in (club.shop_shipping_countries or 'US').split(',')
+            if c.strip()
+        ] or ['US']
+        for index, country in enumerate(countries):
+            data[f'shipping_address_collection[allowed_countries][{index}]'] = country
+        shipping_fee_cents = club.shop_shipping_fee_cents or 0
+        data['shipping_options[0][shipping_rate_data][type]'] = 'fixed_amount'
+        data['shipping_options[0][shipping_rate_data][fixed_amount][amount]'] = str(shipping_fee_cents)
+        data['shipping_options[0][shipping_rate_data][fixed_amount][currency]'] = item.currency or 'usd'
+        data['shipping_options[0][shipping_rate_data][display_name]'] = (
+            'Free club-managed shipping' if shipping_fee_cents == 0 else 'Club-managed shipping'
+        )
+    if item.image_url:
+        data['line_items[0][price_data][product_data][images][0]'] = item.image_url
+
+    headers = _headers()
+    headers['Stripe-Account'] = club.stripe_account_id
+
+    response = requests.post(
+        f'{STRIPE_API_BASE}/checkout/sessions',
+        headers=headers,
+        data=data,
+        timeout=15,
+    )
+    if response.status_code >= 400:
+        raise StripeConnectError('Stripe could not create the shop checkout session.')
+    payload = response.json()
+    if not payload.get('id') or not payload.get('url'):
+        raise StripeConnectError('Stripe returned an incomplete checkout session.')
+    return payload
+
+
 def verify_webhook_payload(payload, signature_header, secret, tolerance=300):
     if not signature_header:
         raise StripeConnectError('Missing Stripe signature.')

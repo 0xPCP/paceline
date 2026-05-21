@@ -207,6 +207,13 @@
           {% for e in form.newsletter_url.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
         </div>
 
+        <div class="mb-4">
+          {{ form.whatsapp_url.label(class="form-label") }}
+          {{ form.whatsapp_url(class="form-control" + (" is-invalid" if form.whatsapp_url.errors else ""), placeholder="https://chat.whatsapp.com/...") }}
+          <div class="form-text">Optional WhatsApp group invite or community link for riders who should be able to join the chat.</div>
+          {% for e in form.whatsapp_url.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+        </div>
+
         <hr class="my-4" />
         <h5 class="mb-1">Governance &amp; Resources</h5>
         <p class="text-muted small mb-3">
@@ -348,6 +355,10 @@
             </div>
           </div>
           <div class="form-text mt-2">Stripe handles checkout and deposits dues directly into the club's Stripe account. Members pay the dues amount you set plus a separate $1 Paceline platform fee.</div>
+        </div>
+
+        <div class="alert alert-light border small mb-4">
+          The same connected Stripe account is used for the club shop. Shop customers pay the item price plus Paceline's separate $1 platform fee, and fulfillment is handled by the club.
         </div>
 
         </div>{# /membership-section #}

@@ -34,6 +34,7 @@
             <li><a href="#comms">Keep members informed</a></li>
             <li><a href="#roster">View and manage the member roster</a></li>
             <li><a href="#dues">Handle paid club dues</a></li>
+            <li><a href="#shop">Sell club merchandise</a></li>
             <li><a href="#embed">Embed rides on your website</a></li>
             <li><a href="#advanced-rides">Use advanced ride options</a></li>
             <li><a href="#ownership">Transfer club ownership</a></li>
@@ -438,9 +439,51 @@
         </p>
       </div>
 
-      {# ── 11. Embed rides on your website ──────────────────────────────── #}
+      {# ── 11. Sell club merchandise ────────────────────────────────────── #}
+      <div class="mb-5" id="shop">
+        <h2 class="section-heading h4">11. Sell club merchandise</h2>
+        <p class="section-body">
+          Club admins can add a simple shop for jerseys, shirts, or other club-managed
+          merchandise. Open <strong>Admin → Shop</strong>, add an item name,
+          description, optional image URL, price, and fulfillment notes.
+        </p>
+        <p class="section-body">
+          Shop checkout uses the same connected Stripe account as automated dues.
+          The item amount is paid to the club's Stripe account and Paceline adds a
+          separate <strong>$1 platform fee</strong> at checkout. For example, a
+          $65 jersey is shown as $66 total before any Stripe taxes or processing
+          fees. Paceline does not hold the club's merchandise revenue.
+        </p>
+        <p class="section-body">
+          Clubs manage their own fulfillment, pickup, shipping, refunds, tax compliance,
+          and product questions. Paceline records recent shop orders in
+          <strong>Admin → Shop</strong> so admins can confirm paid orders and follow up
+          with riders.
+        </p>
+        <h5 class="mt-4 mb-2">Taxes and shipping</h5>
+        <p class="section-body">
+          In <strong>Admin → Shop</strong>, a club admin can enable Stripe Tax for shop
+          checkout. Stripe calculates tax during checkout using the club's connected
+          Stripe account settings. The club must configure any required tax registrations
+          or tax settings in Stripe and remains responsible for collecting, reporting,
+          and remitting taxes.
+        </p>
+        <p class="section-body">
+          A club admin can also enable shipping address collection and set a flat
+          shipping fee. Stripe collects the shipping address and adds that fee at
+          checkout, but the club is responsible for packaging, delivery, pickup
+          coordination, refunds, and product support.
+        </p>
+        <p class="section-body">
+          Each club can publish up to 50 active shop items. If an item already has
+          orders, removing it archives the item instead of deleting the purchase
+          history.
+        </p>
+      </div>
+
+      {# ── 12. Embed rides on your website ──────────────────────────────── #}
       <div class="mb-5" id="embed">
-        <h2 class="section-heading h4">11. Embed rides on your website</h2>
+        <h2 class="section-heading h4">12. Embed rides on your website</h2>
         <p class="section-body">
           Every club gets an embeddable ride widget you can drop into any website —
           your club's WordPress site, Squarespace page, or any platform that accepts
@@ -479,9 +522,9 @@
         </p>
       </div>
 
-      {# ── 12. Use advanced ride options ───────────────────────────────── #}
+      {# ── 13. Use advanced ride options ───────────────────────────────── #}
       <div class="mb-5" id="advanced-rides">
-        <h2 class="section-heading h4">12. Use advanced ride options</h2>
+        <h2 class="section-heading h4">13. Use advanced ride options</h2>
         <p class="section-body">
           Recurring rides let you create a weekly template and automatically generate
           upcoming ride instances. Use this for steady weekly rides, then edit a
@@ -512,9 +555,9 @@
         </p>
       </div>
 
-      {# ── 13. Transfer club ownership ─────────────────────────────────── #}
+      {# ── 14. Transfer club ownership ─────────────────────────────────── #}
       <div class="mb-5" id="ownership">
-        <h2 class="section-heading h4">13. Transfer club ownership</h2>
+        <h2 class="section-heading h4">14. Transfer club ownership</h2>
         <p class="section-body">
           Use ownership transfer when a new volunteer takes over the club's online
           presence. Open <strong>Admin → Team</strong>, enter the new owner's email,

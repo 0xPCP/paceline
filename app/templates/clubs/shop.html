@@ -1,0 +1,83 @@
+{% extends "base_club.html" %}
+{% block title %}Shop — {{ club.name }}{% endblock %}
+{% block head %}{% include 'clubs/_theme.html' %}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{{ url_for('clubs.home', slug=club.slug) }}">{{ club.name }}</a></li>
+        <li class="breadcrumb-item active">Shop</li>
+      </ol>
+    </nav>
+    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+      <div>
+        <h1>{{ club.name }} Shop</h1>
+        <p class="text-muted mb-0">Club-managed merchandise and gear.</p>
+      </div>
+      {% if current_user.is_authenticated and current_user.is_club_admin(club) %}
+      <a href="{{ url_for('admin.club_shop', slug=club.slug) }}" class="btn btn-outline-secondary btn-sm">Manage Shop</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="container py-4">
+  {% if request.args.get('shop') == 'success' %}
+  <div class="alert alert-success">Payment received. The club will handle fulfillment.</div>
+  {% elif request.args.get('shop') == 'cancel' %}
+  <div class="alert alert-info">Checkout was canceled. No payment was collected.</div>
+  {% endif %}
+
+  {% if items %}
+  <div class="alert alert-light border small mb-4">
+    Checkout is handled by Stripe. The item amount goes to {{ club.name }} and Paceline adds a separate $1 platform fee. {{ club.name }} manages fulfillment, taxes, refunds, shipping, and product questions.
+    {% if club.shop_tax_enabled or club.shop_shipping_enabled %}
+    <span class="d-block mt-1">Taxes{% if club.shop_shipping_enabled %} and shipping{% endif %} may be added during checkout.</span>
+    {% endif %}
+  </div>
+  <div class="shop-grid">
+    {% for item in items %}
+    <article class="shop-card">
+      {% if item.image_url %}
+      <img src="{{ item.image_url }}" alt="{{ item.name }}" class="shop-card-img" loading="lazy" onerror="this.style.display='none'">
+      {% else %}
+      <div class="shop-card-img shop-card-img-placeholder">Paceline</div>
+      {% endif %}
+      <div class="shop-card-body">
+        <div>
+          <h2 class="shop-card-title">{{ item.name }}</h2>
+          {% if item.description %}<p class="shop-card-desc">{{ item.description }}</p>{% endif %}
+          {% if item.fulfillment_notes %}<p class="shop-card-note">{{ item.fulfillment_notes }}</p>{% endif %}
+        </div>
+        <div class="shop-card-footer">
+          <div>
+            <div class="shop-card-price">${{ item.price_display }}</div>
+            <div class="shop-card-fee">+$1 Paceline fee{% if club.shop_tax_enabled or club.shop_shipping_enabled %}, plus applicable tax/shipping{% endif %}</div>
+          </div>
+          {% if current_user.is_authenticated %}
+            {% if club.stripe_connect_ready %}
+            <form method="post" action="{{ url_for('stripe_connect.shop_checkout', slug=club.slug, item_id=item.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button class="btn btn-paceline-sm">Buy</button>
+            </form>
+            {% else %}
+            <button class="btn btn-outline-secondary btn-sm" disabled>Checkout unavailable</button>
+            {% endif %}
+          {% else %}
+          <a href="{{ url_for('auth.login', next=url_for('clubs.club_shop', slug=club.slug)) }}" class="btn btn-paceline-sm">Sign In to Buy</a>
+          {% endif %}
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state py-5">
+    <h5>No shop items yet</h5>
+    <p class="text-muted">This club has not listed merchandise.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -43,7 +43,7 @@
         </p>
 
         {# Social links as pills in the hero #}
-        {% set has_social = club.facebook_url or club.instagram_url or club.twitter_url or club.newsletter_url or club.strava_club_id %}
+        {% set has_social = club.facebook_url or club.instagram_url or club.twitter_url or club.newsletter_url or club.whatsapp_url or club.strava_club_id %}
         {% if has_social %}
         <div class="hero-social-links mb-0">
           {% if club.facebook_url %}
@@ -72,6 +72,11 @@
           {% if club.newsletter_url %}
           <a href="{{ club.newsletter_url }}" target="_blank" rel="noopener" class="hero-social-pill hero-pill-nl">
             ✉ Newsletter
+          </a>
+          {% endif %}
+          {% if club.whatsapp_url %}
+          <a href="{{ club.whatsapp_url }}" target="_blank" rel="noopener" class="hero-social-pill hero-pill-wa">
+            WhatsApp
           </a>
           {% endif %}
         </div>
@@ -118,6 +123,9 @@
         {% endif %}
         {% if current_user.is_authenticated and current_user.is_club_admin(club) %}
         <a href="{{ url_for('admin.club_dashboard', slug=club.slug) }}" class="btn btn-outline-light">Admin</a>
+        {% endif %}
+        {% if has_shop_items %}
+        <a href="{{ url_for('clubs.club_shop', slug=club.slug) }}" class="btn btn-outline-light">Shop</a>
         {% endif %}
       </div>
     </div>

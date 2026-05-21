@@ -16,8 +16,9 @@ from ..models import (AdminAuditLog, AppErrorLog, BoardDigestItem, Club,
                       ClubBoardSubscription, Ride, RideComment, RideMedia,
                       RideSignup, PlatformPost, SiteFeedback, User, UserEmailLog,
                       ClubMembership, ClubMembershipPayment, ClubAdmin, ClubPost,
-                      ClubLeader, ClubSponsor, ClubInvite, ClubOwnershipTransfer)
-from ..forms import RideForm, ClubForm, ClubSettingsForm, ClubPostForm, PlatformPostForm, ClubLeaderForm, ClubSponsorForm, ClubInviteForm, BulkImportForm
+                      ClubLeader, ClubSponsor, ClubInvite, ClubOwnershipTransfer,
+                      ClubShopItem, ClubShopOrder, UserRecommendationHidden)
+from ..forms import RideForm, ClubForm, ClubSettingsForm, ClubPostForm, PlatformPostForm, ClubLeaderForm, ClubSponsorForm, ClubInviteForm, BulkImportForm, ClubShopItemForm, ClubShopSettingsForm
 from ..recurrence import generate_instances, delete_future_instances
 from ..geocoding import geocode_zip
 from ..storage import get_storage
@@ -144,6 +145,7 @@ def _delete_test_user_records(user):
     ClubInvite.query.filter_by(created_by=user.id).delete(synchronize_session=False)
     BoardDigestItem.query.filter_by(user_id=user.id).delete(synchronize_session=False)
     UserEmailLog.query.filter_by(user_id=user.id).delete(synchronize_session=False)
+    UserRecommendationHidden.query.filter_by(user_id=user.id).delete(synchronize_session=False)
 
     user_id = user.id
     email = user.email
@@ -983,6 +985,7 @@ def club_settings(slug):
         club.instagram_url     = form.instagram_url.data or None
         club.twitter_url       = form.twitter_url.data or None
         club.newsletter_url    = form.newsletter_url.data or None
+        club.whatsapp_url      = form.whatsapp_url.data or None
         club.bylaws_url        = form.bylaws_url.data or None
         club.safety_guidelines = form.safety_guidelines.data or None
 
@@ -1791,6 +1794,143 @@ def sponsor_delete(slug, sponsor_id):
     db.session.commit()
     flash('Sponsor removed.', 'info')
     return redirect(url_for('admin.club_sponsors', slug=slug))
+
+
+# ── Club Shop ────────────────────────────────────────────────────────────────
+
+@admin_bp.route('/clubs/<slug>/shop')
+@club_admin_required
+def club_shop(slug):
+    club = _get_club_or_404(slug)
+    settings_form = ClubShopSettingsForm(obj=club)
+    if club.shop_shipping_fee_cents is not None:
+        settings_form.shop_shipping_fee.data = club.shop_shipping_fee_cents / 100
+    items = ClubShopItem.query.filter_by(club_id=club.id).order_by(
+        ClubShopItem.display_order.asc(),
+        ClubShopItem.name.asc(),
+    ).all()
+    orders = (ClubShopOrder.query
+              .filter_by(club_id=club.id)
+              .order_by(ClubShopOrder.created_at.desc())
+              .limit(100)
+              .all())
+    active_count = sum(1 for item in items if item.is_active)
+    return render_template(
+        'admin/club_shop.html',
+        club=club,
+        settings_form=settings_form,
+        items=items,
+        orders=orders,
+        active_count=active_count,
+        max_items=50,
+    )
+
+
+def _normalize_shipping_countries(value):
+    countries = []
+    for raw in (value or 'US').split(','):
+        country = raw.strip().upper()
+        if not country:
+            continue
+        if not re.fullmatch(r'[A-Z]{2}', country):
+            return None
+        countries.append(country)
+    return ','.join(dict.fromkeys(countries)) or 'US'
+
+
+@admin_bp.route('/clubs/<slug>/shop/settings', methods=['POST'])
+@club_admin_required
+def club_shop_settings(slug):
+    club = _get_club_or_404(slug)
+    form = ClubShopSettingsForm()
+    if form.validate_on_submit():
+        countries = _normalize_shipping_countries(form.shop_shipping_countries.data)
+        if countries is None:
+            flash('Allowed shipping countries must be comma-separated two-letter country codes, like US or US,CA.', 'danger')
+            return redirect(url_for('admin.club_shop', slug=slug))
+        club.shop_tax_enabled = bool(form.shop_tax_enabled.data)
+        club.shop_shipping_enabled = bool(form.shop_shipping_enabled.data)
+        club.shop_shipping_countries = countries
+        if club.shop_shipping_enabled:
+            fee = form.shop_shipping_fee.data
+            club.shop_shipping_fee_cents = int(round(float(fee or 0) * 100))
+        else:
+            club.shop_shipping_fee_cents = None
+        db.session.commit()
+        flash('Shop settings updated.', 'success')
+    else:
+        flash('Shop settings not saved. Check the highlighted fields.', 'danger')
+    return redirect(url_for('admin.club_shop', slug=slug))
+
+
+def _apply_shop_item_form(item, form):
+    item.name = form.name.data
+    item.description = form.description.data or None
+    item.image_url = form.image_url.data or None
+    item.price_cents = int(round(float(form.price.data) * 100))
+    item.currency = 'usd'
+    item.is_active = bool(form.is_active.data)
+    item.display_order = form.display_order.data or 0
+    item.fulfillment_notes = form.fulfillment_notes.data or None
+
+
+@admin_bp.route('/clubs/<slug>/shop/new', methods=['GET', 'POST'])
+@club_admin_required
+def shop_item_new(slug):
+    club = _get_club_or_404(slug)
+    active_count = ClubShopItem.query.filter_by(club_id=club.id, is_active=True).count()
+    form = ClubShopItemForm()
+    if form.validate_on_submit():
+        if form.is_active.data and active_count >= 50:
+            flash('This club already has 50 active shop items. Archive an item before adding another active item.', 'warning')
+            return render_template('admin/shop_item_form.html', form=form, club=club, title='Add Shop Item', item=None)
+        item = ClubShopItem(club_id=club.id, price_cents=0)
+        _apply_shop_item_form(item, form)
+        db.session.add(item)
+        db.session.commit()
+        flash('Shop item added.', 'success')
+        return redirect(url_for('admin.club_shop', slug=slug))
+    return render_template('admin/shop_item_form.html', form=form, club=club, title='Add Shop Item', item=None)
+
+
+@admin_bp.route('/clubs/<slug>/shop/<int:item_id>/edit', methods=['GET', 'POST'])
+@club_admin_required
+def shop_item_edit(slug, item_id):
+    club = _get_club_or_404(slug)
+    item = ClubShopItem.query.filter_by(id=item_id, club_id=club.id).first_or_404()
+    form = ClubShopItemForm(obj=item)
+    if request.method == 'GET':
+        form.price.data = item.price_cents / 100
+    if form.validate_on_submit():
+        active_count = ClubShopItem.query.filter(
+            ClubShopItem.club_id == club.id,
+            ClubShopItem.is_active == True,
+            ClubShopItem.id != item.id,
+        ).count()
+        if form.is_active.data and active_count >= 50:
+            flash('This club already has 50 active shop items. Archive an item before activating another item.', 'warning')
+            return render_template('admin/shop_item_form.html', form=form, club=club, title='Edit Shop Item', item=item)
+        _apply_shop_item_form(item, form)
+        db.session.commit()
+        flash('Shop item updated.', 'success')
+        return redirect(url_for('admin.club_shop', slug=slug))
+    return render_template('admin/shop_item_form.html', form=form, club=club, title='Edit Shop Item', item=item)
+
+
+@admin_bp.route('/clubs/<slug>/shop/<int:item_id>/delete', methods=['POST'])
+@club_admin_required
+def shop_item_delete(slug, item_id):
+    club = _get_club_or_404(slug)
+    item = ClubShopItem.query.filter_by(id=item_id, club_id=club.id).first_or_404()
+    if item.orders:
+        item.is_active = False
+        db.session.commit()
+        flash('Shop item has orders, so it was archived instead of deleted.', 'info')
+        return redirect(url_for('admin.club_shop', slug=slug))
+    db.session.delete(item)
+    db.session.commit()
+    flash('Shop item removed.', 'info')
+    return redirect(url_for('admin.club_shop', slug=slug))
 
 
 # ── Invites ───────────────────────────────────────────────────────────────────

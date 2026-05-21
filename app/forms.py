@@ -114,6 +114,11 @@ class ProfileForm(FlaskForm):
     notify_board_digest = BooleanField('Daily message board digest')
     notify_friend_ride_signup = BooleanField('When a friend signs up for a ride')
     profile_is_public = BooleanField('Make my profile visible to everyone (not just friends)')
+    recommendations_enabled = BooleanField('Show personalized ride and club recommendations')
+    recommendation_location_enabled = BooleanField('Use my saved location')
+    recommendation_history_enabled = BooleanField('Use my ride history')
+    recommendation_friend_activity_enabled = BooleanField('Use friend activity')
+    dashboard_recommendations_hidden = BooleanField('Hide recommendations on my dashboard')
     submit   = SubmitField('Save Changes')
 
 
@@ -186,6 +191,7 @@ class ClubSettingsForm(FlaskForm):
     instagram_url  = StringField('Instagram URL', validators=[Optional(), SafeURL(), Length(max=500)])
     twitter_url    = StringField('Twitter / X URL', validators=[Optional(), SafeURL(), Length(max=500)])
     newsletter_url = StringField('Newsletter Sign-up URL', validators=[Optional(), SafeURL(), Length(max=500)])
+    whatsapp_url   = StringField('WhatsApp Chat URL', validators=[Optional(), SafeURL(), Length(max=500)])
 
     # Governance / resources
     bylaws_url        = StringField('Club Bylaws URL', validators=[Optional(), SafeURL(), Length(max=500)])
@@ -202,6 +208,29 @@ class ClubSettingsForm(FlaskForm):
     cancel_temp_max_f   = IntegerField('Cancel if temperature above (°F)',
                                       validators=[Optional(), NumberRange(-60, 150)], default=100)
     submit      = SubmitField('Save Settings')
+
+
+class ClubShopItemForm(FlaskForm):
+    name = StringField('Item Name', validators=[DataRequired(), Length(max=120)])
+    description = TextAreaField('Description', validators=[Optional(), Length(max=1000)])
+    image_url = StringField('Image URL', validators=[Optional(), SafeURL(), Length(max=500)])
+    price = DecimalField('Price (USD)', validators=[DataRequired(), NumberRange(min=1, max=10000)], places=2)
+    is_active = BooleanField('Available for purchase', default=True)
+    display_order = IntegerField('Display Order', validators=[Optional(), NumberRange(min=0, max=9999)], default=0)
+    fulfillment_notes = TextAreaField('Fulfillment Notes', validators=[Optional(), Length(max=1000)])
+    submit = SubmitField('Save Item')
+
+
+class ClubShopSettingsForm(FlaskForm):
+    shop_tax_enabled = BooleanField('Enable Stripe Tax for shop checkout')
+    shop_shipping_enabled = BooleanField('Collect shipping address at checkout')
+    shop_shipping_fee = DecimalField('Flat Shipping Fee (USD)',
+                                     validators=[Optional(), NumberRange(min=0, max=10000)],
+                                     places=2)
+    shop_shipping_countries = StringField('Allowed Shipping Countries',
+                                          validators=[Optional(), Length(max=255)],
+                                          default='US')
+    submit = SubmitField('Save Shop Settings')
 
 
 class ClubCreateForm(FlaskForm):

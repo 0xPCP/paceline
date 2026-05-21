@@ -6,7 +6,7 @@ from flask_login import login_required, current_user, fresh_login_required
 from sqlalchemy.exc import IntegrityError
 import requests as http_requests
 from ..extensions import db
-from ..models import Club, ClubAdmin, ClubMembership, Ride, RideComment, ClubInvite, RideSignup, ClubSponsor, ClubPost
+from ..models import Club, ClubAdmin, ClubMembership, Ride, RideComment, ClubInvite, RideSignup, ClubSponsor, ClubPost, ClubShopItem
 from ..weather import get_weather_for_rides
 from ..geocoding import clubs_near_zip
 from .strava import get_club_activities
@@ -297,6 +297,7 @@ def home(slug):
         'total_rides': total_rides,
         'total_miles': round(total_miles),
     }
+    has_shop_items = ClubShopItem.query.filter_by(club_id=club.id, is_active=True).first() is not None
 
     # Board preview: 15 most recent posts + subscription status (members only)
     board_posts = []
@@ -328,13 +329,24 @@ def home(slug):
                            board_posts=board_posts,
                            board_is_subscribed=board_is_subscribed,
                            board_is_admin=board_is_admin,
-                           board_has_more=board_has_more)
+                           board_has_more=board_has_more,
+                           has_shop_items=has_shop_items)
 
 
 @clubs_bp.route('/<slug>/leaders/')
 def club_leaders_public(slug):
     club = _get_club_or_404(slug)
     return render_template('clubs/leaders.html', club=club, leaders=club.leaders)
+
+
+@clubs_bp.route('/<slug>/shop/')
+def club_shop(slug):
+    club = _get_club_or_404(slug)
+    items = ClubShopItem.query.filter_by(club_id=club.id, is_active=True).order_by(
+        ClubShopItem.display_order.asc(),
+        ClubShopItem.name.asc(),
+    ).all()
+    return render_template('clubs/shop.html', club=club, items=items)
 
 
 @clubs_bp.route('/<slug>/members/')

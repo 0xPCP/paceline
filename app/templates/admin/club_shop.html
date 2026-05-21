@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Shop — {{ club.name }} Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{{ url_for('clubs.home', slug=club.slug) }}">{{ club.name }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.club_dashboard', slug=club.slug) }}">Admin</a></li>
+        <li class="breadcrumb-item active">Shop</li>
+      </ol>
+    </nav>
+    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+      <div>
+        <h1>{{ club.name }} — Shop</h1>
+        <p class="text-muted mb-0">Manage club merchandise sold through the club's connected Stripe account.</p>
+      </div>
+      <a href="{{ url_for('admin.shop_item_new', slug=club.slug) }}"
+         class="btn btn-paceline{% if active_count >= max_items %} disabled{% endif %}">
+        + Add Item
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="container py-4">
+  <div class="alert alert-light border small">
+    Clubs can list up to {{ max_items }} active shop items. Stripe Checkout charges the item price plus Paceline's separate $1 platform fee, deposits the item amount to the club's Stripe account, and leaves fulfillment, taxes, refunds, and product issues to the club.
+    {% if not club.stripe_connect_ready %}
+    <div class="mt-2">
+      <strong>Checkout is disabled until Stripe is connected.</strong>
+      <a href="{{ url_for('admin.club_settings', slug=club.slug) }}#membership-section">Connect Stripe in club settings.</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+      <h4 class="h5 mb-2">Shop Checkout Settings</h4>
+      <p class="text-muted small mb-3">
+        These settings control what Stripe Checkout collects. The club remains responsible for tax setup, fulfillment, refunds, shipping, and product questions.
+      </p>
+      <form method="post" action="{{ url_for('admin.club_shop_settings', slug=club.slug) }}" novalidate>
+        {{ settings_form.hidden_tag() }}
+        <div class="form-check form-switch mb-3">
+          {{ settings_form.shop_tax_enabled(class="form-check-input", role="switch", id="shop_tax_enabled") }}
+          {{ settings_form.shop_tax_enabled.label(class="form-check-label", for="shop_tax_enabled") }}
+          <div class="form-text">Uses Stripe Tax during checkout. The club must configure tax registrations/settings in its connected Stripe account and remains responsible for tax compliance.</div>
+        </div>
+
+        <div class="form-check form-switch mb-3">
+          {{ settings_form.shop_shipping_enabled(class="form-check-input", role="switch", id="shop_shipping_enabled") }}
+          {{ settings_form.shop_shipping_enabled.label(class="form-check-label", for="shop_shipping_enabled") }}
+          <div class="form-text">Collects a shipping address and adds the flat shipping fee below. The club is responsible for actually shipping or delivering the item.</div>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-md-4">
+            {{ settings_form.shop_shipping_fee.label(class="form-label") }}
+            <div class="input-group">
+              <span class="input-group-text">$</span>
+              {{ settings_form.shop_shipping_fee(class="form-control" + (" is-invalid" if settings_form.shop_shipping_fee.errors else ""), min="0", step="0.01") }}
+              {% for e in settings_form.shop_shipping_fee.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+          <div class="col-md-5">
+            {{ settings_form.shop_shipping_countries.label(class="form-label") }}
+            {{ settings_form.shop_shipping_countries(class="form-control" + (" is-invalid" if settings_form.shop_shipping_countries.errors else ""), placeholder="US") }}
+            {% for e in settings_form.shop_shipping_countries.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            <div class="form-text">Comma-separated ISO country codes, for example <code>US</code> or <code>US,CA</code>.</div>
+          </div>
+          <div class="col-md-3 d-flex align-items-end">
+            {{ settings_form.submit(class="btn btn-outline-primary w-100") }}
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if items %}
+  <div class="paceline-table-wrap">
+    <table class="table paceline-table align-middle">
+      <thead><tr><th>Item</th><th>Price</th><th>Status</th><th>Order</th><th></th></tr></thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              {% if item.image_url %}
+              <img src="{{ item.image_url }}" alt="{{ item.name }}" class="shop-admin-thumb" loading="lazy" onerror="this.style.display='none'">
+              {% endif %}
+              <div>
+                <strong>{{ item.name }}</strong>
+                {% if item.description %}<div class="small text-muted">{{ item.description[:90] }}{% if item.description|length > 90 %}...{% endif %}</div>{% endif %}
+              </div>
+            </div>
+          </td>
+          <td>${{ item.price_display }}</td>
+          <td>
+            {% if item.is_active %}
+            <span class="badge bg-success">Active</span>
+            {% else %}
+            <span class="badge bg-secondary">Archived</span>
+            {% endif %}
+          </td>
+          <td><small>{{ item.display_order }}</small></td>
+          <td class="text-end">
+            <a href="{{ url_for('admin.shop_item_edit', slug=club.slug, item_id=item.id) }}" class="btn btn-outline-secondary btn-xs me-1">Edit</a>
+            <form method="post" action="{{ url_for('admin.shop_item_delete', slug=club.slug, item_id=item.id) }}"
+                  class="d-inline" onsubmit="return confirm('Remove {{ item.name }}? Completed Stripe orders remain in Stripe.')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-outline-danger btn-xs">Remove</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state py-5">
+    <h5>No shop items yet</h5>
+    <p class="text-muted">Add jerseys, shirts, or other club-managed merchandise.</p>
+    <a href="{{ url_for('admin.shop_item_new', slug=club.slug) }}" class="btn btn-paceline-sm">Add the first item</a>
+  </div>
+  {% endif %}
+
+  <hr class="my-5" />
+
+  <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
+    <div>
+      <h4 class="mb-1">Recent Orders</h4>
+      <p class="text-muted small mb-0">Use this list to confirm purchases and manage club fulfillment.</p>
+    </div>
+  </div>
+
+  {% if orders %}
+  <div class="paceline-table-wrap">
+    <table class="table paceline-table align-middle">
+      <thead><tr><th>Date</th><th>Item</th><th>Rider</th><th>Total</th><th>Tax</th><th>Shipping</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for order in orders %}
+        <tr>
+          <td><small>{{ order.created_at.strftime('%b %-d, %Y') if order.created_at else '—' }}</small></td>
+          <td>{{ order.item.name if order.item else 'Removed item' }}</td>
+          <td>
+            {% if order.user %}
+            <a href="{{ url_for('main.public_profile', username=order.user.username) }}">{{ order.user.username }}</a>
+            <div class="small text-muted">{{ order.user.email }}</div>
+            {% else %}
+            —
+            {% endif %}
+          </td>
+          <td>${{ '%.2f'|format(order.amount_cents / 100) }}</td>
+          <td>${{ '%.2f'|format((order.tax_amount_cents or 0) / 100) }}</td>
+          <td>${{ '%.2f'|format((order.shipping_amount_cents or 0) / 100) }}</td>
+          <td>
+            {% if order.status == 'paid' %}
+            <span class="badge bg-success">Paid</span>
+            {% else %}
+            <span class="badge bg-secondary">{{ order.status|title }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted">No shop orders yet.</p>
+  {% endif %}
+</div>
+{% endblock %}
