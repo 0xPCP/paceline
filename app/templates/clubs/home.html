@@ -131,9 +131,6 @@
         {% if is_member %}
         <a href="{{ url_for('clubs.club_members', slug=club.slug) }}" class="btn btn-outline-light">Members</a>
         {% endif %}
-        {% if has_shop_items %}
-        <a href="{{ url_for('clubs.club_shop', slug=club.slug) }}" class="btn btn-outline-light">Shop</a>
-        {% endif %}
       </div>
     </div>
   </div>
@@ -226,6 +223,12 @@
           Message Board
           {% if board_posts %}<span class="club-tab-count">{{ board_posts|length }}</span>{% endif %}
         </button>
+      </li>
+      {% endif %}
+      {% if has_shop_items %}
+      <li class="nav-item" role="presentation">
+        <a class="club-tab d-inline-block text-decoration-none"
+           href="{{ url_for('clubs.club_shop', slug=club.slug) }}">Shop</a>
       </li>
       {% endif %}
     </ul>
