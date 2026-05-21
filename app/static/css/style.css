@@ -204,6 +204,12 @@ body.club-page {
 }
 .club-tab:hover { color: #fff; }
 .club-tab.active { color: #fff; border-bottom-color: rgba(255,255,255,.85); }
+.club-tab-disabled,
+.club-tab-disabled:hover {
+  color: rgba(255,255,255,.38);
+  cursor: not-allowed;
+  pointer-events: none;
+}
 .club-tab-count {
   display: inline-flex;
   align-items: center;

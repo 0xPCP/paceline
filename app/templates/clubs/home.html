@@ -227,8 +227,14 @@
       {% endif %}
       {% if has_shop_items %}
       <li class="nav-item" role="presentation">
+        {% if club.stripe_connect_ready %}
         <a class="club-tab d-inline-block text-decoration-none"
            href="{{ url_for('clubs.club_shop', slug=club.slug) }}">Shop</a>
+        {% else %}
+        <span class="club-tab club-tab-disabled d-inline-block"
+              aria-disabled="true"
+              title="Shop checkout is unavailable until this club connects Stripe.">Shop</span>
+        {% endif %}
       </li>
       {% endif %}
     </ul>
@@ -353,7 +359,11 @@
               <div class="d-flex flex-column gap-3">
                 {% for leader in club.leaders[:4] %}
                 <div class="d-flex align-items-center gap-2">
-                  {% if leader.photo_url %}
+                  {% if leader.user and leader.user.profile_photo_key %}
+                  <img src="{{ url_for('main.profile_photo', username=leader.user.username) }}"
+                       alt="{{ leader.name }} profile photo"
+                       style="width:42px;height:42px;object-fit:cover;border-radius:50%;flex-shrink:0">
+                  {% elif leader.photo_url %}
                   <img src="{{ leader.photo_url }}" alt="{{ leader.name }}"
                        style="width:42px;height:42px;object-fit:cover;border-radius:50%;flex-shrink:0"
                        onerror="this.style.display='none'">

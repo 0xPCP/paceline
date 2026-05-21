@@ -4,7 +4,7 @@ Tests for profile privacy and club members page.
 import pytest
 from datetime import date, time, timedelta
 from unittest.mock import patch
-from app.models import User, Club, ClubMembership, ClubAdmin, Ride, RideSignup
+from app.models import User, Club, ClubMembership, ClubAdmin, ClubLeader, Ride, RideSignup
 from app.extensions import db
 from tests.conftest import login
 
@@ -137,6 +137,21 @@ class TestClubMembersPage:
     def test_member_count_is_not_linked_for_non_member(self, client, db, sample_club, regular_user):
         resp = client.get(f'/clubs/{sample_club.slug}/')
         assert b'class="css-item css-item-link"' not in resp.data
+
+    def test_club_home_ride_leaders_use_profile_photos(self, client, db, sample_club, regular_user, mock_weather):
+        regular_user.profile_photo_key = 'avatars/1.jpg'
+        db.session.add(ClubLeader(
+            club_id=sample_club.id,
+            user_id=regular_user.id,
+            name=regular_user.username,
+        ))
+        db.session.commit()
+
+        resp = client.get(f'/clubs/{sample_club.slug}/')
+
+        assert resp.status_code == 200
+        assert f'/users/{regular_user.username}/photo'.encode() in resp.data
+        assert b'profile photo' in resp.data
 
     def test_public_profile_members_have_links(self, client, db, sample_club, regular_user):
         regular_user.profile_is_public = True

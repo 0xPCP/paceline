@@ -87,6 +87,8 @@ def test_admin_can_create_shop_item_and_public_shop_renders(client, db, sample_c
 
 
 def test_shop_link_renders_with_club_tabs_next_to_message_board(client, db, sample_club, regular_user):
+    sample_club.stripe_account_id = 'acct_123'
+    sample_club.stripe_account_connected_at = datetime.now(timezone.utc)
     db.session.add(ClubMembership(user_id=regular_user.id, club_id=sample_club.id, status='active'))
     db.session.add(ClubShopItem(
         club_id=sample_club.id,
@@ -104,6 +106,24 @@ def test_shop_link_renders_with_club_tabs_next_to_message_board(client, db, samp
     board_idx = response.data.index(b'Message Board')
     shop_idx = response.data.index(b'>Shop</a>')
     assert board_idx < shop_idx
+
+
+def test_shop_tab_is_disabled_until_stripe_connect_is_ready(client, db, sample_club, regular_user):
+    db.session.add(ClubMembership(user_id=regular_user.id, club_id=sample_club.id, status='active'))
+    db.session.add(ClubShopItem(
+        club_id=sample_club.id,
+        name='Club Tee',
+        price_cents=2500,
+        is_active=True,
+    ))
+    db.session.commit()
+    login(client)
+
+    response = client.get(f'/clubs/{sample_club.slug}/')
+
+    assert response.status_code == 200
+    assert b'club-tab-disabled' in response.data
+    assert f'href="/clubs/{sample_club.slug}/shop/"'.encode() not in response.data
 
 
 def test_admin_can_configure_shop_tax_and_shipping(client, db, sample_club, club_admin_user):
