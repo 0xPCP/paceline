@@ -27,14 +27,19 @@ services:
       - "8080"
     volumes:
       - paceline_pulse_state:/state
+    networks:
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.paceline-pulse.rule=Host(`paceline-pulse.pcp.dev`)"
+      - "traefik.http.routers.paceline-pulse.entrypoints=websecure"
+      - "traefik.http.services.paceline-pulse.loadbalancer.server.port=8080"
+      - "com.centurylinklabs.watchtower.enable=false"
 
-  paceline-pulse-tunnel:
-    image: cloudflare/cloudflared:latest
-    container_name: paceline-pulse-tunnel
-    restart: unless-stopped
-    command: tunnel --no-autoupdate run --token ${CLOUDFLARED_TUNNEL_TOKEN}
-    depends_on:
-      - paceline-pulse
+networks:
+  traefik:
+    external: true
+    name: traefik
 
 volumes:
   paceline_pulse_state:

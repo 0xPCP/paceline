@@ -47,8 +47,8 @@ Production dashboard URL:
 https://paceline-pulse.pcp.dev/
 ```
 
-This should be exposed through a Cloudflare Tunnel, not by opening an inbound
-port on the TrueNAS firewall.
+This is exposed through the existing TrueNAS Cloudflare Tunnel and Traefik
+stack, not by opening an inbound port on the TrueNAS firewall.
 
 If TrueNAS maps the container port directly for LAN-only testing, the local URL
 will be:
@@ -87,9 +87,14 @@ the dashboard.
 
 ## Cloudflare Tunnel Setup
 
-Use a sidecar `cloudflared` container on the same Docker network as
-Paceline Pulse. Cloudflare Tunnel makes outbound connections from TrueNAS to
-Cloudflare, so no inbound firewall rule is required.
+Paceline Pulse follows the existing TrueNAS pattern:
+
+- the infrastructure stack runs `cloudflared`
+- `cloudflared` sends traffic to Traefik
+- each app joins the external `traefik` Docker network
+- each app advertises its hostname and port with Traefik labels
+
+Paceline Pulse does not run its own `cloudflared` sidecar.
 
 The repo includes a dedicated compose file:
 
@@ -101,39 +106,35 @@ Required environment variables:
 
 ```text
 RESEND_API_KEY=...
-CLOUDFLARED_TUNNEL_TOKEN=...
 MONITOR_DASHBOARD_USERNAME=...
 MONITOR_DASHBOARD_PASSWORD=...
 ```
 
-Recommended Cloudflare Zero Trust setup:
+Required TrueNAS/Cloudflare setup:
 
-1. In Cloudflare Zero Trust, create a tunnel named `paceline-pulse`.
-2. Add a Docker connector and copy the tunnel token into
-   `CLOUDFLARED_TUNNEL_TOKEN`.
-3. Add a public hostname:
+1. Confirm the existing infrastructure compose is running the shared
+   `cloudflared` tunnel and Traefik reverse proxy.
+2. Confirm the external Docker network exists:
+   ```bash
+   docker network ls | grep traefik
+   ```
+3. Add a Cloudflare Tunnel public hostname:
    ```text
    paceline-pulse.pcp.dev
    ```
-4. Route that hostname to the Docker service:
+4. Route that hostname to the existing Traefik service, matching the other
+   `*.pcp.dev` apps on TrueNAS.
+5. Paceline Pulse's compose labels route the hostname internally:
    ```text
-   http://paceline-pulse:8080
+   Host(`paceline-pulse.pcp.dev`) -> paceline-pulse:8080
    ```
-5. Create a Cloudflare Access self-hosted application for:
+6. Create a Cloudflare Access self-hosted application for:
    ```text
    https://paceline-pulse.pcp.dev
    ```
-6. Add an Access policy that only allows approved admin email addresses.
-7. Keep the `MONITOR_DASHBOARD_USERNAME` and `MONITOR_DASHBOARD_PASSWORD`
+7. Add an Access policy that only allows approved admin email addresses.
+8. Keep the `MONITOR_DASHBOARD_USERNAME` and `MONITOR_DASHBOARD_PASSWORD`
    enabled as a second layer of protection.
-
-Cloudflare's documented Docker token flow runs `cloudflared` with:
-
-```bash
-cloudflared tunnel --no-autoupdate run --token <TUNNEL_TOKEN>
-```
-
-The compose file uses the same flow.
 
 ## Email Provider
 
@@ -215,7 +216,9 @@ volumes:
 ```
 
 For the Cloudflare Tunnel deployment, prefer `docker-compose.pulse.yml` instead
-of this single-container example.
+of this single-container example. The dedicated compose file joins the existing
+external `traefik` network and uses Traefik labels for
+`paceline-pulse.pcp.dev`.
 
 ## Optional Configuration
 
@@ -253,7 +256,7 @@ After starting the container:
 2. Confirm logs show `OK`.
 3. Open the dashboard:
    ```text
-   http://<truenas-host-or-ip>:8080/
+   https://paceline-pulse.pcp.dev/
    ```
 4. Confirm the dashboard shows green status and current latency.
 5. Temporarily set `MONITOR_URL` to an invalid URL and restart the container.
