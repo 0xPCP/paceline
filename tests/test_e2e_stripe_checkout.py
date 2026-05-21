@@ -49,6 +49,11 @@ import time
 import pytest
 from playwright.sync_api import Page, expect
 
+pytestmark = pytest.mark.skipif(
+    os.environ.get("RUN_LIVE_STRIPE_E2E") != "1",
+    reason="Live Stripe checkout E2E is opt-in; set RUN_LIVE_STRIPE_E2E=1 to run.",
+)
+
 # ── Config ────────────────────────────────────────────────────────────────────
 
 # Use the DigitalOcean direct URL to bypass Cloudflare bot protection.
