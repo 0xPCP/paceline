@@ -68,12 +68,14 @@ class TestClubMembersPage:
 
     def test_members_page_returns_200(self, client, sample_club, regular_user, db):
         self._add_member(db, regular_user, sample_club)
+        login(client)
         resp = client.get(f'/clubs/{sample_club.slug}/members/')
         assert resp.status_code == 200
 
     def test_members_page_shows_active_members(self, client, db, sample_club, regular_user, second_user):
         self._add_member(db, regular_user, sample_club)
         self._add_member(db, second_user, sample_club)
+        login(client)
         resp = client.get(f'/clubs/{sample_club.slug}/members/')
         assert b'rider' in resp.data
         assert b'rider2' in resp.data
@@ -82,6 +84,7 @@ class TestClubMembersPage:
         sample_club.owner_id = regular_user.id
         self._add_member(db, regular_user, sample_club)
         db.session.commit()
+        login(client)
         resp = client.get(f'/clubs/{sample_club.slug}/members/')
         assert b'Club Owner' in resp.data
 
@@ -90,12 +93,19 @@ class TestClubMembersPage:
         self._add_member(db, second_user, sample_club)
         db.session.add(ClubAdmin(user_id=regular_user.id, club_id=sample_club.id, role='admin'))
         db.session.commit()
+        login(client)
         resp = client.get(f'/clubs/{sample_club.slug}/members/')
         assert b'Admins' in resp.data
 
-    def test_private_club_members_requires_membership(self, client, db, sample_club, regular_user):
-        sample_club.is_private = True
+    def test_members_page_requires_login(self, client, db, sample_club, regular_user):
+        self._add_member(db, regular_user, sample_club)
         db.session.commit()
+        resp = client.get(f'/clubs/{sample_club.slug}/members/')
+        assert resp.status_code == 302
+        assert '/auth/login' in resp.headers['Location']
+
+    def test_members_page_requires_active_membership(self, client, db, sample_club, regular_user):
+        login(client)
         resp = client.get(f'/clubs/{sample_club.slug}/members/')
         assert resp.status_code == 403
 
@@ -109,13 +119,19 @@ class TestClubMembersPage:
 
     def test_member_count_is_linked(self, client, db, sample_club, regular_user):
         self._add_member(db, regular_user, sample_club)
+        login(client)
         resp = client.get(f'/clubs/{sample_club.slug}/')
         assert b'members/' in resp.data
+
+    def test_member_count_is_not_linked_for_non_member(self, client, db, sample_club, regular_user):
+        resp = client.get(f'/clubs/{sample_club.slug}/')
+        assert b'members/' not in resp.data
 
     def test_public_profile_members_have_links(self, client, db, sample_club, regular_user):
         regular_user.profile_is_public = True
         self._add_member(db, regular_user, sample_club)
         db.session.commit()
+        login(client)
         resp = client.get(f'/clubs/{sample_club.slug}/members/')
         assert f'/users/{regular_user.username}'.encode() in resp.data
 
@@ -123,5 +139,6 @@ class TestClubMembersPage:
         regular_user.profile_is_public = False
         self._add_member(db, regular_user, sample_club)
         db.session.commit()
+        login(client)
         resp = client.get(f'/clubs/{sample_club.slug}/members/')
         assert f'/users/{regular_user.username}'.encode() not in resp.data

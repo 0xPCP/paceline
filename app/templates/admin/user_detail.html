@@ -254,6 +254,25 @@
       </div>
       {% endif %}
 
+      {% if profile_user.id != current_user.id %}
+      <div class="detail-card mb-4 border-danger" data-testid="delete-user-panel">
+        <h5 class="detail-card-title text-danger">Permanent User Delete</h5>
+        <p class="section-body">
+          Fully deletes this account, ride signups, memberships, comments, board activity,
+          email logs, private ride invites, and personal rides. Owned clubs are retained
+          but their owner is cleared. This cannot be undone.
+        </p>
+        <form method="post" action="{{ url_for('admin.delete_user', user_id=profile_user.id) }}"
+              onsubmit="return confirm('Permanently delete {{ profile_user.email }}? This cannot be undone.')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="form-label small">Type <strong>DELETE USER {{ profile_user.email }}</strong> to confirm.</label>
+          <input class="form-control form-control-sm mb-2" name="confirmation" autocomplete="off"
+                 data-testid="delete-user-confirmation">
+          <button class="btn btn-danger w-100 btn-sm" data-testid="delete-user-button">Permanently Delete User</button>
+        </form>
+      </div>
+      {% endif %}
+
       <div class="detail-card">
         <h5 class="detail-card-title">View as User</h5>
         <div class="d-grid">

@@ -351,15 +351,14 @@ def club_shop(slug):
 
 @clubs_bp.route('/<slug>/members/')
 def club_members(slug):
-    """Public member roster for a club, ordered by role then ride attendance."""
+    """Member roster for signed-in active members, ordered by role then attendance."""
     from ..models import User, ClubMembership, ClubAdmin, RideSignup, Ride
     club = _get_club_or_404(slug)
 
-    # Private clubs: only active members may view the roster
-    if club.is_private:
-        if not current_user.is_authenticated or not current_user.is_active_member_of(club):
-            from flask import abort
-            abort(403)
+    if not current_user.is_authenticated:
+        return redirect(url_for('auth.login', next=request.url))
+    if not current_user.is_active_member_of(club):
+        abort(403)
 
     active_memberships = (
         ClubMembership.query

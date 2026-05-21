@@ -155,6 +155,82 @@ def _delete_test_user_records(user):
     return True, f'Deleted test user {username} and related test artifacts.'
 
 
+def _delete_user_records(user):
+    """Permanently delete a user and detach/delete dependent records.
+
+    This is intentionally explicit instead of relying on database-level cascade
+    behavior because Paceline uses a mix of nullable attribution fields and
+    required ownership fields.
+    """
+    from ..models import DuesEditLog, UserBike, UserFriend, UserRideInvite
+
+    user_id = user.id
+    email = user.email
+    username = user.username
+
+    owned_club_count = Club.query.filter_by(owner_id=user_id).update(
+        {'owner_id': None}, synchronize_session=False)
+
+    owned_ride_count = 0
+    for ride in Ride.query.filter_by(owner_id=user_id).all():
+        db.session.delete(ride)
+        owned_ride_count += 1
+
+    Ride.query.filter_by(leader_id=user_id).update({'leader_id': None}, synchronize_session=False)
+    Ride.query.filter_by(created_by=user_id).update({'created_by': None}, synchronize_session=False)
+    ClubMembership.query.filter_by(dues_confirmed_by_id=user_id).update({'dues_confirmed_by_id': None}, synchronize_session=False)
+    ClubPost.query.filter_by(author_id=user_id).update({'author_id': None}, synchronize_session=False)
+    PlatformPost.query.filter_by(author_id=user_id).update({'author_id': None}, synchronize_session=False)
+    ClubLeader.query.filter_by(user_id=user_id).update({'user_id': None}, synchronize_session=False)
+    BoardDigestItem.query.filter_by(actor_id=user_id).update({'actor_id': None}, synchronize_session=False)
+    ClubInvite.query.filter_by(used_by_user_id=user_id).update({'used_by_user_id': None}, synchronize_session=False)
+    AdminAuditLog.query.filter_by(actor_id=user_id).update({'actor_id': None}, synchronize_session=False)
+    AdminAuditLog.query.filter_by(target_user_id=user_id).update({'target_user_id': None}, synchronize_session=False)
+    SiteFeedback.query.filter_by(user_id=user_id).update({'user_id': None}, synchronize_session=False)
+    SiteFeedback.query.filter_by(read_by_id=user_id).update({'read_by_id': None}, synchronize_session=False)
+    AppErrorLog.query.filter_by(user_id=user_id).update({'user_id': None}, synchronize_session=False)
+
+    membership_ids = [m.id for m in ClubMembership.query.filter_by(user_id=user_id).all()]
+    if membership_ids:
+        DuesEditLog.query.filter(DuesEditLog.membership_id.in_(membership_ids)).delete(synchronize_session=False)
+    DuesEditLog.query.filter_by(edited_by_id=user_id).delete(synchronize_session=False)
+
+    for post in ClubBoardPost.query.filter_by(author_id=user_id).all():
+        BoardDigestItem.query.filter_by(post_id=post.id).delete(synchronize_session=False)
+        db.session.delete(post)
+
+    ClubMembershipPayment.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+    ClubShopOrder.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+    ClubOwnershipTransfer.query.filter(
+        or_(ClubOwnershipTransfer.from_user_id == user_id, ClubOwnershipTransfer.to_user_id == user_id)
+    ).delete(synchronize_session=False)
+    RideSignup.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+    RideMedia.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+    RideComment.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+    ClubBoardSubscription.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+    ClubBoardReaction.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+    ClubBoardReply.query.filter_by(author_id=user_id).delete(synchronize_session=False)
+    ClubInvite.query.filter_by(created_by=user_id).delete(synchronize_session=False)
+    BoardDigestItem.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+    UserEmailLog.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+    UserRecommendationHidden.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+    UserRideInvite.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+    UserFriend.query.filter(
+        or_(UserFriend.requester_id == user_id, UserFriend.addressee_id == user_id)
+    ).delete(synchronize_session=False)
+    UserBike.query.filter_by(user_id=user_id).delete(synchronize_session=False)
+
+    db.session.delete(user)
+    _audit(
+        'delete_user',
+        details=(
+            f'user_id={user_id}; email={email}; username={username}; '
+            f'detached_owned_clubs={owned_club_count}; deleted_owned_rides={owned_ride_count}'
+        ),
+    )
+    return f'Permanently deleted user {username}. Detached {owned_club_count} owned club(s).'
+
+
 def _add_months(start_date, months):
     month = start_date.month - 1 + max(1, int(months or 12))
     year = start_date.year + month // 12
@@ -719,6 +795,32 @@ def delete_test_user(user_id):
     db.session.commit()
     flash(message, 'success')
     return redirect(url_for('admin.users', filter='inactive'))
+
+
+@admin_bp.route('/users/<int:user_id>/delete', methods=['POST'])
+@superadmin_required
+def delete_user(user_id):
+    user = User.query.get_or_404(user_id)
+    if user.id == current_user.id:
+        flash('You cannot permanently delete your own account.', 'danger')
+        return redirect(url_for('admin.user_detail', user_id=user_id))
+    if user.is_admin and user.email.lower() in configured_superadmin_emails():
+        flash('This account is configured as a bootstrap superadmin and cannot be deleted in the app.', 'danger')
+        return redirect(url_for('admin.user_detail', user_id=user_id))
+    if user.is_admin and active_superadmin_count(exclude_user_id=user.id) == 0:
+        flash('You must keep at least one active super admin account.', 'danger')
+        return redirect(url_for('admin.user_detail', user_id=user_id))
+
+    confirmation = (request.form.get('confirmation') or '').strip()
+    expected = f'DELETE USER {user.email}'
+    if confirmation != expected:
+        flash(f'Type "{expected}" to permanently delete this user.', 'danger')
+        return redirect(url_for('admin.user_detail', user_id=user_id))
+
+    message = _delete_user_records(user)
+    db.session.commit()
+    flash(message, 'success')
+    return redirect(url_for('admin.users'))
 
 
 @admin_bp.route('/users/<int:user_id>/revoke-sessions', methods=['POST'])
