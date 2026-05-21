@@ -1,0 +1,15 @@
+FROM python:3.12-alpine
+
+ENV PYTHONUNBUFFERED=1
+WORKDIR /monitor
+
+COPY scripts/health_monitor.py /monitor/health_monitor.py
+
+RUN adduser -D -u 10001 monitor \
+    && mkdir -p /state \
+    && chown -R monitor:monitor /state /monitor
+
+USER monitor
+VOLUME ["/state"]
+
+CMD ["python", "/monitor/health_monitor.py"]

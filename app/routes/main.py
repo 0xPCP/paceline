@@ -23,7 +23,7 @@ def health():
         return jsonify(status='ok'), 200
     except Exception as e:
         current_app.logger.error('Health check DB failure: %s', e)
-        return jsonify(status='error', detail=str(e)), 503
+        return jsonify(status='error'), 503
 
 
 @main_bp.route('/')

@@ -112,6 +112,69 @@ Recommended production release flow:
    - photo upload and media serving
 6. Promote traffic only after health checks pass.
 
+## Pre-Master Testing Strategy
+
+### Current Low-Cost Approach
+
+Until Paceline has several active clubs using the platform, avoid paying for a
+full duplicate beta stack. Use `post-beta` as the development branch and
+`master` as the production branch.
+
+Before merging `post-beta` into `master`:
+
+1. Run the local automated test suite:
+   ```bash
+   .venv/bin/python -m pytest
+   ```
+2. Run focused tests for the changed feature area. Examples:
+   ```bash
+   .venv/bin/python -m pytest tests/test_recommendations.py
+   .venv/bin/python -m pytest tests/test_club_shop.py tests/test_stripe_connect_dues.py
+   ```
+3. Run the app locally with a local/test database.
+4. Manually test the workflows touched by the branch:
+   - login/logout
+   - profile settings
+   - club creation/settings
+   - ride creation/signup
+   - Stripe test checkout flows when payment code changes
+   - superadmin workflows when admin code changes
+   - mobile and desktop page layout for changed pages
+5. Review screenshots from any available browser test/audit scripts for UI
+   changes.
+6. Confirm database migrations/runtime schema guards are additive and safe.
+7. Merge to `master` only after the local test pass and manual smoke checks are
+   complete.
+8. After pushing `master`, verify the production deploy health check and smoke
+   test only non-destructive workflows.
+
+This approach keeps cost low while the product is still early. It does mean
+that some integration issues may only appear after the production deploy, so
+schema changes, payment changes, and authentication changes should receive extra
+local testing before merge.
+
+### Future Beta Environment
+
+Once real clubs are relying on Paceline, create a true staging deployment before
+shipping large features:
+
+- `beta.paceline.club` on DigitalOcean App Platform.
+- GitHub branch: `post-beta`.
+- Separate staging Managed PostgreSQL database.
+- Separate Spaces bucket or clearly separated staging prefix.
+- Stripe test mode keys and Connect test webhook.
+- Google OAuth redirect URI:
+  `https://beta.paceline.club/auth/google/callback`.
+- Resend/test email configuration restricted to verified test recipients where
+  possible.
+
+Use this beta deployment for browser-based acceptance testing, Stripe test
+checkout, webhook verification, and mobile/desktop screenshot review before
+merging to `master`.
+
+Do not point a beta deployment at the production database or production media
+bucket. Customer data must not be used for destructive feature testing.
+
 ## Data Migration From TrueNAS
 
 ### Database
