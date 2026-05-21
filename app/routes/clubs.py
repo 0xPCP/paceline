@@ -354,7 +354,7 @@ def club_shop(slug):
 @clubs_bp.route('/<slug>/members/')
 def club_members(slug):
     """Member roster for signed-in active members, ordered by role then attendance."""
-    from ..models import User, ClubMembership, ClubAdmin, RideSignup, Ride
+    from ..models import User, ClubMembership, ClubAdmin, ClubLeader, RideSignup, Ride
     club = _get_club_or_404(slug)
 
     if not current_user.is_authenticated:
@@ -384,15 +384,24 @@ def club_members(slug):
     admin_rows = ClubAdmin.query.filter_by(club_id=club.id).all()
     admin_user_ids = {r.user_id: r.role for r in admin_rows}
     owner_id = club.owner_id
+    ride_leader_ids = {
+        r.user_id for r in admin_rows
+        if r.role in ('admin', 'ride_manager')
+    }
+    ride_leader_ids.update(
+        row.user_id
+        for row in ClubLeader.query.filter_by(club_id=club.id).all()
+        if row.user_id
+    )
 
     users = {u.id: u for u in User.query.filter(User.id.in_(member_ids)).all()}
 
     owner = [users[owner_id]] if owner_id and owner_id in users else []
-    leaders = [users[uid] for uid in admin_user_ids if uid in users and uid != owner_id]
+    leaders = [users[uid] for uid in ride_leader_ids if uid in users and uid != owner_id]
     leaders.sort(key=lambda u: attendance.get(u.id, 0), reverse=True)
     others = [
         users[uid] for uid in member_ids
-        if uid != owner_id and uid not in admin_user_ids and uid in users
+        if uid != owner_id and uid not in ride_leader_ids and uid in users
     ]
     others.sort(key=lambda u: attendance.get(u.id, 0), reverse=True)
 
@@ -400,7 +409,7 @@ def club_members(slug):
     if owner:
         sections.append(('Club Owner', owner))
     if leaders:
-        sections.append(('Admins & Managers', leaders))
+        sections.append(('Ride Leaders', leaders))
     if others:
         sections.append(('Members', others))
 
@@ -409,14 +418,17 @@ def club_members(slug):
                            owner_id=owner_id)
 
 
-@clubs_bp.route('/<slug>/contact', methods=['POST'])
+@clubs_bp.route('/<slug>/contact', methods=['GET', 'POST'])
 @login_required
 def club_contact(slug):
     club = _get_club_or_404(slug)
     form = ClubContactForm()
+    if request.method == 'GET':
+        return render_template('clubs/contact.html', club=club, form=form)
+
     if not form.validate_on_submit():
         flash('Please add a subject and message before sending.', 'danger')
-        return redirect(url_for('clubs.home', slug=club.slug) + '#contact')
+        return render_template('clubs/contact.html', club=club, form=form), 400
 
     from ..email import send_club_contact_message
     sent = send_club_contact_message(
@@ -424,12 +436,13 @@ def club_contact(slug):
         current_user,
         form.subject.data.strip(),
         form.message.data.strip(),
+        form.recipient_group.data,
     )
     if sent:
         flash(f'Your message was sent to {club.name}.', 'success')
     else:
         flash('This club does not have a contact recipient configured yet.', 'warning')
-    return redirect(url_for('clubs.home', slug=club.slug) + '#contact')
+    return redirect(url_for('clubs.home', slug=club.slug))
 
 
 # ── Club calendar ─────────────────────────────────────────────────────────────

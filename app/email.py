@@ -317,9 +317,9 @@ def send_club_news_notification(post):
     return sent
 
 
-def send_club_contact_message(club, sender, subject, message):
+def send_club_contact_message(club, sender, subject, message, recipient_group='managers'):
     """Relay a logged-in user's message to a club without exposing admin email addresses."""
-    from .models import ClubAdmin
+    from .models import ClubAdmin, ClubLeader
 
     recipients = set()
     if club.contact_email:
@@ -328,6 +328,11 @@ def send_club_contact_message(club, sender, subject, message):
         recipients.add(club.owner.email)
     admin_rows = ClubAdmin.query.filter_by(club_id=club.id, role='admin').all()
     recipients.update(row.user.email for row in admin_rows if row.user and row.user.email)
+    if recipient_group == 'managers_and_ride_leaders':
+        ride_manager_rows = ClubAdmin.query.filter_by(club_id=club.id, role='ride_manager').all()
+        recipients.update(row.user.email for row in ride_manager_rows if row.user and row.user.email)
+        leader_rows = ClubLeader.query.filter_by(club_id=club.id).all()
+        recipients.update(row.user.email for row in leader_rows if row.user and row.user.email)
 
     recipients = sorted(email for email in recipients if email)
     if not recipients:

@@ -91,7 +91,7 @@ Paceline Pulse follows the existing TrueNAS pattern:
 
 - the infrastructure stack runs `cloudflared`
 - `cloudflared` sends traffic to Traefik
-- each app joins the external `traefik` Docker network
+- each routed app joins the external `internal` Docker network
 - each app advertises its hostname and port with Traefik labels
 
 Paceline Pulse does not run its own `cloudflared` sidecar.
@@ -116,7 +116,7 @@ Required TrueNAS/Cloudflare setup:
    `cloudflared` tunnel and Traefik reverse proxy.
 2. Confirm the external Docker network exists:
    ```bash
-   docker network ls | grep traefik
+   docker network ls | grep internal
    ```
 3. Add a Cloudflare Tunnel public hostname:
    ```text
@@ -217,7 +217,7 @@ volumes:
 
 For the Cloudflare Tunnel deployment, prefer `docker-compose.pulse.yml` instead
 of this single-container example. The dedicated compose file joins the existing
-external `traefik` network and uses Traefik labels for
+external `internal` network and uses Traefik labels for
 `paceline-pulse.pcp.dev`.
 
 ## Optional Configuration

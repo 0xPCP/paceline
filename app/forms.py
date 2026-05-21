@@ -356,6 +356,10 @@ class FeedbackForm(FlaskForm):
 
 
 class ClubContactForm(FlaskForm):
+    recipient_group = SelectField('Send To', choices=[
+        ('managers', 'Club Manager'),
+        ('managers_and_ride_leaders', 'Club Manager and Ride Leaders'),
+    ], validators=[DataRequired()])
     subject = StringField('Subject', validators=[DataRequired(), Length(min=3, max=120)])
     message = TextAreaField('Message', validators=[DataRequired(), Length(min=10, max=2000)])
     submit = SubmitField('Send Message')

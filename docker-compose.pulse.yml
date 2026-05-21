@@ -28,7 +28,7 @@ services:
     volumes:
       - paceline_pulse_state:/state
     networks:
-      - traefik
+      - internal
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.paceline-pulse.rule=Host(`paceline-pulse.pcp.dev`)"
@@ -37,9 +37,9 @@ services:
       - "com.centurylinklabs.watchtower.enable=false"
 
 networks:
-  traefik:
+  internal:
     external: true
-    name: traefik
+    name: internal
 
 volumes:
   paceline_pulse_state:

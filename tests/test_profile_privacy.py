@@ -89,14 +89,23 @@ class TestClubMembersPage:
         resp = client.get(f'/clubs/{sample_club.slug}/members/')
         assert b'Club Owner' in resp.data
 
-    def test_admin_shown_in_admins_section(self, client, db, sample_club, regular_user, second_user):
+    def test_admin_shown_in_ride_leaders_section(self, client, db, sample_club, regular_user, second_user):
         self._add_member(db, regular_user, sample_club)
         self._add_member(db, second_user, sample_club)
         db.session.add(ClubAdmin(user_id=regular_user.id, club_id=sample_club.id, role='admin'))
         db.session.commit()
         login(client)
         resp = client.get(f'/clubs/{sample_club.slug}/members/')
-        assert b'Admins' in resp.data
+        assert b'Ride Leaders' in resp.data
+
+    def test_members_page_uses_profile_photos_when_available(self, client, db, sample_club, regular_user):
+        regular_user.profile_photo_key = 'avatars/1.jpg'
+        self._add_member(db, regular_user, sample_club)
+        db.session.commit()
+        login(client)
+        resp = client.get(f'/clubs/{sample_club.slug}/members/')
+        assert f'/users/{regular_user.username}/photo'.encode() in resp.data
+        assert b'profile photo' in resp.data
 
     def test_members_page_requires_login(self, client, db, sample_club, regular_user):
         self._add_member(db, regular_user, sample_club)
@@ -156,6 +165,16 @@ class TestClubMembersPage:
         assert b'Message the Club' in resp.data
         assert b'club-admin-private@example.com' not in resp.data
         assert b'mailto:' not in resp.data
+        assert b'placeholder="Subject"' not in resp.data
+        assert f'/clubs/{sample_club.slug}/contact'.encode() in resp.data
+
+    def test_club_contact_page_renders_form(self, client, db, sample_club, regular_user):
+        login(client)
+        resp = client.get(f'/clubs/{sample_club.slug}/contact')
+        assert resp.status_code == 200
+        assert b'Message Test Cycling Club' in resp.data
+        assert b'Club Manager' in resp.data
+        assert b'Club Manager and Ride Leaders' in resp.data
 
     def test_club_contact_relays_message_to_private_recipient(self, client, db, sample_club, regular_user):
         sample_club.contact_email = 'club-admin-private@example.com'
@@ -166,6 +185,7 @@ class TestClubMembersPage:
             resp = client.post(
                 f'/clubs/{sample_club.slug}/contact',
                 data={
+                    'recipient_group': 'managers',
                     'subject': 'Route question',
                     'message': 'Can someone tell me which lot the ride starts from?',
                 },
@@ -176,3 +196,25 @@ class TestClubMembersPage:
         assert b'Your message was sent' in resp.data
         recipients = send_mock.call_args.args[1]
         assert recipients == ['club-admin-private@example.com']
+
+    def test_club_contact_can_include_ride_leaders(self, client, db, sample_club, regular_user, second_user):
+        sample_club.contact_email = 'club-admin-private@example.com'
+        second_user.email = 'ride-leader-private@example.com'
+        db.session.add(ClubAdmin(user_id=second_user.id, club_id=sample_club.id, role='ride_manager'))
+        db.session.commit()
+        login(client)
+
+        with patch('app.email._send', return_value=True) as send_mock:
+            resp = client.post(
+                f'/clubs/{sample_club.slug}/contact',
+                data={
+                    'recipient_group': 'managers_and_ride_leaders',
+                    'subject': 'Route question',
+                    'message': 'Can someone tell me which lot the ride starts from?',
+                },
+                follow_redirects=True,
+            )
+
+        assert resp.status_code == 200
+        recipients = send_mock.call_args.args[1]
+        assert recipients == ['club-admin-private@example.com', 'ride-leader-private@example.com']

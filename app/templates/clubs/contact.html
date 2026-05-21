@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Message {{ club.name }} — Paceline{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{{ url_for('clubs.home', slug=club.slug) }}">{{ club.name }}</a></li>
+        <li class="breadcrumb-item active">Message</li>
+      </ol>
+    </nav>
+    <h1>Message {{ club.name }}</h1>
+    <p class="mb-0">Send a private message without exposing club email addresses.</p>
+  </div>
+</div>
+
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+          <form method="post" action="{{ url_for('clubs.club_contact', slug=club.slug) }}">
+            {{ form.hidden_tag() }}
+            <div class="mb-3">
+              {{ form.recipient_group.label(class="form-label fw-semibold") }}
+              {{ form.recipient_group(class="form-select" + (" is-invalid" if form.recipient_group.errors else "")) }}
+              {% for e in form.recipient_group.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+              <div class="form-text">Club email addresses are kept private. Replies will go to the email address on your Paceline account.</div>
+            </div>
+            <div class="mb-3">
+              {{ form.subject.label(class="form-label fw-semibold") }}
+              {{ form.subject(class="form-control" + (" is-invalid" if form.subject.errors else ""), maxlength="120") }}
+              {% for e in form.subject.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="mb-3">
+              {{ form.message.label(class="form-label fw-semibold") }}
+              {{ form.message(class="form-control" + (" is-invalid" if form.message.errors else ""), rows="7") }}
+              {% for e in form.message.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="d-flex gap-2 justify-content-end">
+              <a href="{{ url_for('clubs.home', slug=club.slug) }}" class="btn btn-outline-secondary">Cancel</a>
+              {{ form.submit(class="btn btn-paceline") }}
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

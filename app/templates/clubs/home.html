@@ -415,22 +415,16 @@
           {# Contact #}
           <div class="card border-0 shadow-sm mb-3" id="contact">
             <div class="card-body">
-              <h6 class="card-title mb-2">Message the Club</h6>
               {% if current_user.is_authenticated %}
-              <p class="text-muted small mb-3">Send a private message to the club admins.</p>
-              <form method="post" action="{{ url_for('clubs.club_contact', slug=club.slug) }}">
-                {{ contact_form.hidden_tag() }}
-                <div class="mb-2">
-                  {{ contact_form.subject(class="form-control form-control-sm", placeholder="Subject", maxlength="120") }}
-                </div>
-                <div class="mb-2">
-                  {{ contact_form.message(class="form-control form-control-sm", rows="4", placeholder="What would you like to ask?") }}
-                </div>
-                <button class="btn btn-paceline-sm w-100" type="submit">Send Message</button>
-              </form>
+              <a href="{{ url_for('clubs.club_contact', slug=club.slug) }}" class="text-decoration-none text-body d-block">
+                <h6 class="card-title mb-2">Message the Club</h6>
+                <p class="text-muted small mb-3">Send a private message to the club manager or ride leaders.</p>
+                <span class="btn btn-paceline-sm w-100">Open Message Form</span>
+              </a>
               {% else %}
+              <h6 class="card-title mb-2">Message the Club</h6>
               <p class="text-muted small mb-3">Sign in to send a private message to the club admins.</p>
-              <a href="{{ url_for('auth.login', next=url_for('clubs.home', slug=club.slug) ~ '#contact') }}" class="btn btn-paceline-sm w-100">Sign In to Message</a>
+              <a href="{{ url_for('auth.login', next=url_for('clubs.club_contact', slug=club.slug)) }}" class="btn btn-paceline-sm w-100">Sign In to Message</a>
               {% endif %}
             </div>
           </div>
