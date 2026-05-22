@@ -1075,7 +1075,7 @@ def club_settings(slug):
         club.require_membership = form.require_membership.data
         club.join_approval      = form.join_approval.data if form.join_approval.data in ('auto', 'manual') else 'auto'
         club.membership_dues_required = form.membership_dues_required.data
-        club.membership_dues_mode = 'stripe_connect'
+        club.membership_dues_mode = 'stripe_connect' if club.stripe_connect_ready else 'manual'
         if form.membership_dues_amount.data is not None:
             club.membership_dues_amount_cents = int(round(float(form.membership_dues_amount.data) * 100))
         else:

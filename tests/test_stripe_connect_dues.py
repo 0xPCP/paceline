@@ -46,7 +46,26 @@ def _stripe_signature(payload, secret):
     return f't={timestamp},v1={digest}'
 
 
-def test_settings_saves_stripe_connect_dues_configuration(client, db, sample_club, club_admin_user):
+def test_settings_saves_manual_dues_mode_until_stripe_is_connected(client, db, sample_club, club_admin_user):
+    login(client, email='clubadmin@test.com')
+    response = client.post(
+        f'/admin/clubs/{sample_club.slug}/settings',
+        data=_settings_payload(sample_club),
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    db.session.refresh(sample_club)
+    assert sample_club.membership_dues_mode == 'manual'
+    assert sample_club.membership_dues_amount_cents == 4500
+    assert sample_club.membership_dues_currency == 'usd'
+
+
+def test_settings_saves_stripe_connect_dues_mode_when_stripe_is_connected(client, db, sample_club, club_admin_user):
+    sample_club.stripe_account_id = 'acct_123'
+    sample_club.stripe_account_connected_at = datetime.now(timezone.utc)
+    db.session.commit()
+
     login(client, email='clubadmin@test.com')
     response = client.post(
         f'/admin/clubs/{sample_club.slug}/settings',
@@ -57,8 +76,26 @@ def test_settings_saves_stripe_connect_dues_configuration(client, db, sample_clu
     assert response.status_code == 200
     db.session.refresh(sample_club)
     assert sample_club.membership_dues_mode == 'stripe_connect'
-    assert sample_club.membership_dues_amount_cents == 4500
-    assert sample_club.membership_dues_currency == 'usd'
+    assert sample_club.stripe_dues_ready
+
+
+def test_settings_save_keeps_disconnected_club_in_manual_dues_mode(client, db, sample_club, club_admin_user):
+    sample_club.membership_dues_mode = 'manual'
+    sample_club.stripe_account_id = None
+    sample_club.stripe_account_connected_at = None
+    db.session.commit()
+
+    login(client, email='clubadmin@test.com')
+    response = client.post(
+        f'/admin/clubs/{sample_club.slug}/settings',
+        data=_settings_payload(sample_club),
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    db.session.refresh(sample_club)
+    assert sample_club.membership_dues_mode == 'manual'
+    assert not sample_club.stripe_dues_ready
 
 
 def test_connect_start_creates_account_and_redirects_to_onboarding(client, app, db, sample_club, club_admin_user, monkeypatch):

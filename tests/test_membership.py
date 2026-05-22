@@ -180,7 +180,7 @@ def test_settings_saves_paid_dues_configuration(client, db, sample_club, club_ad
     assert r.status_code == 200
     db.session.refresh(sample_club)
     assert sample_club.membership_dues_required is True
-    assert sample_club.membership_dues_mode == 'stripe_connect'
+    assert sample_club.membership_dues_mode == 'manual'
     assert sample_club.membership_duration_months == 12
 
 
