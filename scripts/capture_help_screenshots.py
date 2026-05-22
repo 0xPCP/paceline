@@ -7,13 +7,14 @@ Run with:
 Requires playwright:  pip install playwright && playwright install chromium
 """
 from __future__ import annotations
+import os
 import sys
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
-PROD_URL   = "https://paceline-2akis.ondigitalocean.app"
-EMAIL      = "phil@pcp.dev"
-PASSWORD   = "REDACTED"
+PROD_URL   = os.environ.get("PROD_URL", "https://paceline-2akis.ondigitalocean.app")
+EMAIL      = os.environ.get("PROD_USER_EMAIL", "phil@pcp.dev")
+PASSWORD   = os.environ.get("PROD_USER_PASSWORD", "")
 OUT_DIR    = Path(__file__).parent.parent / "app" / "static" / "img" / "help"
 
 VIEWPORT   = {"width": 1280, "height": 900}

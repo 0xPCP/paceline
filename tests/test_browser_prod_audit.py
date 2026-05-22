@@ -13,7 +13,7 @@ Prerequisites
     playwright install chromium
     # Credentials are read from environment variables (or fall back to dev defaults):
     export PROD_USER_EMAIL=phil@pcp.dev
-    export PROD_USER_PASSWORD="REDACTED"
+    export PROD_USER_PASSWORD="your-password-here"
 
 Run all production tests:
     pytest tests/test_browser_prod_audit.py -v -s
@@ -56,7 +56,7 @@ from playwright.sync_api import Page, expect
 # Use the DigitalOcean direct URL to bypass Cloudflare for automated tests.
 PROD_URL    = os.environ.get("PROD_URL", "https://paceline-2akis.ondigitalocean.app")
 USER_EMAIL  = os.environ.get("PROD_USER_EMAIL",    "phil@pcp.dev")
-USER_PASS   = os.environ.get("PROD_USER_PASSWORD", "REDACTED")
+USER_PASS   = os.environ.get("PROD_USER_PASSWORD", "")
 
 SCREENSHOTS = os.path.join(os.path.dirname(__file__), "screenshots")
 os.makedirs(SCREENSHOTS, exist_ok=True)
