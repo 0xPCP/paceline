@@ -194,10 +194,7 @@
                   <td><small class="text-muted">{{ row.joined_at.strftime('%b %d, %Y') }}</small></td>
                   <td>
                     <div class="d-flex gap-1">
-                      <form method="post" action="{{ url_for('admin.club_member_confirm_dues', slug=club.slug, uid=user.id) }}">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button class="btn btn-success btn-xs">Confirm Paid</button>
-                      </form>
+                      <span class="badge bg-warning text-dark align-self-center">Awaiting Stripe payment</span>
                       <form method="post" action="{{ url_for('admin.club_member_reject', slug=club.slug, uid=user.id) }}"
                             onsubmit="return confirm('Reject {{ user.username }}\'s membership request?')">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

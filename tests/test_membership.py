@@ -2,7 +2,7 @@
 Tests for membership-gated ride signups, join approval modes,
 pending membership state, and private club route protection.
 """
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
 from tests.conftest import login, logout
@@ -162,7 +162,7 @@ def test_settings_saves_manual_approval(client, db, sample_club, club_admin_user
     assert sample_club.join_approval == 'manual'
 
 
-def test_settings_saves_paid_dues_configuration(client, db, sample_club, club_admin_user):
+def test_settings_rejects_paid_dues_without_stripe_connect(client, db, sample_club, club_admin_user):
     login(client, email='clubadmin@test.com')
     r = client.post(f'/admin/clubs/{sample_club.slug}/settings', data={
         'name': sample_club.name,
@@ -179,9 +179,10 @@ def test_settings_saves_paid_dues_configuration(client, db, sample_club, club_ad
     }, follow_redirects=True)
     assert r.status_code == 200
     db.session.refresh(sample_club)
-    assert sample_club.membership_dues_required is True
+    assert sample_club.membership_dues_required is False
     assert sample_club.membership_dues_mode == 'manual'
     assert sample_club.membership_duration_months == 12
+    assert b'Connect Stripe before enabling paid dues' in r.data
 
 
 # ── Auto-approve join flow ────────────────────────────────────────────────────
@@ -203,6 +204,10 @@ def test_auto_approve_join_shows_success_flash(client, db, membership_club, regu
 
 def test_paid_dues_join_creates_pending_payment_membership(client, db, membership_club, regular_user):
     membership_club.membership_dues_required = True
+    membership_club.membership_dues_mode = 'stripe_connect'
+    membership_club.membership_dues_amount_cents = 4500
+    membership_club.stripe_account_id = 'acct_123'
+    membership_club.stripe_account_connected_at = datetime.now(timezone.utc)
     db.session.commit()
     login(client)
     r = client.post(f'/clubs/{membership_club.slug}/join', follow_redirects=True)
@@ -212,7 +217,20 @@ def test_paid_dues_join_creates_pending_payment_membership(client, db, membershi
     assert row.status == 'pending_payment'
 
 
-def test_admin_confirms_paid_dues_activates_membership(client, db, membership_club, club_admin, regular_user):
+def test_paid_dues_join_requires_stripe_connect(client, db, membership_club, regular_user):
+    membership_club.membership_dues_required = True
+    membership_club.membership_dues_mode = 'stripe_connect'
+    membership_club.membership_dues_amount_cents = 4500
+    db.session.commit()
+    login(client)
+    r = client.post(f'/clubs/{membership_club.slug}/join', follow_redirects=True)
+    row = ClubMembership.query.filter_by(user_id=regular_user.id, club_id=membership_club.id).first()
+    assert r.status_code == 200
+    assert row is None
+    assert b'Paid membership is not available' in r.data
+
+
+def test_admin_cannot_manually_confirm_paid_dues(client, db, membership_club, club_admin, regular_user):
     membership_club.membership_dues_required = True
     membership_club.membership_duration_months = 6
     db.session.add(ClubMembership(user_id=regular_user.id, club_id=membership_club.id, status='pending_payment'))
@@ -225,9 +243,10 @@ def test_admin_confirms_paid_dues_activates_membership(client, db, membership_cl
     )
     row = ClubMembership.query.filter_by(user_id=regular_user.id, club_id=membership_club.id).first()
     assert r.status_code == 200
-    assert row.status == 'active'
-    assert row.dues_paid_until is not None
-    assert row.dues_confirmed_by_id == club_admin.id
+    assert row.status == 'pending_payment'
+    assert row.dues_paid_until is None
+    assert row.dues_confirmed_by_id is None
+    assert b'Paid dues must be completed through Stripe Connect' in r.data
 
 
 # ── Manual approval join flow ─────────────────────────────────────────────────

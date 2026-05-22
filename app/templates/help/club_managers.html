@@ -150,9 +150,7 @@
           <li><strong>Pending approval</strong> — riders who requested to join a club that
               requires manual approval. Click <strong>Approve</strong> or <strong>Reject</strong>.</li>
           <li><strong>Pending payment</strong> — members who joined a club with required dues
-              but have not yet paid. If you received payment outside Paceline, click
-              <strong>Confirm Paid</strong> to manually activate their membership for the
-              configured duration.</li>
+              but have not yet completed Stripe Checkout.</li>
         </ul>
         <figure class="mb-0">
           <img class="img-fluid rounded border shadow-sm"
@@ -275,8 +273,7 @@
               membership period has ended. They need to renew before Paceline marks them
               active again.</li>
           <li><strong>Pending payment</strong> — riders who joined but have not completed
-              dues payment. Use the Team page to manually confirm dues or wait for Stripe
-              to confirm automatically.</li>
+              Stripe Checkout.</li>
           <li><strong>Pending approval</strong> — riders waiting for a manual join
               approval from the Team page.</li>
         </ul>
@@ -285,11 +282,9 @@
           columns for each member:
         </p>
         <ul class="section-body">
-          <li><strong>Last Payment</strong> — the date dues were confirmed, either
-              automatically by Stripe or manually by an admin.</li>
+          <li><strong>Last Payment</strong> — the date dues were confirmed by Stripe.</li>
           <li><strong>Transaction ID</strong> — the Stripe payment intent ID for automatic
-              payments. Click the truncated ID to copy the full value to your clipboard.
-              Manual confirmations show "manual" instead of a transaction ID.</li>
+              payments. Click the truncated ID to copy the full value to your clipboard.</li>
           <li><strong>Expires</strong> — the date the current membership period ends,
               calculated from the payment date plus the configured duration.</li>
           <li><strong>Dues Standing</strong> — a color-coded badge: green "Current" means
@@ -316,22 +311,13 @@
       <div class="mb-5" id="dues">
         <h2 class="section-heading h4">10. Handle paid club dues</h2>
         <p class="section-body">
-          Paceline supports two dues workflows. You can run either independently
-          or switch between them at any time without losing membership records.
+          Paceline supports paid club dues through <strong>Stripe Connect only</strong>.
+          A club must connect its own Stripe account before paid dues can be enabled.
+          Paceline does not provide an outside-payment/manual dues workflow for new
+          member payments.
         </p>
 
-        <h5 class="mt-4 mb-2">Manual confirmation</h5>
-        <p class="section-body">
-          Manual confirmation is the simplest setup — no Stripe account required.
-          Riders who join a club with required dues are placed in the
-          "pending payment" state. You collect payment using any method your club
-          prefers (Venmo, PayPal, cash, check, or your own Stripe payment link),
-          then go to <strong>Admin → Team</strong> and click <strong>Confirm Paid</strong>
-          for each member. Paceline marks the membership active for the configured duration
-          starting from the confirmation date.
-        </p>
-
-        <h5 class="mt-4 mb-2">Stripe Connect — automated dues</h5>
+        <h5 class="mt-4 mb-2">Stripe Connect dues</h5>
         <p class="section-body">
           Stripe Connect automates the entire payment and activation flow. When a
           rider clicks <strong>Pay Club Dues</strong> on the club page, Paceline
@@ -351,9 +337,8 @@
           $1 platform fee is not refunded when a club refunds dues.
         </p>
         <p class="section-body">
-          This dues setup is also the foundation for a future club store feature,
-          where clubs can sell jerseys, shirts, and other club items through their
-          own connected Stripe account.
+          The same connected Stripe account is also required for the club shop,
+          where clubs can sell jerseys, shirts, and other club items.
         </p>
 
         <h5 class="mt-4 mb-2">Setting up Stripe Connect</h5>
@@ -365,6 +350,20 @@
           <li>
             Open <strong>Admin → Settings</strong> and scroll to the
             <strong>Membership</strong> section.
+          </li>
+          <li>
+            Under <strong>Stripe Connect</strong>, click <strong>Connect Stripe</strong>.
+            You are redirected to Stripe's hosted onboarding where you enter your
+            club's business information, bank account details, and verify identity.
+          </li>
+          <li>
+            Complete all steps in Stripe's onboarding and click the button to
+            return to Paceline.
+          </li>
+          <li>
+            Paceline verifies the connection. When onboarding is complete,
+            Settings shows a green <em>"Stripe onboarding has been completed"</em>
+            confirmation and the club account ID.
           </li>
           <li>
             Enable the <strong>Require dues for membership</strong> toggle.
@@ -381,20 +380,6 @@
           </li>
           <li>
             Click <strong>Save Settings</strong>.
-          </li>
-          <li>
-            Under <strong>Stripe Connect</strong>, click <strong>Connect Stripe</strong>.
-            You are redirected to Stripe's hosted onboarding where you enter your
-            club's business information, bank account details, and verify identity.
-          </li>
-          <li>
-            Complete all steps in Stripe's onboarding and click the button to
-            return to Paceline.
-          </li>
-          <li>
-            Paceline verifies the connection. When onboarding is complete,
-            Settings shows a green <em>"Stripe onboarding has been completed"</em>
-            confirmation and the club account ID.
           </li>
         </ol>
         <p class="section-body">
@@ -427,9 +412,9 @@
         <h5 class="mt-4 mb-2">Disconnecting Stripe</h5>
         <p class="section-body">
           You can disconnect Stripe at any time from <strong>Admin → Settings → Stripe Connect →
-          Disconnect</strong>. The club reverts to manual dues confirmation and the
-          "Pay Club Dues" checkout button is removed. Existing membership records are preserved —
-          active memberships remain active until they expire.
+          Disconnect</strong>. Paid dues and shop checkout are disabled immediately.
+          Existing membership records are preserved — active memberships remain active
+          until they expire.
         </p>
 
         <h5 class="mt-4 mb-2">Importing an existing roster</h5>
@@ -437,7 +422,8 @@
           When importing an existing member roster, you can set a paid-through date for the
           entire batch or specify a per-row date using the format
           <code>rider@example.com, 2026-12-31</code>. Imported members with a future
-          paid-through date are added as active.
+          paid-through date are added as active. This is for migrating existing
+          records into Paceline, not for collecting new dues outside Stripe Connect.
         </p>
       </div>
 
@@ -446,11 +432,11 @@
         <h2 class="section-heading h4">11. Sell club merchandise</h2>
         <p class="section-body">
           Club admins can add a simple shop for jerseys, shirts, or other club-managed
-          merchandise. Open <strong>Admin → Shop</strong>, add an item name,
-          description, optional image URL, price, and fulfillment notes.
+          merchandise after Stripe Connect is active. Open <strong>Admin → Shop</strong>,
+          add an item name, description, optional image URL, price, and fulfillment notes.
         </p>
         <p class="section-body">
-          Shop checkout uses the same connected Stripe account as automated dues.
+          Shop checkout uses the same connected Stripe account as paid dues.
           The item amount is paid to the club's Stripe account and Paceline adds a
           separate <strong>$1 platform fee</strong> at checkout. For example, a
           $65 jersey is shown as $66 total before any Stripe taxes or processing

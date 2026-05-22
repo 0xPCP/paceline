@@ -143,7 +143,7 @@ manually during the launch rehearsal.
 ### Connected Club Account Reality
 
 - Complete Stripe-hosted onboarding as a real club admin.
-- Leave onboarding incomplete and confirm the club cannot enable automated dues.
+- Leave onboarding incomplete and confirm the club cannot enable paid dues or the shop.
 - Finish onboarding and confirm the club can accept charges.
 - Confirm the connected club account can see its own charge/refund/dispute
   records in Stripe.
@@ -295,12 +295,12 @@ Pass criteria:
 
 For the same temporary club, enable membership and paid dues.
 
-Test manual dues:
+Test Stripe Connect dues:
 
 - Rider joins paid club.
 - Rider becomes `pending_payment`.
-- Club admin can manually confirm paid dues.
-- Paid-through date is set.
+- Rider completes Stripe Checkout.
+- Paid-through date is set from the Stripe webhook.
 - Member appears active.
 - Member can sign up for rides.
 - CSV export includes dues status.

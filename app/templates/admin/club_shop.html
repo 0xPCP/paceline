@@ -17,7 +17,8 @@
         <p class="text-muted mb-0">Manage club merchandise sold through the club's connected Stripe account.</p>
       </div>
       <a href="{{ url_for('admin.shop_item_new', slug=club.slug) }}"
-         class="btn btn-paceline{% if active_count >= max_items %} disabled{% endif %}">
+         class="btn btn-paceline{% if active_count >= max_items or not club.stripe_connect_ready %} disabled{% endif %}"
+         {% if not club.stripe_connect_ready %}aria-disabled="true" title="Connect Stripe before adding shop items"{% endif %}>
         + Add Item
       </a>
     </div>
@@ -29,7 +30,7 @@
     Clubs can list up to {{ max_items }} active shop items. Stripe Checkout charges the item price plus Paceline's separate $1 platform fee, deposits the item amount to the club's Stripe account, and leaves fulfillment, taxes, refunds, and product issues to the club.
     {% if not club.stripe_connect_ready %}
     <div class="mt-2">
-      <strong>Checkout is disabled until Stripe is connected.</strong>
+      <strong>The club shop is disabled until Stripe is connected.</strong>
       <a href="{{ url_for('admin.club_settings', slug=club.slug) }}#membership-section">Connect Stripe in club settings.</a>
     </div>
     {% endif %}
@@ -43,6 +44,7 @@
       </p>
       <form method="post" action="{{ url_for('admin.club_shop_settings', slug=club.slug) }}" novalidate>
         {{ settings_form.hidden_tag() }}
+        <fieldset {% if not club.stripe_connect_ready %}disabled{% endif %}>
         <div class="form-check form-switch mb-3">
           {{ settings_form.shop_tax_enabled(class="form-check-input", role="switch", id="shop_tax_enabled") }}
           {{ settings_form.shop_tax_enabled.label(class="form-check-label", for="shop_tax_enabled") }}
@@ -74,6 +76,7 @@
             {{ settings_form.submit(class="btn btn-outline-primary w-100") }}
           </div>
         </div>
+        </fieldset>
       </form>
     </div>
   </div>
@@ -106,11 +109,11 @@
           </td>
           <td><small>{{ item.display_order }}</small></td>
           <td class="text-end">
-            <a href="{{ url_for('admin.shop_item_edit', slug=club.slug, item_id=item.id) }}" class="btn btn-outline-secondary btn-xs me-1">Edit</a>
+            <a href="{{ url_for('admin.shop_item_edit', slug=club.slug, item_id=item.id) }}" class="btn btn-outline-secondary btn-xs me-1{% if not club.stripe_connect_ready %} disabled{% endif %}">Edit</a>
             <form method="post" action="{{ url_for('admin.shop_item_delete', slug=club.slug, item_id=item.id) }}"
                   class="d-inline" onsubmit="return confirm('Remove {{ item.name }}? Completed Stripe orders remain in Stripe.')">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button class="btn btn-outline-danger btn-xs">Remove</button>
+              <button class="btn btn-outline-danger btn-xs" {% if not club.stripe_connect_ready %}disabled{% endif %}>Remove</button>
             </form>
           </td>
         </tr>
@@ -121,8 +124,14 @@
   {% else %}
   <div class="empty-state py-5">
     <h5>No shop items yet</h5>
-    <p class="text-muted">Add jerseys, shirts, or other club-managed merchandise.</p>
-    <a href="{{ url_for('admin.shop_item_new', slug=club.slug) }}" class="btn btn-paceline-sm">Add the first item</a>
+    <p class="text-muted">
+      {% if club.stripe_connect_ready %}
+      Add jerseys, shirts, or other club-managed merchandise.
+      {% else %}
+      Connect Stripe before adding jerseys, shirts, or other club-managed merchandise.
+      {% endif %}
+    </p>
+    <a href="{{ url_for('admin.shop_item_new', slug=club.slug) }}" class="btn btn-paceline-sm{% if not club.stripe_connect_ready %} disabled{% endif %}">Add the first item</a>
   </div>
   {% endif %}
 

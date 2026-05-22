@@ -40,6 +40,11 @@ def _settings_payload(club, **overrides):
     return data
 
 
+def _connect_stripe(club):
+    club.stripe_account_id = 'acct_123'
+    club.stripe_account_connected_at = datetime.now(timezone.utc)
+
+
 def test_club_settings_save_and_render_whatsapp_url(client, db, sample_club, club_admin_user, mock_weather):
     login(client, club_admin_user.email)
     response = client.post(
@@ -59,6 +64,8 @@ def test_club_settings_save_and_render_whatsapp_url(client, db, sample_club, clu
 
 
 def test_admin_can_create_shop_item_and_public_shop_renders(client, db, sample_club, club_admin_user):
+    _connect_stripe(sample_club)
+    db.session.commit()
     login(client, club_admin_user.email)
     response = client.post(
         f'/admin/clubs/{sample_club.slug}/shop/new',
@@ -86,6 +93,24 @@ def test_admin_can_create_shop_item_and_public_shop_renders(client, db, sample_c
     assert b'+$1 Paceline fee' in public.data
 
 
+def test_admin_cannot_create_shop_item_without_stripe_connect(client, db, sample_club, club_admin_user):
+    login(client, club_admin_user.email)
+    response = client.post(
+        f'/admin/clubs/{sample_club.slug}/shop/new',
+        data={
+            'name': 'Club Jersey',
+            'price': '65.00',
+            'is_active': 'y',
+            'display_order': '2',
+        },
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    assert b'Connect Stripe before adding shop items' in response.data
+    assert ClubShopItem.query.filter_by(club_id=sample_club.id, name='Club Jersey').first() is None
+
+
 def test_shop_link_renders_with_club_tabs_next_to_message_board(client, db, sample_club, regular_user):
     sample_club.stripe_account_id = 'acct_123'
     sample_club.stripe_account_connected_at = datetime.now(timezone.utc)
@@ -108,7 +133,7 @@ def test_shop_link_renders_with_club_tabs_next_to_message_board(client, db, samp
     assert board_idx < shop_idx
 
 
-def test_shop_tab_is_disabled_until_stripe_connect_is_ready(client, db, sample_club, regular_user):
+def test_shop_tab_is_hidden_until_stripe_connect_is_ready(client, db, sample_club, regular_user):
     db.session.add(ClubMembership(user_id=regular_user.id, club_id=sample_club.id, status='active'))
     db.session.add(ClubShopItem(
         club_id=sample_club.id,
@@ -122,11 +147,17 @@ def test_shop_tab_is_disabled_until_stripe_connect_is_ready(client, db, sample_c
     response = client.get(f'/clubs/{sample_club.slug}/')
 
     assert response.status_code == 200
-    assert b'club-tab-disabled' in response.data
+    assert b'club-tab-disabled' not in response.data
+    assert b'>Shop' not in response.data
     assert f'href="/clubs/{sample_club.slug}/shop/"'.encode() not in response.data
+
+    public = client.get(f'/clubs/{sample_club.slug}/shop/')
+    assert public.status_code == 404
 
 
 def test_admin_can_configure_shop_tax_and_shipping(client, db, sample_club, club_admin_user):
+    _connect_stripe(sample_club)
+    db.session.commit()
     login(client, club_admin_user.email)
     response = client.post(
         f'/admin/clubs/{sample_club.slug}/shop/settings',
@@ -148,6 +179,7 @@ def test_admin_can_configure_shop_tax_and_shipping(client, db, sample_club, club
 
 
 def test_shop_limits_active_items_to_50(client, db, sample_club, club_admin_user):
+    _connect_stripe(sample_club)
     for idx in range(50):
         db.session.add(ClubShopItem(
             club_id=sample_club.id,
@@ -176,6 +208,7 @@ def test_shop_limits_active_items_to_50(client, db, sample_club, club_admin_user
 
 
 def test_delete_shop_item_with_order_archives_instead(client, db, sample_club, club_admin_user, regular_user):
+    _connect_stripe(sample_club)
     item = ClubShopItem(club_id=sample_club.id, name='Ordered Tee', price_cents=2500, is_active=True)
     db.session.add(item)
     db.session.flush()

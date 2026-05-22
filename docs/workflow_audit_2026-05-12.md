@@ -24,7 +24,7 @@ This document maps the workflows that should work on Paceline and records the li
 | Club discovery | User browses Find Clubs, Discover Rides, and Map | Search, zip/radius filtering, hidden clubs excluded, private clubs discoverable but protected |
 | Join auto-approval club | User joins, membership becomes active immediately | Full club hosting vs rides-only club |
 | Join manual-approval club | User joins, membership is pending until admin approves or rejects | Signup blocked while pending |
-| Paid dues club | User joins, sees dues-required state, follows manual payment link or Stripe Checkout | Manual confirmation, Stripe connected, Stripe unavailable |
+| Paid dues club | User joins, sees dues-required state, completes Stripe Checkout | Stripe connected, Stripe onboarding incomplete, Stripe unavailable |
 | Waiver | User signs annual waiver before joining restricted rides | Updated waiver requires re-signing |
 | Club ride signup | Active member opens ride, signs up, can cancel signup | Waitlist when full, anonymous signup, blocked if membership/waiver/dues missing |
 | Ride comments | Signed-in rider comments on ride and can delete own comment | Club admin can delete any comment |

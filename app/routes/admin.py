@@ -1014,6 +1014,8 @@ def club_settings(slug):
     form = ClubSettingsForm(obj=club)
     if request.method == 'GET' and club.membership_dues_amount_cents:
         form.membership_dues_amount.data = club.membership_dues_amount_cents / 100
+    if request.method == 'GET' and not club.stripe_connect_ready:
+        form.membership_dues_required.data = False
     # Passive Stripe status sync: if the account exists but connected_at was never
     # set (e.g. due to a timing race on the return URL), re-check on each GET.
     if request.method == 'GET' and club.stripe_account_id and not club.stripe_account_connected_at:
@@ -1074,8 +1076,14 @@ def club_settings(slug):
         club.is_private         = form.is_private.data
         club.require_membership = form.require_membership.data
         club.join_approval      = form.join_approval.data if form.join_approval.data in ('auto', 'manual') else 'auto'
-        club.membership_dues_required = form.membership_dues_required.data
-        club.membership_dues_mode = 'stripe_connect' if club.stripe_connect_ready else 'manual'
+        wants_paid_dues = bool(form.membership_dues_required.data)
+        if wants_paid_dues and not club.stripe_connect_ready:
+            club.membership_dues_required = False
+            club.membership_dues_mode = 'manual'
+            flash('Connect Stripe before enabling paid dues. Paid dues are only available through Stripe Connect.', 'warning')
+        else:
+            club.membership_dues_required = wants_paid_dues
+            club.membership_dues_mode = 'stripe_connect' if wants_paid_dues else 'manual'
         if form.membership_dues_amount.data is not None:
             club.membership_dues_amount_cents = int(round(float(form.membership_dues_amount.data) * 100))
         else:
@@ -1591,11 +1599,8 @@ def club_member_approve(slug, uid):
 @club_admin_required
 def club_member_confirm_dues(slug, uid):
     club = _get_club_or_404(slug)
-    row = ClubMembership.query.filter_by(user_id=uid, club_id=club.id, status='pending_payment').first_or_404()
-    _confirm_membership_dues(row, current_user)
-    db.session.commit()
-    send_membership_approved(row.user, club)
-    flash(f'{row.user.username} dues confirmed through {row.dues_paid_until:%b %d, %Y}. Membership is active.', 'success')
+    ClubMembership.query.filter_by(user_id=uid, club_id=club.id, status='pending_payment').first_or_404()
+    flash('Paid dues must be completed through Stripe Connect. Manual dues confirmation is not available.', 'warning')
     return redirect(url_for('admin.club_team', slug=slug))
 
 
@@ -1944,6 +1949,9 @@ def _normalize_shipping_countries(value):
 @club_admin_required
 def club_shop_settings(slug):
     club = _get_club_or_404(slug)
+    if not club.stripe_connect_ready:
+        flash('Connect Stripe before enabling the club shop. Shop checkout is only available through Stripe Connect.', 'warning')
+        return redirect(url_for('admin.club_shop', slug=slug))
     form = ClubShopSettingsForm()
     if form.validate_on_submit():
         countries = _normalize_shipping_countries(form.shop_shipping_countries.data)
@@ -1980,6 +1988,9 @@ def _apply_shop_item_form(item, form):
 @club_admin_required
 def shop_item_new(slug):
     club = _get_club_or_404(slug)
+    if not club.stripe_connect_ready:
+        flash('Connect Stripe before adding shop items. The club shop is only available through Stripe Connect.', 'warning')
+        return redirect(url_for('admin.club_shop', slug=slug))
     active_count = ClubShopItem.query.filter_by(club_id=club.id, is_active=True).count()
     form = ClubShopItemForm()
     if form.validate_on_submit():
@@ -1999,6 +2010,9 @@ def shop_item_new(slug):
 @club_admin_required
 def shop_item_edit(slug, item_id):
     club = _get_club_or_404(slug)
+    if not club.stripe_connect_ready:
+        flash('Connect Stripe before managing shop items. The club shop is only available through Stripe Connect.', 'warning')
+        return redirect(url_for('admin.club_shop', slug=slug))
     item = ClubShopItem.query.filter_by(id=item_id, club_id=club.id).first_or_404()
     form = ClubShopItemForm(obj=item)
     if request.method == 'GET':
@@ -2023,6 +2037,9 @@ def shop_item_edit(slug, item_id):
 @club_admin_required
 def shop_item_delete(slug, item_id):
     club = _get_club_or_404(slug)
+    if not club.stripe_connect_ready:
+        flash('Connect Stripe before managing shop items. The club shop is only available through Stripe Connect.', 'warning')
+        return redirect(url_for('admin.club_shop', slug=slug))
     item = ClubShopItem.query.filter_by(id=item_id, club_id=club.id).first_or_404()
     if item.orders:
         item.is_active = False

@@ -302,10 +302,13 @@
 
         <div class="mb-3">
           <div class="form-check form-switch">
-            {{ form.membership_dues_required(class="form-check-input", role="switch", id="membership_dues_required") }}
+            {{ form.membership_dues_required(class="form-check-input", role="switch", id="membership_dues_required", disabled=(not club.stripe_connect_ready)) }}
             {{ form.membership_dues_required.label(class="form-check-label", for="membership_dues_required") }}
           </div>
-          <div class="form-text">When enabled, members must pay dues before their membership is active. Stripe Checkout charges the dues amount plus a $1 Paceline platform fee.</div>
+          <div class="form-text">
+            Paid dues require Stripe Connect. When enabled, members pay through Stripe Checkout before their membership is active.
+            Stripe charges the dues amount plus a $1 Paceline platform fee.
+          </div>
         </div>
 
         <div class="mb-3">
@@ -322,7 +325,7 @@
           {{ form.membership_duration_months.label(class="form-label") }}
           {{ form.membership_duration_months(class="form-control" + (" is-invalid" if form.membership_duration_months.errors else ""), min="1", max="60") }}
           {% for e in form.membership_duration_months.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
-          <div class="form-text">Membership is marked active for this many months after manual confirmation or successful Stripe Checkout.</div>
+          <div class="form-text">Membership is marked active for this many months after successful Stripe Checkout.</div>
         </div>
 
         <div class="border rounded p-3 mb-4">
@@ -332,12 +335,12 @@
               {% if club.stripe_account_id %}
               <p class="text-muted small mb-0">Connected account: <code>{{ club.stripe_account_id }}</code></p>
               {% if club.stripe_account_connected_at %}
-              <p class="text-success small mb-0">Stripe onboarding has been completed enough to enable automated dues.</p>
+              <p class="text-success small mb-0">Stripe onboarding has been completed enough to enable paid dues and shop checkout.</p>
               {% else %}
-              <p class="text-warning small mb-0">Onboarding is not complete yet. Continue Stripe onboarding before using automated dues.</p>
+              <p class="text-warning small mb-0">Onboarding is not complete yet. Continue Stripe onboarding before using paid dues or the club shop.</p>
               {% endif %}
               {% else %}
-              <p class="text-muted small mb-0">Connect the club's Stripe account to enable automatic dues confirmation.</p>
+              <p class="text-muted small mb-0">Connect the club's Stripe account to enable paid dues and the club shop.</p>
               {% endif %}
             </div>
             <div class="d-flex gap-2 align-items-start">
@@ -351,7 +354,7 @@
               {% endif %}
             </div>
           </div>
-          <div class="form-text mt-2">Stripe handles checkout and deposits dues directly into the club's Stripe account. Members pay the dues amount you set plus a separate $1 Paceline platform fee.</div>
+          <div class="form-text mt-2">Stripe Connect is the only payment option for club dues and shop checkout. Stripe handles checkout and deposits club funds into the club's Stripe account. Members pay the dues amount you set plus a separate $1 Paceline platform fee.</div>
         </div>
 
         <div class="alert alert-light border small mb-4">

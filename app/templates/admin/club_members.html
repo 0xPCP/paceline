@@ -69,7 +69,7 @@
             {% for m in memberships %}
             {% set days_left = (m.dues_paid_until - today).days if m.dues_paid_until else none %}
             {% set payment = payments_by_membership_id.get(m.id) %}
-            {# Resolve payment date: Stripe paid_at first, then manual confirmation #}
+            {# Resolve payment date: Stripe paid_at first, then admin/import override if present. #}
             {% set paid_on = payment.paid_at if payment and payment.paid_at else m.dues_confirmed_at %}
             <tr>
               <td>
@@ -107,8 +107,7 @@
                     {{ payment.provider_payment_intent_id[:20] }}…
                   </code>
                 {% elif paid_on %}
-                  {# Manual confirmation — no Stripe transaction #}
-                  <span class="text-muted small">manual</span>
+                  <span class="text-muted small">admin/import</span>
                 {% else %}
                   <span class="text-muted small">—</span>
                 {% endif %}

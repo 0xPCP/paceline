@@ -85,9 +85,9 @@ def onboarding_return(slug):
 
     if account.get('charges_enabled'):
         club.stripe_account_connected_at = datetime.now(timezone.utc)
-        flash('Stripe Connect onboarding is linked for automated club dues.', 'success')
+        flash('Stripe Connect onboarding is linked for paid dues and shop checkout.', 'success')
     else:
-        flash('Stripe onboarding was saved. Finish Stripe verification before using automated dues.', 'info')
+        flash('Stripe onboarding was saved. Finish Stripe verification before using paid dues or shop checkout.', 'info')
     db.session.commit()
     return redirect(url_for('admin.club_settings', slug=club.slug))
 
@@ -100,10 +100,11 @@ def disconnect_club(slug):
         abort(403)
     club.stripe_account_id = None
     club.stripe_account_connected_at = None
+    club.membership_dues_required = False
     if club.membership_dues_mode == 'stripe_connect':
         club.membership_dues_mode = 'manual'
     db.session.commit()
-    flash('Stripe Connect was disconnected. Manual dues confirmation is still available.', 'info')
+    flash('Stripe Connect was disconnected. Paid dues and shop checkout are now disabled for this club.', 'info')
     return redirect(url_for('admin.club_settings', slug=slug))
 
 

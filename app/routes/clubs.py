@@ -298,7 +298,10 @@ def home(slug):
         'total_rides': total_rides,
         'total_miles': round(total_miles),
     }
-    has_shop_items = ClubShopItem.query.filter_by(club_id=club.id, is_active=True).first() is not None
+    has_shop_items = (
+        club.stripe_connect_ready
+        and ClubShopItem.query.filter_by(club_id=club.id, is_active=True).first() is not None
+    )
 
     # Board preview: 15 most recent posts + subscription status (members only)
     board_posts = []
@@ -344,6 +347,8 @@ def club_leaders_public(slug):
 @clubs_bp.route('/<slug>/shop/')
 def club_shop(slug):
     club = _get_club_or_404(slug)
+    if not club.stripe_connect_ready:
+        abort(404)
     items = ClubShopItem.query.filter_by(club_id=club.id, is_active=True).order_by(
         ClubShopItem.display_order.asc(),
         ClubShopItem.name.asc(),
@@ -905,6 +910,10 @@ def join(slug):
     if existing:
         return redirect(url_for('clubs.home', slug=slug))
 
+    if club.membership_dues_required and not club.stripe_dues_ready:
+        flash('Paid membership is not available for this club until Stripe Connect is set up.', 'warning')
+        return redirect(url_for('clubs.home', slug=slug))
+
     if club.membership_dues_required:
         status = 'pending_payment'
     else:
@@ -913,10 +922,7 @@ def join(slug):
     try:
         db.session.commit()
         if status == 'pending_payment':
-            if club.stripe_dues_ready:
-                flash(f"Your request to join {club.name} is waiting for dues payment. Use the club dues button to pay through Stripe and activate automatically.", 'info')
-            else:
-                flash(f"Your request to join {club.name} is waiting for dues confirmation from a club admin.", 'info')
+            flash(f"Your request to join {club.name} is waiting for dues payment. Use the club dues button to pay through Stripe and activate automatically.", 'info')
         elif status == 'pending':
             flash(f"Your request to join {club.name} has been submitted. An admin will review it shortly.", 'info')
         else:
