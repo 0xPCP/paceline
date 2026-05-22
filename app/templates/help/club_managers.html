@@ -38,6 +38,8 @@
             <li><a href="#embed">Embed rides on your website</a></li>
             <li><a href="#advanced-rides">Use advanced ride options</a></li>
             <li><a href="#ownership">Transfer club ownership</a></li>
+            <li><a href="#auto-cancel">Set up weather auto-cancel</a></li>
+            <li><a href="#contact-relay">Receive member messages</a></li>
           </ol>
         </div>
       </div>
@@ -537,10 +539,24 @@
           promotion email when that rider has the notification enabled.
         </p>
         <p class="section-body">
-          Use waivers and paid-dues requirements when riders must complete paperwork
-          or payment before signing up. Paceline shows riders the missing step, such
-          as signing the waiver or paying dues, instead of showing a normal signup
-          button.
+          Use paid-dues requirements when riders must complete payment before signing
+          up. Paceline shows riders the missing step — such as paying dues — instead
+          of showing a normal signup button.
+        </p>
+        <h5 class="mt-4 mb-2">Waivers</h5>
+        <p class="section-body">
+          In Full Club mode, Paceline supports a club liability waiver that riders
+          must accept before they can sign up for rides. When a waiver is active,
+          riders who have not yet accepted it are redirected to a waiver page on
+          their first signup attempt. Paceline records the acceptance date and
+          waiver version for your records.
+        </p>
+        <p class="section-body">
+          Waiver text is managed by Paceline. To add or update your club's waiver,
+          contact Paceline with the waiver text you want riders to see. Paceline will
+          add it to your club and notify you when it is live. Updating waiver text
+          creates a new version — members who accepted the previous version will be
+          asked to accept the new one before their next ride signup.
         </p>
         <p class="section-body">
           The Garmin GroupRide field is optional. Enter the six-digit Garmin code if
@@ -573,6 +589,90 @@
           If the current owner is unavailable, contact Paceline. A superadmin can
           manually transfer ownership after verifying the request.
         </p>
+      </div>
+
+      {# ── 15. Set up weather auto-cancel ──────────────────────────────── #}
+      <div class="mb-5" id="auto-cancel">
+        <h2 class="section-heading h4">15. Set up weather auto-cancel</h2>
+        <p class="section-body">
+          Paceline can automatically cancel today's rides each morning when the
+          forecast exceeds any threshold you configure — saving you the manual step
+          of cancelling and notifying riders when the weather turns bad. Cancelled
+          rides send the usual cancellation notification to members who have that
+          option enabled.
+        </p>
+        <p class="section-body">
+          The check runs at <strong>6 AM</strong> each day and only evaluates rides
+          scheduled for that day. Any single threshold being exceeded is enough to
+          trigger a cancellation — conditions do not need to meet multiple thresholds
+          at once.
+        </p>
+
+        <h5 class="mt-3 mb-2">Enabling auto-cancel</h5>
+        <ol class="section-body">
+          <li>Open <strong>Admin → Settings</strong> and scroll to the
+              <strong>Weather Auto-Cancel</strong> section.</li>
+          <li>Enable the <strong>Enable weather auto-cancel</strong> toggle.</li>
+          <li>Set the thresholds that should trigger a cancellation:
+            <ul>
+              <li><strong>Rain probability (%)</strong> — cancel if the chance of
+                  rain at ride time exceeds this value. Default 80%.</li>
+              <li><strong>Wind speed (mph)</strong> — cancel if sustained wind exceeds
+                  this value. Default 35 mph.</li>
+              <li><strong>Min temperature (°F)</strong> — cancel if the temperature
+                  drops below this value. Default 28°F.</li>
+              <li><strong>Max temperature (°F)</strong> — cancel if the temperature
+                  rises above this value. Default 100°F.</li>
+            </ul>
+          </li>
+          <li>Click <strong>Save Settings</strong>.</li>
+        </ol>
+        <figure class="mb-4">
+          <img class="img-fluid rounded border shadow-sm"
+               src="{{ url_for('static', filename='img/help/club-auto-cancel.png') }}"
+               alt="Weather Auto-Cancel settings showing the enable toggle and threshold fields">
+          <figcaption class="small text-muted mt-2">
+            Set your thresholds once and Paceline handles morning cancellations automatically.
+          </figcaption>
+        </figure>
+
+        <h5 class="mt-4 mb-2">Things to keep in mind</h5>
+        <ul class="section-body">
+          <li>The check runs once at 6 AM based on the forecast at that moment.
+              If conditions improve after 6 AM, the ride is still cancelled — you
+              would need to un-cancel it manually if you choose to continue.</li>
+          <li>Rides that are already cancelled are skipped — auto-cancel will not
+              double-cancel or overwrite a manual cancellation.</li>
+          <li>Auto-cancel does not affect recurring ride templates, only the specific
+              ride instance scheduled for today.</li>
+          <li>You can disable auto-cancel at any time by returning to Settings and
+              turning off the toggle.</li>
+        </ul>
+      </div>
+
+      {# ── 16. Receive member messages ──────────────────────────────────── #}
+      <div class="mb-5" id="contact-relay">
+        <h2 class="section-heading h4">16. Receive member messages</h2>
+        <p class="section-body">
+          Every club page has a <strong>Contact</strong> tab that lets any signed-in
+          rider send a message directly to the club's management team. When a rider
+          submits the contact form, Paceline forwards the message to the club's
+          contact email address and copies the sender so they know it was received.
+        </p>
+        <p class="section-body">
+          The contact email is the address you set in <strong>Admin → Settings →
+          Contact Email</strong>. Make sure this address is current — it is where
+          all member contact form messages are delivered. You can reply directly to
+          the forwarded email and your reply goes straight to the rider.
+        </p>
+        <figure class="mb-0">
+          <img class="img-fluid rounded border shadow-sm"
+               src="{{ url_for('static', filename='img/help/club-contact.png') }}"
+               alt="Club contact form as riders see it, with subject and message fields">
+          <figcaption class="small text-muted mt-2">
+            Members use the Contact tab to reach your team. Messages are forwarded to your club contact email.
+          </figcaption>
+        </figure>
       </div>
 
       <div class="alert alert-info">

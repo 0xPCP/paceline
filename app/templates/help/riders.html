@@ -37,6 +37,9 @@
             <li><a href="#security">Protect your account</a></li>
             <li><a href="#privacy">Control profile privacy</a></li>
             <li><a href="#ride-tools">Use ride tools</a></li>
+            <li><a href="#contact-club">Contact a club</a></li>
+            <li><a href="#media">Share ride photos and videos</a></li>
+            <li><a href="#friends">Connect with friends</a></li>
           </ol>
         </div>
       </div>
@@ -343,21 +346,183 @@
       {# ── 13. Use ride tools ──────────────────────────────────────────── #}
       <div class="mb-5" id="ride-tools">
         <h2 class="section-heading h4">13. Use ride tools</h2>
+
+        <h5 class="mt-3 mb-2">Weather and gear suggestions</h5>
         <p class="section-body">
-          Ride pages may show weather and AQI. AQI is the air quality index; higher
-          numbers mean worse air. Paceline only calls attention to weather or air
-          quality when it may affect the ride, so normal conditions stay low-key.
+          Ride pages show a forecast for the ride start time and, when conditions
+          warrant attention, a weather or AQI callout. AQI is the air quality index;
+          higher numbers mean worse air. Normal weather stays quiet — only high wind,
+          heavy rain, poor air quality, or extreme temperatures are flagged.
         </p>
         <p class="section-body">
-          Some rides include a <strong>Garmin GroupRide Code</strong>. This is a
-          six-digit code from Garmin that lets compatible Garmin devices join the
-          same GroupRide experience. If the field is blank, a signed-up rider can
-          add the code; once set, the ride leader or club admin can edit it.
+          Below the weather forecast you may see a <strong>What to Wear</strong>
+          panel. Paceline looks at the forecast for the ride duration and suggests
+          appropriate kit — for example bibs and a short-sleeve jersey on a warm
+          morning, or thermal tights, a base layer, and a rain cape on a cold wet day.
+          The verdict badge (green, yellow, or red) gives you a quick read on overall
+          conditions. If you have added gear to your inventory on your Profile, the
+          suggestions are filtered to items you actually own.
+        </p>
+
+        <h5 class="mt-4 mb-2">Add to calendar (ICS)</h5>
+        <p class="section-body">
+          Every ride page has an <strong>Add to Calendar</strong> link that downloads
+          a standard <code>.ics</code> file. Open it on your device and your calendar
+          app (Google Calendar, Apple Calendar, Outlook, and others) will import the
+          ride with its title, date, start time, and meeting location pre-filled.
+        </p>
+        <figure class="mb-4">
+          <img class="img-fluid rounded border shadow-sm"
+               src="{{ url_for('static', filename='img/help/ride-ics-gpx.png') }}"
+               alt="Ride detail page showing Add to Calendar and Download GPX links">
+          <figcaption class="small text-muted mt-2">
+            The ICS and GPX download links appear on every ride page alongside the ride details.
+          </figcaption>
+        </figure>
+
+        <h5 class="mt-4 mb-2">Download the route (GPX)</h5>
+        <p class="section-body">
+          If the club admin has attached a GPX file to the ride, a
+          <strong>Download GPX</strong> link appears on the ride page. Open it in
+          your GPS device software, Garmin Connect, Wahoo, RideWithGPS, or any app
+          that accepts GPX files to pre-load the route before you head out.
+        </p>
+
+        <h5 class="mt-4 mb-2">Ride comments</h5>
+        <p class="section-body">
+          Signed-up riders can leave comments on a ride page — useful for carpooling
+          questions, last-minute route notes, or a quick group check-in before the ride.
+          Club admins can delete any comment; riders can only delete their own.
+        </p>
+        <figure class="mb-4">
+          <img class="img-fluid rounded border shadow-sm"
+               src="{{ url_for('static', filename='img/help/ride-comments.png') }}"
+               alt="Ride comments section showing a comment form and existing comments">
+          <figcaption class="small text-muted mt-2">
+            Comments are visible to all signed-up riders and the club management team.
+          </figcaption>
+        </figure>
+
+        <h5 class="mt-4 mb-2">Garmin GroupRide</h5>
+        <p class="section-body">
+          Some rides include a <strong>Garmin GroupRide Code</strong> — a six-digit
+          code that lets compatible Garmin devices join the same GroupRide session.
+          If the field is blank, any signed-up rider can add the code once the ride
+          leader has one. After it is set, only the ride leader, ride manager, or
+          club admin can edit it.
+        </p>
+
+        <h5 class="mt-4 mb-2">Waitlist</h5>
+        <p class="section-body">
+          If a ride is full, Paceline adds you to the waitlist automatically. When a
+          confirmed rider cancels, the next rider on the waitlist is promoted and
+          receives a waitlist email if that notification is enabled.
+        </p>
+      </div>
+
+      {# ── 14. Contact a club ──────────────────────────────────────────── #}
+      <div class="mb-5" id="contact-club">
+        <h2 class="section-heading h4">14. Contact a club</h2>
+        <p class="section-body">
+          Every club page has a <strong>Contact</strong> tab in the navigation bar.
+          Open it to send a message directly to the club's management team without
+          having to find their email address separately.
         </p>
         <p class="section-body">
-          If a ride is full, Paceline may add you to the waitlist. When a spot opens,
-          the next rider is promoted and receives a waitlist email if that notification
-          is enabled.
+          Fill in a subject and your message, then click <strong>Send Message</strong>.
+          Your name and email address are included automatically so the club can reply
+          directly to you. You will receive a copy of your message as confirmation.
+        </p>
+        <figure class="mb-0">
+          <img class="img-fluid rounded border shadow-sm"
+               src="{{ url_for('static', filename='img/help/club-contact.png') }}"
+               alt="Club contact form with subject and message fields">
+          <figcaption class="small text-muted mt-2">
+            The Contact form is the easiest way to reach the club's admin team with a question or request.
+          </figcaption>
+        </figure>
+      </div>
+
+      {# ── 15. Share ride photos and videos ────────────────────────────── #}
+      <div class="mb-5" id="media">
+        <h2 class="section-heading h4">15. Share ride photos and videos</h2>
+        <p class="section-body">
+          After a ride has taken place, members can share photos and video links on
+          the ride page so everyone who attended can relive it — and those who missed
+          it can see what they are in for next time.
+        </p>
+
+        <h5 class="mt-3 mb-2">Upload photos</h5>
+        <p class="section-body">
+          Open the ride page after the ride date and scroll to the
+          <strong>Ride Photos</strong> section. Click <strong>Add Photo</strong>,
+          choose a JPEG, PNG, or WebP file from your device, and confirm the upload.
+          Paceline resizes the image to a consistent width and stores it securely.
+          Each member can upload up to five photos per ride.
+        </p>
+        <figure class="mb-4">
+          <img class="img-fluid rounded border shadow-sm"
+               src="{{ url_for('static', filename='img/help/ride-media.png') }}"
+               alt="Ride media section showing uploaded photos and a video link form">
+          <figcaption class="small text-muted mt-2">
+            The media section appears on ride pages after the ride date and accepts photos and video links.
+          </figcaption>
+        </figure>
+
+        <h5 class="mt-4 mb-2">Add a video link</h5>
+        <p class="section-body">
+          Paste a YouTube, Vimeo, or Strava activity link into the
+          <strong>Add Video Link</strong> field. Paceline embeds the video player
+          directly on the ride page so others can watch without leaving the site.
+        </p>
+
+        <h5 class="mt-4 mb-2">Removing media</h5>
+        <p class="section-body">
+          You can delete your own photos and video links at any time. Club admins
+          can remove any member's media from their club's rides. Media is automatically
+          removed from Paceline after 90 days.
+        </p>
+      </div>
+
+      {# ── 16. Connect with friends ────────────────────────────────────── #}
+      <div class="mb-5" id="friends">
+        <h2 class="section-heading h4">16. Connect with friends</h2>
+        <p class="section-body">
+          Paceline lets you connect with other riders as friends. Friends' upcoming
+          rides appear in a dedicated section on your home dashboard so you can see
+          what your regular riding partners are signed up for and join the same rides.
+        </p>
+
+        <h5 class="mt-3 mb-2">Send a friend request</h5>
+        <p class="section-body">
+          Open another rider's public profile page and click <strong>Add Friend</strong>.
+          They will receive a notification and can accept or decline. You can also
+          withdraw a pending request by clicking <strong>Cancel Request</strong>
+          before they respond.
+        </p>
+        <figure class="mb-4">
+          <img class="img-fluid rounded border shadow-sm"
+               src="{{ url_for('static', filename='img/help/profile-friends.png') }}"
+               alt="Rider profile page showing the Add Friend button and pending friend status">
+          <figcaption class="small text-muted mt-2">
+            The Add Friend button appears on any public profile that is not already connected to you.
+          </figcaption>
+        </figure>
+
+        <h5 class="mt-4 mb-2">Accept or decline requests</h5>
+        <p class="section-body">
+          When someone sends you a request, you will see <strong>Accept</strong> and
+          <strong>Decline</strong> buttons on their profile page. Accepting adds them
+          to your friends list and makes their upcoming rides visible on your dashboard.
+          Declining removes the request without notification.
+        </p>
+
+        <h5 class="mt-4 mb-2">Friends' rides on your dashboard</h5>
+        <p class="section-body">
+          Once connected, a <strong>Friends' Upcoming Rides</strong> section appears
+          on your home dashboard showing rides your friends have signed up for. This
+          makes it easy to spot rides where familiar faces will be present and join
+          if the route and pace work for you.
         </p>
       </div>
 
