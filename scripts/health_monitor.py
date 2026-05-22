@@ -27,6 +27,9 @@ DEFAULT_STATE_PATH = '/state/paceline-pulse.json'
 DEFAULT_HISTORY_PATH = '/state/paceline-pulse-history.json'
 DEFAULT_HISTORY_LIMIT = 1440
 
+# Project sunset date — shut down if no clubs join by then
+_SUNSET_DATE = datetime(2027, 6, 1, tzinfo=timezone.utc)
+
 
 @dataclass
 class CheckResult:
@@ -472,6 +475,7 @@ def render_dashboard(summary: dict[str, Any], monitored_url: str, interval_secon
     latest = summary.get('latest') or {}
     state = summary.get('state') or {}
     status_class = summary['status_color']
+    days_left = _days_until_sunset()
     cards = [
         ('Current status', summary['status_label']),
         ('Latest latency', _format_ms(latest.get('elapsed_ms'))),
@@ -481,6 +485,7 @@ def render_dashboard(summary: dict[str, Any], monitored_url: str, interval_secon
         ('Slow checks', str(summary.get('slow_checks_recorded') or 0)),
         ('Failures', str(summary.get('failures_recorded') or 0)),
         ('Last success', state.get('last_success_at') or 'unknown'),
+        ('Days to 1 Jun 2027', str(days_left)),
     ]
     card_html = ''.join(
         f'<section class="card"><div class="label">{_html_escape(label)}</div>'
@@ -550,6 +555,10 @@ def render_dashboard(summary: dict[str, Any], monitored_url: str, interval_secon
         <dt>Last slow check</dt><dd>{_html_escape(state.get('last_slow_at') or 'none')}</dd>
       </dl>
     </section>
+    <p class="subtle" style="margin-top:24px;font-size:.82rem">
+      Paceline runs until 1 June 2027. If no clubs have joined by then, the project shuts down.
+      {_html_escape(days_left)} days remaining.
+    </p>
   </main>
 </body>
 </html>'''
@@ -561,6 +570,10 @@ def _format_ms(value: Any) -> str:
 
 def _format_percent(value: Any) -> str:
     return f'{value}%' if value is not None else 'unknown'
+
+
+def _days_until_sunset() -> int:
+    return max(0, (_SUNSET_DATE - _utc_now()).days)
 
 
 def make_dashboard_handler(state_path: str, history_path: str, monitored_url: str, interval_seconds: int):
