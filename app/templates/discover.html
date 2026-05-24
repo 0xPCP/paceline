@@ -48,16 +48,16 @@
   {# ── Location banner ──────────────────────────────────────────────────────── #}
   {% if location_label %}
   <div class="alert alert-light border py-2 mb-3 d-flex align-items-center gap-2 flex-wrap">
-    <span class="text-muted small">📍 <strong>Within {{ radius }} miles of {{ location_label }}</strong></span>
+    <span class="text-muted small">📍 <strong>Within {{ radius | dist(0) }} of {{ location_label }}</strong></span>
     <div class="ms-auto d-flex gap-2 align-items-center flex-wrap">
       <span class="text-muted small">Radius:</span>
       {% for r in [10, 25, 50, 100] %}
         {% if lat_arg is not none %}
         <a href="{{ url_for('main.discover', source=source, lat=lat_arg, lng=lng_arg, zip=zip_q, radius=r, range=active_range, pace=active_pace, type=active_type, sort=active_sort) }}"
-           class="btn btn-xs btn-sm py-0 px-2 {{ 'btn-paceline' if r == radius else 'btn-outline-secondary' }}" style="font-size:.75rem">{{ r }}mi</a>
+           class="btn btn-xs btn-sm py-0 px-2 {{ 'btn-paceline' if r == radius else 'btn-outline-secondary' }}" style="font-size:.75rem">{{ r | dist(0) }}</a>
         {% else %}
         <a href="{{ url_for('main.discover', source=source, zip=zip_q, radius=r, range=active_range, pace=active_pace, type=active_type, sort=active_sort) }}"
-           class="btn btn-xs btn-sm py-0 px-2 {{ 'btn-paceline' if r == radius else 'btn-outline-secondary' }}" style="font-size:.75rem">{{ r }}mi</a>
+           class="btn btn-xs btn-sm py-0 px-2 {{ 'btn-paceline' if r == radius else 'btn-outline-secondary' }}" style="font-size:.75rem">{{ r | dist(0) }}</a>
         {% endif %}
       {% endfor %}
       <a href="{{ url_for('main.discover', source=source, range=active_range, pace=active_pace, type=active_type, sort=active_sort, no_geo=1) }}"

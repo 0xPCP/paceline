@@ -28,7 +28,7 @@
           <dd>{{ ride.distance_miles | dist }}{% if ride.elevation_feet %} &bull; {{ ride.elevation_feet | elev }} elevation gain{% endif %}</dd>
 
           <dt>Pace</dt>
-          <dd>{{ ride.pace_label }}</dd>
+          <dd>{{ ride.pace_label | pace }}</dd>
 
           {% if ride.ride_leader %}
           <dt>Ride Leader</dt>

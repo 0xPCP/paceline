@@ -106,6 +106,25 @@ def _elev_filter(feet):
     return f'{meters:,} m'
 
 
+_PACE_LABELS_KM = {
+    'A': 'A — Fast (35+ km/h)',
+    'B': 'B — Moderate (29–35 km/h)',
+    'C': 'C — Casual (22–29 km/h)',
+    'D': 'D — Beginner (<22 km/h)',
+}
+
+
+def _pace_filter(pace_label):
+    """Return the pace label in the user-preferred speed unit (mph or km/h)."""
+    from flask import g, has_request_context
+    if not pace_label:
+        return pace_label
+    if not has_request_context() or g.get('distance_unit', 'km') != 'km':
+        return pace_label
+    cat = pace_label[0]
+    return _PACE_LABELS_KM.get(cat, pace_label)
+
+
 def _strftime_filter(value, fmt):
     """Cross-platform strftime: replaces %-d/%-I (Linux) with %#d/%#I on Windows."""
     if sys.platform == 'win32':
@@ -201,6 +220,7 @@ def create_app(config_class=Config):
     app.jinja_env.filters['strip_markdown'] = _strip_markdown_filter
     app.jinja_env.filters['dist'] = _dist_filter
     app.jinja_env.filters['elev'] = _elev_filter
+    app.jinja_env.filters['pace'] = _pace_filter
 
     @app.context_processor
     def inject_globals():

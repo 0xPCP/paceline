@@ -535,3 +535,26 @@ class TestDistanceUnit:
             from app import _dist_filter
             g.distance_unit = regular_user.distance_unit
             assert _dist_filter(10.0).endswith(' km')
+
+    def test_pace_filter_returns_mph_for_miles(self, app):
+        from app import _pace_filter
+        with app.test_request_context('/'):
+            from flask import g
+            g.distance_unit = 'mi'
+            assert _pace_filter('C — Casual (14–18 mph)') == 'C — Casual (14–18 mph)'
+
+    def test_pace_filter_converts_to_kmh_for_km(self, app):
+        from app import _pace_filter
+        with app.test_request_context('/'):
+            from flask import g
+            g.distance_unit = 'km'
+            assert _pace_filter('C — Casual (14–18 mph)') == 'C — Casual (22–29 km/h)'
+
+    def test_pace_filter_all_categories_km(self, app):
+        from app import _pace_filter
+        with app.test_request_context('/'):
+            from flask import g
+            g.distance_unit = 'km'
+            assert 'km/h' in _pace_filter('A — Fast (22+ mph)')
+            assert 'km/h' in _pace_filter('B — Moderate (18–22 mph)')
+            assert 'km/h' in _pace_filter('D — Beginner (<14 mph)')
