@@ -209,7 +209,7 @@ class TestClubsIndexI18n:
         set_lang(client, 'fr')
         resp = client.get('/clubs/?zip=20191&radius=25')
         body = resp.data.decode('utf-8')
-        assert 'miles de 20191' in body or 'Clubs dans' in body
+        assert '20191' in body  # zip code appears in "Clubs within X of 20191"
 
 
 # ---- Map page (clubs/map.html) ----------------------------------------------

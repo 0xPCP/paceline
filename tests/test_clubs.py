@@ -92,7 +92,7 @@ class TestZipSearch:
     def test_zip_search_shows_distance_badge(self, client, sample_club):
         with patch('app.geocoding.geocode_zip', return_value=(38.9376, -77.3476)):
             html = client.get('/clubs/?zip=20191').data.decode()
-        assert 'mi away' in html
+        assert 'away' in html  # unit depends on user preference (mi or km)
 
     def test_zip_search_bad_zip_shows_error(self, client, sample_club):
         with patch('app.geocoding.geocode_zip', return_value=None):
