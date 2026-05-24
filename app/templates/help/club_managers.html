@@ -40,6 +40,7 @@
             <li><a href="#ownership">Transfer club ownership</a></li>
             <li><a href="#auto-cancel">Set up weather auto-cancel</a></li>
             <li><a href="#contact-relay">Receive member messages</a></li>
+            <li><a href="#ride-polls">Use ride polls</a></li>
           </ol>
         </div>
       </div>
@@ -659,6 +660,208 @@
             Members use the Contact tab to reach your team. Messages are forwarded to your club contact email.
           </figcaption>
         </figure>
+      </div>
+
+      {# ── 17. Ride polls ──────────────────────────────────────────────── #}
+      <div class="mb-5" id="ride-polls">
+        <h2 class="section-heading h4">17. Use ride polls</h2>
+        <p class="section-body">
+          A <strong>ride poll</strong> lets you ask members to vote on the details of an
+          upcoming ride before you schedule it. Instead of deciding everything yourself,
+          you post a poll with options — members vote, and when voting closes the winning
+          choices are used to create the actual ride. Everyone who voted receives an email
+          with a direct sign-up link.
+        </p>
+        <p class="section-body">
+          Use a ride poll when you are unsure about one or more of: the ride distance,
+          the route, or the start time — and you want member input before committing.
+        </p>
+
+        <h5 class="mt-4 mb-2">What you can poll on</h5>
+        <p class="section-body">
+          Each poll can include one, two, or all three of the following categories.
+          Members cast one vote per active category.
+        </p>
+        <ul class="section-body">
+          <li><strong>Start Time</strong> — offer time options such as "7:00 AM", "7:30 AM", "8:00 AM".</li>
+          <li><strong>Ride Length</strong> — offer distance options such as "20 miles", "35 miles", "50 km".</li>
+          <li><strong>Course / Route</strong> — offer route names or paste RideWithGPS URLs directly. If a RideWithGPS URL wins, it is automatically linked to the created ride.</li>
+        </ul>
+
+        <h5 class="mt-4 mb-2">Creating a poll</h5>
+        <p class="section-body">
+          Go to <strong>Admin → Rides</strong> and click <strong>+ New Ride Poll</strong>.
+          The form works like the standard ride form — fill in everything you already know:
+          title, date, meeting location, pace, ride type, leader, and so on. Only the
+          fields that correspond to a polled category are hidden (for example, if you are
+          polling on start time, the start time field disappears and members decide it).
+        </p>
+
+        <figure class="mb-4">
+          <img class="img-fluid rounded border shadow-sm"
+               src="{{ url_for('static', filename='img/help/poll-admin-rides.png') }}"
+               alt="Admin rides page showing the New Ride Poll button alongside New Ride">
+          <figcaption class="small text-muted mt-2">
+            The <strong>+ New Ride Poll</strong> button sits next to <strong>+ New Ride</strong>
+            on the Admin → Rides page. Completed polls are listed below the rides table.
+          </figcaption>
+        </figure>
+
+        <p class="section-body">
+          At the top of the form, check the categories you want to poll on, then enter
+          the options — up to 10 per category. Options are free text: write anything
+          descriptive enough for members to choose between.
+        </p>
+
+        <figure class="mb-4">
+          <img class="img-fluid rounded border shadow-sm"
+               src="{{ url_for('static', filename='img/help/poll-create-form.png') }}"
+               alt="Poll creation form showing the polling categories at the top and standard ride fields below">
+          <figcaption class="small text-muted mt-2">
+            Check which categories you are polling on first — the corresponding ride fields
+            hide automatically. Add up to 10 options per checked category, then fill in the
+            remaining ride details below.
+          </figcaption>
+        </figure>
+
+        <p class="section-body">
+          Set a <strong>poll closing date and time</strong> — this is when voting stops.
+          Choose a time that gives members at least a day or two to vote, but is still
+          early enough to leave time to finalize the ride and send notifications before
+          the ride date.
+        </p>
+
+        <h5 class="mt-4 mb-2">Auto-finalize vs. manual finalize</h5>
+        <p class="section-body">
+          When creating a poll you choose how it closes:
+        </p>
+        <ul class="section-body">
+          <li>
+            <strong>Auto-finalize</strong> — when the poll closing time arrives, Paceline
+            automatically picks the winning option in each category, creates the ride,
+            and sends a notification email to everyone who voted. No action is needed from
+            you. Use this when you are happy to let the vote stand on its own.
+          </li>
+          <li>
+            <strong>Manually finalize</strong> — when the poll closes, you receive an email
+            with the full results and a link to the finalize page. You review the results,
+            confirm (or override) the suggested winners, then click
+            <strong>Create Ride &amp; Notify Voters</strong>. Use this when you want a
+            final say before the ride is posted — for example, if a tie requires judgment,
+            or if you want to review write-in route suggestions before accepting them.
+          </li>
+        </ul>
+
+        <h5 class="mt-4 mb-2">How members vote</h5>
+        <p class="section-body">
+          Open polls appear as highlighted cards in the club's Upcoming Rides section,
+          clearly marked with a green "Poll Open" badge and a <strong>Vote →</strong>
+          button. Members must be signed in and belong to the club to vote.
+        </p>
+        <p class="section-body">
+          On the poll page, each category is shown as a list of options with a live vote
+          bar. Members select one option per category and submit. They can return and
+          change their vote any time before the poll closes — the most recent choice counts.
+        </p>
+        <p class="section-body">
+          The poll is intentionally <strong>public within the club</strong>: voter names
+          are shown on each option. This transparency encourages participation and
+          lets members see what their group is leaning toward.
+        </p>
+        <p class="section-body">
+          Members can share the poll using the copy-link button on the poll page.
+          Only members can vote, but the link can be used to remind people to participate.
+        </p>
+
+        <figure class="mb-4">
+          <img class="img-fluid rounded border shadow-sm"
+               src="{{ url_for('static', filename='img/help/poll-detail-open.png') }}"
+               alt="Open ride poll showing vote bars, voter names, and the submit vote button">
+          <figcaption class="small text-muted mt-2">
+            An open poll shows live vote counts, a progress bar for each option, and the
+            names of members who voted for each choice. Members can change their vote until
+            the poll closes.
+          </figcaption>
+        </figure>
+
+        <h5 class="mt-4 mb-2">Tie-breaking</h5>
+        <p class="section-body">
+          When two or more options end with the same number of votes, the winner is the
+          option that received its <strong>first vote earliest</strong>. This rule is shown
+          on the poll page so members know how ties are resolved. If you are using manual
+          finalize, you can always override the suggested winner on the finalize page
+          regardless of the vote totals.
+        </p>
+
+        <h5 class="mt-4 mb-2">Closing a poll early</h5>
+        <p class="section-body">
+          Ride managers and club admins can close a poll before its scheduled time using
+          the <strong>Close Poll Early</strong> button on the poll page. Once closed,
+          voting stops immediately. Auto-finalize polls create the ride right away;
+          manually-finalized polls send the leader the results email and wait for the
+          leader to act on the finalize page.
+        </p>
+
+        <h5 class="mt-4 mb-2">Finalizing a ride (manual mode)</h5>
+        <p class="section-body">
+          When a manual-mode poll closes, you receive an email listing the results —
+          each category, every option, its vote count, and the suggested winner (marked
+          with a ⭐). Click the <strong>Finalize the Ride</strong> link in the email,
+          or navigate to <strong>Admin → Rides</strong> and click <strong>Finalize →</strong>
+          next to the closed poll.
+        </p>
+        <p class="section-body">
+          On the finalize page, each category shows all options sorted by votes.
+          Select the option you want to use for the ride — the suggested winner is
+          pre-selected, but you can choose any option. Click
+          <strong>Create Ride &amp; Notify Voters</strong> when ready.
+        </p>
+
+        <figure class="mb-4">
+          <img class="img-fluid rounded border shadow-sm"
+               src="{{ url_for('static', filename='img/help/poll-finalize.png') }}"
+               alt="Poll finalize page showing each category with vote results and a radio button to select the winner">
+          <figcaption class="small text-muted mt-2">
+            The finalize page pre-selects the suggested winner (⭐) for each category.
+            You can override any selection before creating the ride.
+          </figcaption>
+        </figure>
+
+        <h5 class="mt-4 mb-2">After finalization</h5>
+        <p class="section-body">
+          Once finalized (automatically or manually), Paceline:
+        </p>
+        <ol class="section-body">
+          <li>Creates a fully-fledged ride with all the details — including the fixed
+              fields you entered when creating the poll, combined with the winning options.</li>
+          <li>Sends a <strong>Ride Confirmed</strong> email to every member who cast at
+              least one vote, with the ride details and a direct sign-up link.</li>
+          <li>Updates the poll status to Finalized and links it to the new ride in the
+              admin panel.</li>
+        </ol>
+        <p class="section-body">
+          The created ride appears in the club calendar immediately and can be edited
+          from <strong>Admin → Rides</strong> like any other ride.
+        </p>
+
+        <h5 class="mt-4 mb-2">Managing polls from the admin panel</h5>
+        <p class="section-body">
+          The <strong>Admin → Rides</strong> page lists all polls below the rides table.
+          The table shows each poll's status (Open, Closed, Finalized), voter count,
+          closing time, and quick-action links. Polls without any votes can be deleted
+          from the table. Polls that have received votes cannot be deleted — close and
+          finalize them instead, or let them auto-finalize.
+        </p>
+
+        <div class="alert alert-secondary mt-4">
+          <strong>Tips for a good poll</strong>
+          <ul class="mb-0 mt-2">
+            <li>Limit options to meaningful choices — two to four per category is usually enough. More options split votes and make ties more likely.</li>
+            <li>Set the closing time at least 24–48 hours before the ride date so there is time to finalize and for members to see the ride and sign up.</li>
+            <li>Use <strong>auto-finalize</strong> for straightforward votes (e.g., start time) and <strong>manual finalize</strong> when you want to sanity-check route URLs or handle unusual tie situations.</li>
+            <li>Remind members to vote in your club board or WhatsApp group — polls only work if people participate.</li>
+          </ul>
+        </div>
       </div>
 
       <div class="alert alert-info">

@@ -175,6 +175,79 @@ def run():
         if not found_gear:
             print("  (no gear section visible on ride 18)")
 
+        # ── Ride poll screenshots ────────────────────────────────────────
+        print("Ride polls — admin rides page...")
+        page.goto(f"{PROD_URL}/admin/clubs/paceline-demo/rides")
+        page.wait_for_load_state("networkidle")
+        ss(page, "poll-admin-rides", full_page=False)
+
+        print("Ride polls — create form...")
+        page.goto(f"{PROD_URL}/clubs/paceline-demo/polls/create")
+        page.wait_for_load_state("networkidle")
+        # Check the start-time and length toggles so options blocks are visible
+        page.locator('#poll_start_time').check()
+        page.locator('#poll_length').check()
+        page.wait_for_timeout(300)
+        # Fill in sample options so the form looks realistic
+        page.locator('#list_start_time input').nth(0).fill('7:00 AM')
+        page.locator('#list_start_time input').nth(1).fill('7:30 AM')
+        page.locator('#list_length input').nth(0).fill('20 miles')
+        page.locator('#list_length input').nth(1).fill('35 miles')
+        page.locator('input[name="title"]').fill('Sunday Morning Ride — Vote Now!')
+        page.locator('input[name="ride_date"]').fill('2026-06-08')
+        page.locator('input[name="meeting_location"]').fill('Lake Fairfax Park')
+        ss(page, "poll-create-form", full_page=True)
+
+        print("Ride polls — creating a test poll for screenshots...")
+        import datetime as _dt
+        closes_at = (_dt.datetime.now() + _dt.timedelta(days=3)).strftime('%Y-%m-%dT%H:%M')
+        page.goto(f"{PROD_URL}/clubs/paceline-demo/polls/create")
+        page.wait_for_load_state("networkidle")
+        page.locator('input[name="title"]').fill('Screenshot Test Poll — please ignore')
+        page.locator('input[name="ride_date"]').fill('2026-06-15')
+        page.locator('input[name="meeting_location"]').fill('Lake Fairfax Park')
+        page.locator('#poll_start_time').check()
+        page.locator('#poll_length').check()
+        page.wait_for_timeout(200)
+        page.locator('#list_start_time input').nth(0).fill('7:00 AM')
+        page.locator('#list_start_time input').nth(1).fill('7:30 AM')
+        page.locator('#list_length input').nth(0).fill('20 miles')
+        page.locator('#list_length input').nth(1).fill('35 miles')
+        page.locator('input[name="closes_at"]').fill(closes_at)
+        page.locator('#fm_manual').check()
+        page.locator('[data-testid="poll-submit"]').click()
+        page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(500)
+        # Should be redirected to the poll detail page
+        if '/polls/' in page.url:
+            print(f"  test poll created at {page.url}")
+            ss(page, "poll-detail-open", full_page=False)
+
+            # Try to get the finalize screenshot by closing the poll early
+            # first note the poll ID from URL
+            poll_url = page.url
+            close_btn = page.locator('button:has-text("Close Poll Early")')
+            if close_btn.count() > 0:
+                page.on('dialog', lambda d: d.accept())
+                close_btn.click()
+                page.wait_for_load_state("networkidle")
+                page.wait_for_timeout(500)
+                # Should now be on poll detail (closed) with a Finalize button
+                finalize_link = page.locator('a:has-text("Finalize Ride")')
+                if finalize_link.count() > 0:
+                    finalize_link.click()
+                    page.wait_for_load_state("networkidle")
+                    ss(page, "poll-finalize", full_page=False)
+                    print(f"  finalize page captured")
+                    # Go back and delete the test poll
+                    page.goto(poll_url.replace('/polls/', '/polls/').split('?')[0])
+                else:
+                    print("  (finalize link not found after closing poll)")
+            else:
+                print("  (close poll button not found)")
+        else:
+            print(f"  poll creation may have failed — at {page.url}")
+
         browser.close()
     print("Done.")
 
