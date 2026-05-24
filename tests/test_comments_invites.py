@@ -301,7 +301,7 @@ class TestSuperadminDashboard:
         resp = client.get('/admin/')
         assert resp.status_code == 200
         assert b'Active Clubs' in resp.data
-        assert b'Total Miles Hosted' in resp.data
+        assert b'Total Distance Hosted' in resp.data
 
     def test_dashboard_shows_club_table_with_upcoming_col(self, client, sample_club, admin_user):
         _login(client, admin_user, 'password123')

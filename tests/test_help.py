@@ -39,7 +39,7 @@ def test_club_manager_help_page(client):
     assert b'$45 dues are charged as $46 total' in resp.data
     assert b'is not refunded' in resp.data
     assert b'Clubs handle their own refunds' in resp.data
-    assert b'future club store feature' in resp.data
+    assert b'club shop' in resp.data
     assert b'Use advanced ride options' in resp.data
     assert b'Garmin GroupRide' in resp.data
     assert b'Transfer club ownership' in resp.data

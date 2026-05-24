@@ -77,6 +77,35 @@ def _strip_markdown_filter(text):
     return re.sub(r'\n+', ' ', cleaned).strip()
 
 
+def _dist_filter(miles, precision=1):
+    """Convert a distance in miles to the user-preferred unit string (e.g. '42.5 mi' or '68.4 km')."""
+    from flask import g, has_request_context
+    if miles is None:
+        return ''
+    unit = g.get('distance_unit', 'km') if has_request_context() else 'mi'
+    if unit == 'mi':
+        val = float(miles)
+        suffix = 'mi'
+    else:
+        val = float(miles) * 1.60934
+        suffix = 'km'
+    if precision == 0:
+        return f'{val:,.0f} {suffix}'
+    return f'{round(val, precision)} {suffix}'
+
+
+def _elev_filter(feet):
+    """Convert an elevation in feet to the user-preferred unit string (e.g. '2,500 ft' or '762 m')."""
+    from flask import g, has_request_context
+    if feet is None:
+        return ''
+    unit = g.get('distance_unit', 'km') if has_request_context() else 'mi'
+    if unit == 'mi':
+        return f'{int(feet):,} ft'
+    meters = round(float(feet) * 0.3048)
+    return f'{meters:,} m'
+
+
 def _strftime_filter(value, fmt):
     """Cross-platform strftime: replaces %-d/%-I (Linux) with %#d/%#I on Windows."""
     if sys.platform == 'win32':
@@ -170,6 +199,8 @@ def create_app(config_class=Config):
     app.jinja_env.filters['mentionify'] = mentionify
     app.jinja_env.filters['markdown'] = _markdown_filter
     app.jinja_env.filters['strip_markdown'] = _strip_markdown_filter
+    app.jinja_env.filters['dist'] = _dist_filter
+    app.jinja_env.filters['elev'] = _elev_filter
 
     @app.context_processor
     def inject_globals():
@@ -179,11 +210,21 @@ def create_app(config_class=Config):
             'version': __version__,
             'current_locale': str(_get_locale() or 'en'),
             'languages': LANGUAGE_NAMES,
+            'distance_unit': g.get('distance_unit', 'km'),
             'google_oauth_enabled': bool(
                 app.config.get('GOOGLE_OAUTH_CLIENT_ID')
                 and app.config.get('GOOGLE_OAUTH_CLIENT_SECRET')
             ),
         }
+
+    @app.before_request
+    def set_distance_unit():
+        unit = current_user.distance_unit if current_user.is_authenticated else None
+        if unit not in ('mi', 'km'):
+            # Auto-detect: 5-digit numeric zip → US → miles, everything else → km
+            zip_code = current_user.zip_code if current_user.is_authenticated else None
+            unit = 'mi' if (zip_code and zip_code.isdigit() and len(zip_code) == 5) else 'km'
+        g.distance_unit = unit
 
     @app.before_request
     def set_csp_nonce():

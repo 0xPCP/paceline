@@ -167,8 +167,8 @@
             <div class="text-muted" style="font-size:.8rem">
               {{ s.ride.date | strftime('%b %-d, %Y') }}
               &bull; {{ s.ride.time.strftime('%I:%M %p').lstrip('0') }}
-              &bull; {{ s.ride.distance_miles }} mi
-              {% if s.ride.elevation_feet %}&bull; {{ s.ride.elevation_feet }} ft{% endif %}
+              &bull; {{ s.ride.distance_miles | dist }}
+              {% if s.ride.elevation_feet %}&bull; {{ s.ride.elevation_feet | elev }}{% endif %}
               {% if s.ride.club %}
               &bull; <a href="{{ url_for('clubs.home', slug=s.ride.club.slug) }}" class="text-muted">{{ s.ride.club.name }}</a>
               {% endif %}
@@ -199,8 +199,8 @@
             {% endif %}
             <div class="text-muted" style="font-size:.8rem">
               {{ s.ride.date | strftime('%b %-d, %Y') }}
-              &bull; {{ s.ride.distance_miles }} mi
-              {% if s.ride.elevation_feet %}&bull; {{ s.ride.elevation_feet }} ft{% endif %}
+              &bull; {{ s.ride.distance_miles | dist }}
+              {% if s.ride.elevation_feet %}&bull; {{ s.ride.elevation_feet | elev }}{% endif %}
               {% if s.ride.club %}
               &bull; <a href="{{ url_for('clubs.home', slug=s.ride.club.slug) }}" class="text-muted">{{ s.ride.club.name }}</a>
               {% endif %}
@@ -236,7 +236,7 @@
             {% endif %}
             <div class="text-muted" style="font-size:.8rem">
               {{ ride.date | strftime('%b %-d') }} &bull; {{ ride.time.strftime('%I:%M %p').lstrip('0') }}
-              &bull; {{ ride.distance_miles }} mi
+              &bull; {{ ride.distance_miles | dist }}
               {% if not ride.owner_id and ride.club %}&bull; {{ ride.club.name }}{% endif %}
             </div>
           </li>

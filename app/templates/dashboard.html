@@ -44,8 +44,8 @@
               {% endif %}
               <p class="ride-meta mb-0">
                 {{ ride.time.strftime('%I:%M %p').lstrip('0') }} &bull;
-                {{ ride.distance_miles }} mi
-                {% if ride.elevation_feet %}&bull; {{ ride.elevation_feet }} ft{% endif %}
+                {{ ride.distance_miles | dist }}
+                {% if ride.elevation_feet %}&bull; {{ ride.elevation_feet | elev }}{% endif %}
               </p>
             </div>
           </div>
@@ -96,9 +96,9 @@
                 <a href="{{ url_for('clubs.ride_detail', slug=ride.club.slug, ride_id=ride.id) }}" class="ride-title">{{ ride.title }}</a>
               {% endif %}
               <p class="ride-meta mb-0">
-                {{ ride.time.strftime('%I:%M %p').lstrip('0') }} &bull; {{ ride.distance_miles }} mi
+                {{ ride.time.strftime('%I:%M %p').lstrip('0') }} &bull; {{ ride.distance_miles | dist }}
                 {% if not ride.owner_id and ride.club %}&bull; {{ ride.club.name }}{% endif %}
-                {% if rec.distance_miles is not none %}&bull; {{ rec.distance_miles|round(1) }} mi away{% endif %}
+                {% if rec.distance_miles is not none %}&bull; {{ rec.distance_miles | dist }} away{% endif %}
               </p>
             </div>
             <form method="post" action="{{ url_for('main.hide_recommendation') }}" class="flex-shrink-0">
@@ -138,7 +138,7 @@
                   </div>
                   <div class="small text-muted mt-2">
                     {{ rec.upcoming_count }} upcoming ride{{ 's' if rec.upcoming_count != 1 else '' }}
-                    {% if rec.distance_miles is not none %}&bull; {{ rec.distance_miles|round(1) }} mi away{% endif %}
+                    {% if rec.distance_miles is not none %}&bull; {{ rec.distance_miles | dist }} away{% endif %}
                   </div>
                 </div>
                 <form method="post" action="{{ url_for('main.hide_recommendation') }}">
@@ -186,8 +186,8 @@
               {% endif %}
               <p class="ride-meta mb-0">
                 {{ ride.time.strftime('%I:%M %p').lstrip('0') }} &bull;
-                {{ ride.distance_miles }} mi
-                {% if ride.elevation_feet %}&bull; {{ ride.elevation_feet }} ft{% endif %}
+                {{ ride.distance_miles | dist }}
+                {% if ride.elevation_feet %}&bull; {{ ride.elevation_feet | elev }}{% endif %}
                 {% if not ride.owner_id and ride.club %}&bull; {{ ride.club.name }}{% endif %}
               </p>
             </div>
@@ -224,7 +224,7 @@
                 <a href="{{ url_for('clubs.ride_detail', slug=ride.club.slug, ride_id=ride.id) }}" class="ride-title">{{ ride.title }}</a>
               {% endif %}
               <p class="ride-meta mb-0">
-                {{ ride.time.strftime('%I:%M %p').lstrip('0') }} &bull; {{ ride.distance_miles }} mi
+                {{ ride.time.strftime('%I:%M %p').lstrip('0') }} &bull; {{ ride.distance_miles | dist }}
               </p>
             </div>
             {% if not ride.owner_id %}

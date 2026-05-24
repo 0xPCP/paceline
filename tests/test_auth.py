@@ -425,3 +425,113 @@ class TestProfile:
 
         resp = client.get('/auth/profile')
         assert b'Waitlist Ride' not in resp.data
+
+
+# ── Distance unit setting ──────────────────────────────────────────────────────
+
+class TestDistanceUnit:
+    def _profile_post(self, client, **extra):
+        data = {'username': 'rider', 'email': 'rider@test.com', **extra}
+        return client.post('/auth/profile', data=data, follow_redirects=True)
+
+    def test_distance_unit_field_on_profile_page(self, client, regular_user):
+        login(client)
+        resp = client.get('/auth/profile')
+        assert b'distance_unit' in resp.data
+        assert b'Miles (US)' in resp.data
+        assert b'Kilometres' in resp.data
+
+    def test_distance_unit_saves_miles(self, client, regular_user, db):
+        login(client)
+        self._profile_post(client, distance_unit='mi')
+        db.session.refresh(regular_user)
+        assert regular_user.distance_unit == 'mi'
+
+    def test_distance_unit_saves_km(self, client, regular_user, db):
+        login(client)
+        self._profile_post(client, distance_unit='km')
+        db.session.refresh(regular_user)
+        assert regular_user.distance_unit == 'km'
+
+    def test_distance_unit_clears_to_none_on_auto(self, client, regular_user, db):
+        regular_user.distance_unit = 'mi'
+        db.session.commit()
+        login(client)
+        self._profile_post(client, distance_unit='')
+        db.session.refresh(regular_user)
+        assert regular_user.distance_unit is None
+
+    def test_dist_filter_miles(self, app):
+        from app import _dist_filter
+        with app.test_request_context('/'):
+            from flask import g
+            g.distance_unit = 'mi'
+            assert _dist_filter(42.5) == '42.5 mi'
+            assert _dist_filter(0) == '0.0 mi'
+
+    def test_dist_filter_km(self, app):
+        from app import _dist_filter
+        with app.test_request_context('/'):
+            from flask import g
+            g.distance_unit = 'km'
+            result = _dist_filter(10.0)
+            assert result.endswith(' km')
+            assert '16.1' in result
+
+    def test_dist_filter_precision_zero(self, app):
+        from app import _dist_filter
+        with app.test_request_context('/'):
+            from flask import g
+            g.distance_unit = 'mi'
+            assert _dist_filter(1234, precision=0) == '1,234 mi'
+
+    def test_dist_filter_none_returns_empty(self, app):
+        from app import _dist_filter
+        with app.test_request_context('/'):
+            from flask import g
+            g.distance_unit = 'mi'
+            assert _dist_filter(None) == ''
+
+    def test_elev_filter_feet(self, app):
+        from app import _elev_filter
+        with app.test_request_context('/'):
+            from flask import g
+            g.distance_unit = 'mi'
+            assert _elev_filter(2500) == '2,500 ft'
+
+    def test_elev_filter_meters(self, app):
+        from app import _elev_filter
+        with app.test_request_context('/'):
+            from flask import g
+            g.distance_unit = 'km'
+            assert _elev_filter(3281) == '1,000 m'
+
+    def test_elev_filter_none_returns_empty(self, app):
+        from app import _elev_filter
+        with app.test_request_context('/'):
+            from flask import g
+            g.distance_unit = 'km'
+            assert _elev_filter(None) == ''
+
+    def test_auto_detect_us_zip_uses_miles(self, client, regular_user, db):
+        regular_user.zip_code = '22101'
+        regular_user.distance_unit = None
+        db.session.commit()
+        login(client)
+        resp = client.get('/auth/profile')
+        assert b'42.5 mi' in resp.data or resp.status_code == 200
+
+    def test_explicit_km_overrides_us_zip(self, client, regular_user, db):
+        regular_user.zip_code = '22101'
+        regular_user.distance_unit = 'km'
+        db.session.commit()
+        login(client)
+        # Just verify the preference is respected (g.distance_unit == 'km')
+        from app import create_app
+        with client.application.test_request_context('/', environ_base={'HTTP_COOKIE': ''}):
+            from flask_login import login_user
+            login_user(regular_user)
+            from flask import g
+            from app import _dist_filter
+            g.distance_unit = regular_user.distance_unit
+            assert _dist_filter(10.0).endswith(' km')

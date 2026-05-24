@@ -177,7 +177,7 @@
         <span class="nrs-meta">
           {{ nr.date.strftime('%a, %b') }} {{ nr.date.day }} &bull;
           {{ nr.time.strftime('%I:%M %p').lstrip('0') }} &bull;
-          {{ nr.distance_miles }} mi
+          {{ nr.distance_miles | dist }}
         </span>
       </div>
     </div>
@@ -318,8 +318,8 @@
                     </div>
                     <div class="fw-semibold small text-truncate">{{ a.name }}</div>
                     <div class="text-muted" style="font-size:.8rem">
-                      {{ a.distance_miles }} mi
-                      {% if a.elevation_feet %}&bull; {{ a.elevation_feet }} ft{% endif %}
+                      {{ a.distance_miles | dist }}
+                      {% if a.elevation_feet %}&bull; {{ a.elevation_feet | elev }}{% endif %}
                       &bull; {{ a.moving_time_fmt }}
                     </div>
                   </div>
@@ -409,8 +409,8 @@
                   <div class="css-label">Rides Hosted</div>
                 </div>
                 <div class="css-item">
-                  <div class="css-num">{{ '{:,}'.format(club_stats.total_miles) }}</div>
-                  <div class="css-label">Miles Hosted</div>
+                  <div class="css-num">{{ club_stats.total_miles | dist(0) }}</div>
+                  <div class="css-label">Hosted</div>
                 </div>
                 <div class="css-item">
                   {% if club_stats.founded %}
@@ -536,8 +536,8 @@
               {% endif %}
               <p class="ride-meta mb-0">
                 {{ ride.time.strftime('%I:%M %p').lstrip('0') }} &bull;
-                {{ ride.distance_miles }} mi
-                {% if ride.elevation_feet %}&bull; {{ ride.elevation_feet }} ft{% endif %}
+                {{ ride.distance_miles | dist }}
+                {% if ride.elevation_feet %}&bull; {{ ride.elevation_feet | elev }}{% endif %}
                 &bull; <strong>{{ ride.signup_count }}</strong> signed up
                 {% if ride.is_full %}<span class="badge bg-warning text-dark ms-1">Full</span>{% endif %}
                 {% if ride.waitlist_count %}

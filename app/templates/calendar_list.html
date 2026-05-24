@@ -55,8 +55,8 @@
           </div>
           <div class="ride-row-meta">
             {{ ride.meeting_location }}
-            &bull; {{ ride.distance_miles }} mi
-            {% if ride.elevation_feet %}&bull; {{ ride.elevation_feet }} ft{% endif %}
+            &bull; {{ ride.distance_miles | dist }}
+            {% if ride.elevation_feet %}&bull; {{ ride.elevation_feet | elev }}{% endif %}
             {% if ride.ride_leader %}&bull; Leader: {{ ride.ride_leader }}{% endif %}
           </div>
         </div>

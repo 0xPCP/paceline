@@ -43,7 +43,7 @@
                class="week-ride pace-cell-{{ ride.pace_category }} {{ 'week-ride-cancelled' if ride.is_cancelled else '' }} {{ 'week-ride-warn' if w and w.warning else '' }}">
               <div class="wr-time">{{ ride.time.strftime('%I:%M %p') }}</div>
               <div class="wr-title">{{ ride.title }}</div>
-              <div class="wr-meta">{{ ride.distance_miles }} mi · {{ ride.pace_label.split('—')[0].strip() }}</div>
+              <div class="wr-meta">{{ ride.distance_miles | dist }} · {{ ride.pace_label.split('—')[0].strip() }}</div>
               {% if w %}
               <div class="wr-weather sev-{{ w.severity }}">
                 {{ w.emoji }} {{ w.temp_f }}°F &bull; {{ w.wind_mph }} mph

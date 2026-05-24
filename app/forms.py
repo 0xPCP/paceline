@@ -101,6 +101,11 @@ class ProfileForm(FlaskForm):
         ('de', 'Deutsch'),
         ('pt', 'Português'),
     ], validators=[Optional()])
+    distance_unit = SelectField('Distance units', choices=[
+        ('',   '— Auto-detect from zip code —'),
+        ('mi', 'Miles (US)'),
+        ('km', 'Kilometres (metric)'),
+    ], validators=[Optional()])
     emergency_contact_name  = StringField('Emergency Contact Name', validators=[Optional(), Length(max=100)])
     emergency_contact_phone = StringField('Emergency Contact Phone', validators=[Optional(), Length(max=30)])
     notify_ride_cancellations = BooleanField('Ride cancellations')

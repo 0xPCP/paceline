@@ -581,7 +581,8 @@ def profile():
                 flash('That Strava profile URL does not match the Strava account connected to your profile.', 'danger')
                 return redirect(url_for('auth.profile'))
         current_user.strava_profile_url = strava_profile_url
-        current_user.language  = form.language.data or None
+        current_user.language      = form.language.data or None
+        current_user.distance_unit = form.distance_unit.data or None
         current_user.emergency_contact_name  = (form.emergency_contact_name.data or '').strip() or None
         current_user.emergency_contact_phone = (form.emergency_contact_phone.data or '').strip() or None
         current_user.profile_is_public = bool(form.profile_is_public.data)

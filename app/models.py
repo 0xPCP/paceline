@@ -59,7 +59,8 @@ class User(db.Model, UserMixin):
     profile_photo_key  = db.Column(db.String(200), nullable=True)  # Spaces object key
     gender   = db.Column(db.String(10), nullable=True)  # 'male' | 'female' | 'nonbinary'
     bio      = db.Column(db.Text, nullable=True)
-    language = db.Column(db.String(5), nullable=True)   # preferred UI language code
+    language      = db.Column(db.String(5), nullable=True)   # preferred UI language code
+    distance_unit = db.Column(db.String(2), nullable=True)   # 'mi' | 'km' | None (auto from zip)
     sport_preferences = db.Column(db.JSON, nullable=True)  # dormant multi-sport support
     email_preferences = db.Column(db.JSON, nullable=True)
     recommendations_enabled = db.Column(db.Boolean, default=True, nullable=False)

@@ -91,8 +91,8 @@
 
             <p class="ride-meta mb-1">
               {{ ride.time.strftime('%I:%M %p').lstrip('0') }} &bull;
-              {{ ride.distance_miles }} mi
-              {% if ride.elevation_feet %}&bull; {{ ride.elevation_feet }} ft{% endif %}
+              {{ ride.distance_miles | dist }}
+              {% if ride.elevation_feet %}&bull; {{ ride.elevation_feet | elev }}{% endif %}
             </p>
 
             {% if ride.virtual_platform_url %}

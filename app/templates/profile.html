@@ -127,6 +127,12 @@
             <div class="form-text">Overrides automatic language detection from your browser.</div>
           </div>
 
+          <div class="mb-3">
+            {{ form.distance_unit.label(class="form-label") }}
+            {{ form.distance_unit(class="form-select") }}
+            <div class="form-text">Your explicit choice always wins. Auto-detect uses miles for US zip codes, km elsewhere.</div>
+          </div>
+
           <hr class="my-3">
           <h6 class="mb-1">Emergency Contact <span class="text-muted fw-normal">(optional)</span></h6>
           <p class="text-muted small mb-3">Only visible to club ride leaders and admins on ride day.</p>
@@ -232,6 +238,7 @@
           <input type="hidden" name="bio" value="{{ current_user.bio or '' }}">
           <input type="hidden" name="strava_profile_url" value="{{ current_user.strava_profile_url or '' }}">
           <input type="hidden" name="language" value="{{ current_user.language or '' }}">
+          <input type="hidden" name="distance_unit" value="{{ current_user.distance_unit or '' }}">
           <input type="hidden" name="emergency_contact_name" value="{{ current_user.emergency_contact_name or '' }}">
           <input type="hidden" name="emergency_contact_phone" value="{{ current_user.emergency_contact_phone or '' }}">
           {% set email_prefs = current_user.email_preferences or {} %}
@@ -425,12 +432,12 @@
             <div class="text-muted small">Rides</div>
           </div>
           <div class="col-4">
-            <div class="fw-bold" style="font-size:1.4rem">{{ ytd_stats.miles }}</div>
-            <div class="text-muted small">Miles</div>
+            <div class="fw-bold" style="font-size:1.4rem">{{ ytd_stats.miles | dist }}</div>
+            <div class="text-muted small">Ridden</div>
           </div>
           <div class="col-4">
-            <div class="fw-bold" style="font-size:1.4rem">{{ '{:,}'.format(ytd_stats.elevation) }}</div>
-            <div class="text-muted small">Ft Gained</div>
+            <div class="fw-bold" style="font-size:1.4rem">{{ ytd_stats.elevation | elev }}</div>
+            <div class="text-muted small">Gained</div>
           </div>
         </div>
         {% else %}
@@ -454,8 +461,8 @@
               {% endif %}
               <div class="text-muted" style="font-size:.8rem">
                 {{ s.ride.date | strftime('%b %-d, %Y') }}
-                &bull; {{ s.ride.distance_miles }} mi
-                {% if s.ride.elevation_feet %}&bull; {{ s.ride.elevation_feet }} ft{% endif %}
+                &bull; {{ s.ride.distance_miles | dist }}
+                {% if s.ride.elevation_feet %}&bull; {{ s.ride.elevation_feet | elev }}{% endif %}
                 {% if s.ride.club %}
                 &bull; <a href="{{ url_for('clubs.home', slug=s.ride.club.slug) }}" class="text-muted">{{ s.ride.club.name }}</a>
                 {% endif %}

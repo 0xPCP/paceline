@@ -52,7 +52,7 @@
           <tr>
             <td>
               <a href="{{ url_for('user_rides.detail', ride_id=ride.id) }}">{{ ride.title }}</a>
-              <div class="text-muted small">{{ ride.distance_miles }} mi &bull; {{ ride.pace_category }} &bull; {{ ride.meeting_location }}</div>
+              <div class="text-muted small">{{ ride.distance_miles | dist }} &bull; {{ ride.pace_category }} &bull; {{ ride.meeting_location }}</div>
             </td>
             <td>
               <a href="{{ url_for('admin.user_detail', user_id=ride.owner.id) }}">{{ ride.owner.username }}</a>

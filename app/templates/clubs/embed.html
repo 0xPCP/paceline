@@ -284,8 +284,8 @@
             <div class="ew-title">{{ ride.title }}</div>
             <div class="ew-meta">
               <span>{{ ride.time.strftime('%I:%M %p').lstrip('0') }}</span>
-              <span>{{ ride.distance_miles }} mi</span>
-              {% if ride.elevation_feet %}<span>{{ ride.elevation_feet }} ft</span>{% endif %}
+              <span>{{ ride.distance_miles | dist }}</span>
+              {% if ride.elevation_feet %}<span>{{ ride.elevation_feet | elev }}</span>{% endif %}
               {% if ride.ride_type %}<span>{{ ride.ride_type.title() }}</span>{% endif %}
               <span>{{ ride.signup_count }} signed up</span>
             </div>
