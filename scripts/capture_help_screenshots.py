@@ -140,6 +140,19 @@ def run():
         if not found_friend:
             ss(page, "profile-friends")
 
+        # ── Profile distance units setting ───────────────────────────────
+        print("Profile distance units setting...")
+        page.goto(f"{PROD_URL}/auth/profile")
+        page.wait_for_load_state("networkidle")
+        units_select = page.locator('[name="distance_unit"]').first
+        if units_select.count() > 0:
+            units_select.scroll_into_view_if_needed()
+            page.wait_for_timeout(300)
+            units_card = units_select.locator("..").locator("..")
+            ss(page, "profile-distance-units", locator=units_card)
+        else:
+            print("  (distance_unit field not found on profile page)")
+
         # ── Gear suggestions on a ride page ──────────────────────────────
         print("Gear suggestions...")
         page.goto(f"{PROD_URL}/clubs/paceline-demo/rides/18")
