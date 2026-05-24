@@ -7,7 +7,7 @@
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-2">
       <h1 class="mb-0">{{ _('Find a Club') }}</h1>
       <div class="d-flex gap-2">
-        <a href="{{ url_for('clubs.club_map') }}" class="btn btn-outline-light btn-sm">&#x1F5FA; {{ _('Map View') }}</a>
+        <a href="{{ url_for('clubs.club_map') }}" class="btn btn-outline-secondary btn-sm">&#x1F5FA; {{ _('Map View') }}</a>
         {% if current_user.is_authenticated %}
         <a href="{{ url_for('clubs.create') }}" class="btn btn-paceline btn-sm">{{ _('+ Create a Club') }}</a>
         {% endif %}

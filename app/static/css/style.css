@@ -425,6 +425,21 @@ body.club-page {
 }
 .btn-paceline-sm:hover { background: var(--paceline-orange-dark); color: #fff; }
 
+.btn-map-secondary {
+  background: transparent;
+  color: var(--paceline-dark);
+  border: 1px solid var(--paceline-border);
+  font-weight: 500;
+  font-size: .8rem;
+  padding: .25rem .75rem;
+  border-radius: 5px;
+  text-decoration: none;
+  display: inline-block;
+  transition: background .15s, border-color .15s;
+}
+.btn-map-secondary:hover { background: var(--paceline-light); border-color: #adb5bd; color: var(--paceline-dark); }
+.btn-map-secondary.active { background: var(--paceline-dark); color: #fff; border-color: var(--paceline-dark); }
+
 .btn-paceline-outline {
   background: transparent;
   color: #fff;
