@@ -712,6 +712,48 @@ body.club-page {
 }
 .stat-label { font-size: .85rem; color: var(--paceline-gray); }
 
+/* ── Feature cards (homepage) ─────────────────────────────────────────────── */
+.feature-card {
+  background: #fff;
+  border: 1px solid var(--paceline-border);
+  border-radius: 12px;
+  padding: 1.75rem 1.25rem;
+  text-align: center;
+  transition: box-shadow .2s, border-color .2s, transform .2s;
+}
+.feature-card:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,.08);
+  border-color: var(--paceline-green-light);
+  transform: translateY(-2px);
+}
+.feature-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: var(--paceline-green-pale);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+.feature-icon svg {
+  width: 24px;
+  height: 24px;
+  fill: var(--paceline-green);
+}
+.feature-title {
+  font-weight: 700;
+  font-size: .9rem;
+  color: var(--paceline-dark);
+  margin-bottom: .35rem;
+}
+.feature-desc {
+  font-size: .8rem;
+  color: var(--paceline-gray);
+  line-height: 1.55;
+  margin: 0;
+}
+
 .featured-club-grid .featured-club-card {
   min-height: 150px;
   border-top: 4px solid var(--paceline-green);

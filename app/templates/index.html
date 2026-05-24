@@ -8,9 +8,9 @@
   <div class="container hero-content">
     <div class="row align-items-center">
       <div class="col-lg-7 col-xl-6">
-        <p class="hero-eyebrow">{{ _('Group Cycling, Simplified') }}</p>
-        <h1 class="hero-title">{{ _('Connecting riders') }}</h1>
-        <p class="hero-sub">{{ _('Discover local cycling clubs, sign up for group rides, and keep your whole calendar in one place.') }}</p>
+        <p class="hero-eyebrow">{{ _('Your club\'s ride calendar, online.') }}</p>
+        <h1 class="hero-title">{{ _('Run your club.') }}<br>{{ _('Ride together.') }}</h1>
+        <p class="hero-sub">{{ _('Paceline gives cycling clubs a home for their ride schedule, sign-ups, weather alerts, and member communication — all in one place.') }}</p>
         <div class="hero-actions">
           <a href="{{ url_for('clubs.index') }}" class="btn btn-paceline btn-lg">{{ _('Find a Club') }}</a>
           <a href="{{ url_for('auth.register') }}" class="btn btn-paceline-outline btn-lg">{{ _('Create Account') }}</a>
@@ -33,6 +33,68 @@
       <div class="col-md-4 text-center">
         <div class="stat-card"><div class="stat-num">3</div><div class="stat-label">{{ _('See all your rides in one dashboard') }}</div></div>
       </div>
+    </div>
+  </div>
+</section>
+
+<section class="py-5">
+  <div class="container">
+    <div class="text-center mb-4">
+      <p class="section-label mb-1">{{ _('Everything your club needs') }}</p>
+      <h2 class="section-heading mb-0">{{ _('Built for ride leaders. Easy for members.') }}</h2>
+    </div>
+    <div class="row g-3 row-cols-2 row-cols-md-3 row-cols-lg-5 mt-2">
+
+      <div class="col">
+        <div class="feature-card h-100">
+          <div class="feature-icon">
+            <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0z"/><path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/></svg>
+          </div>
+          <p class="feature-title">{{ _('Ride Calendar') }}</p>
+          <p class="feature-desc">{{ _('Publish your weekly schedule so members always know what\'s coming up.') }}</p>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="feature-card h-100">
+          <div class="feature-icon">
+            <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M12.5 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zm1.679-4.493-1.335 2.226a.75.75 0 0 1-1.174.144l-.774-.773a.5.5 0 0 1 .708-.708l.547.548 1.17-1.951a.5.5 0 1 1 .858.514zM11 5a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM8 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/><path d="M8.256 14a4.474 4.474 0 0 1-.229-1.004H3c.001-.246.154-.986.832-1.664C4.484 10.68 5.711 10 8 10c.26 0 .507.009.74.025.226-.341.496-.65.804-.918C9.077 9.038 8.564 9 8 9c-5 0-6 3-6 4s1 1 1 1h5.256z"/></svg>
+          </div>
+          <p class="feature-title">{{ _('Member Sign-ups') }}</p>
+          <p class="feature-desc">{{ _('One-click RSVPs with caps and waitlists — no group texts or spreadsheets.') }}</p>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="feature-card h-100">
+          <div class="feature-icon">
+            <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M13.405 4.027a5.001 5.001 0 0 0-9.499-1.004A3.5 3.5 0 1 0 3.5 10H13a3 3 0 0 0 .405-5.973zM8.5 1a4 4 0 0 1 3.976 3.555.5.5 0 0 0 .5.445H13a2 2 0 0 1 0 4H3.5a2.5 2.5 0 1 1 .605-4.926.5.5 0 0 0 .596-.329A4.003 4.003 0 0 1 8.5 1zM7.053 11.276A.5.5 0 0 1 7.5 11h1a.5.5 0 0 1 .474.658l-.28.842H9.5a.5.5 0 0 1 .39.812l-2 2.5a.5.5 0 0 1-.875-.433L7.36 14H6.5a.5.5 0 0 1-.447-.724l1-2z"/></svg>
+          </div>
+          <p class="feature-title">{{ _('Weather Auto-cancel') }}</p>
+          <p class="feature-desc">{{ _('Rides cancel automatically when conditions cross your thresholds. Members notified instantly.') }}</p>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="feature-card h-100">
+          <div class="feature-icon">
+            <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M11 2a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v12h.5a.5.5 0 0 1 0 1H.5a.5.5 0 0 1 0-1H1v-3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3h1V7a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v7h1V2zm1 12h2V2h-2v12zm-3 0V7H7v7h2zm-5 0v-3H2v3h2z"/></svg>
+          </div>
+          <p class="feature-title">{{ _('Ride Polls') }}</p>
+          <p class="feature-desc">{{ _('Poll members on start time, route, or distance before locking in the details.') }}</p>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="feature-card h-100">
+          <div class="feature-icon">
+            <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M15 14s1 0 1-1-1-4-5-4-5 3-5 4 1 1 1 1h8zm-7.978-1A.261.261 0 0 1 7 12.996c.001-.264.167-1.03.76-1.72C8.312 10.629 9.282 10 11 10c1.717 0 2.687.63 3.24 1.276.593.69.758 1.457.76 1.72l-.008.002-.014.002H7.022zM11 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm3-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM6.936 9.28a5.88 5.88 0 0 0-1.23-.247A7.35 7.35 0 0 0 5 9c-4 0-5 3-5 4 0 .667.333 1 1 1h4.216A2.238 2.238 0 0 1 5 13c0-1.01.377-2.042 1.09-2.904.243-.294.526-.569.846-.816zM4.92 10A5.493 5.493 0 0 0 4 13H1c0-.26.164-1.03.76-1.724.545-.636 1.492-1.256 3.16-1.275zM1.5 5.5a3 3 0 1 1 6 0 3 3 0 0 1-6 0zm3-2a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg>
+          </div>
+          <p class="feature-title">{{ _('Club Community') }}</p>
+          <p class="feature-desc">{{ _('Manage members, share post-ride photos, and keep the conversation going after every ride.') }}</p>
+        </div>
+      </div>
+
     </div>
   </div>
 </section>
