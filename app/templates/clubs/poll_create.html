@@ -1,198 +1,313 @@
-{% extends "base_club.html" %}
-{% block title %}Create Ride Poll — {{ club.name }}{% endblock %}
-{% block head %}{% include 'clubs/_theme.html' %}{% endblock %}
+{% extends "base.html" %}
+{% block title %}New Ride Poll — {{ club.name }}{% endblock %}
 
 {% block content %}
 <div class="page-header">
   <div class="container">
-    <nav aria-label="breadcrumb" class="mb-2">
-      <ol class="breadcrumb mb-0 small">
-        <li class="breadcrumb-item"><a href="{{ url_for('clubs.home', slug=club.slug) }}">{{ club.name }}</a></li>
-        <li class="breadcrumb-item active">Create Poll</li>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.club_dashboard', slug=club.slug) }}">{{ club.name }} Admin</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.club_rides', slug=club.slug) }}">Rides</a></li>
+        <li class="breadcrumb-item active">New Ride Poll</li>
       </ol>
     </nav>
-    <h1 class="mb-0">Create Ride Poll</h1>
-    <p class="text-muted mb-0">Let members vote on the ride before you schedule it.</p>
+    <h1>New Ride Poll</h1>
+    <p class="text-muted mb-0">Set the known details below. For the things you're polling on, members will vote and the winning option fills in those fields when you finalize.</p>
   </div>
 </div>
 
-<div class="container py-4" style="max-width:720px">
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% for cat, msg in messages %}
-    <div class="alert alert-{{ 'danger' if cat == 'danger' else 'info' }} alert-dismissible fade show">{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
-    {% endfor %}
-  {% endwith %}
+<div class="container py-4">
+  <div class="row">
+    <div class="col-lg-8">
 
-  <form method="post" id="pollForm" novalidate>
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+        <div class="alert alert-{{ 'danger' if cat == 'danger' else 'info' }} alert-dismissible fade show">{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+        {% endfor %}
+      {% endwith %}
 
-    {# ── Basic details ──────────────────────────────────────────────── #}
-    <div class="card mb-4">
-      <div class="card-header fw-semibold">Ride Details</div>
-      <div class="card-body">
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Poll Title <span class="text-danger">*</span></label>
-          <input type="text" name="title" class="form-control" maxlength="200" required
-                 value="{{ f.get('title', '') }}" placeholder="e.g. Sunday Morning Ride — Help us plan!">
+      <form method="post" novalidate id="pollForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        {# ── Poll categories — pick FIRST so we can hide downstream fields ──── #}
+        <div class="card mb-4 border-paceline">
+          <div class="card-header fw-semibold bg-light">What are you polling on?</div>
+          <div class="card-body">
+            <p class="text-muted small mb-3">Check the things you want members to vote on. Fill in fixed values for everything else below.</p>
+            <div class="row g-3 mb-3">
+              <div class="col-sm-4">
+                <div class="form-check">
+                  <input class="form-check-input poll-toggle" type="checkbox" name="poll_start_time"
+                         id="poll_start_time" value="1" data-hides="field-start-time"
+                         {{ 'checked' if f.get('poll_start_time') }}>
+                  <label class="form-check-label fw-semibold" for="poll_start_time">🕖 Start Time</label>
+                </div>
+              </div>
+              <div class="col-sm-4">
+                <div class="form-check">
+                  <input class="form-check-input poll-toggle" type="checkbox" name="poll_length"
+                         id="poll_length" value="1" data-hides="field-distance"
+                         {{ 'checked' if f.get('poll_length') }}>
+                  <label class="form-check-label fw-semibold" for="poll_length">📏 Ride Length</label>
+                </div>
+              </div>
+              <div class="col-sm-4">
+                <div class="form-check">
+                  <input class="form-check-input poll-toggle" type="checkbox" name="poll_course"
+                         id="poll_course" value="1" data-hides="field-route"
+                         {{ 'checked' if f.get('poll_course') }}>
+                  <label class="form-check-label fw-semibold" for="poll_course">🗺️ Course / Route</label>
+                </div>
+              </div>
+            </div>
+
+            {# Options for each polled category #}
+            {% for cat, label, icon, placeholder in [
+                ('start_time', 'Start Time Options', '🕖', 'e.g. 7:00 AM, 7:30 AM'),
+                ('length',     'Length Options',      '📏', 'e.g. 20 miles, 35 miles, 50 km'),
+                ('course',     'Course Options',      '🗺️', 'Route name or https://ridewithgps.com/routes/…'),
+            ] %}
+            <div class="option-block mt-3" id="opts_{{ cat }}"
+                 style="{{ '' if f.get('poll_' + cat) else 'display:none' }}">
+              <label class="form-label fw-semibold small text-muted text-uppercase">{{ icon }} {{ label }}</label>
+              <div class="option-list" id="list_{{ cat }}">
+                {% set existing = f.getlist(cat + '_options[]') if f else [] %}
+                {% if existing %}
+                  {% for val in existing %}
+                  <div class="input-group mb-2 option-row">
+                    <input type="text" name="{{ cat }}_options[]" class="form-control" maxlength="200"
+                           value="{{ val }}" placeholder="{{ placeholder }}">
+                    <button type="button" class="btn btn-outline-danger remove-opt">✕</button>
+                  </div>
+                  {% endfor %}
+                {% else %}
+                  <div class="input-group mb-2 option-row">
+                    <input type="text" name="{{ cat }}_options[]" class="form-control" maxlength="200" placeholder="{{ placeholder }}">
+                    <button type="button" class="btn btn-outline-danger remove-opt">✕</button>
+                  </div>
+                  <div class="input-group mb-2 option-row">
+                    <input type="text" name="{{ cat }}_options[]" class="form-control" maxlength="200" placeholder="{{ placeholder }}">
+                    <button type="button" class="btn btn-outline-danger remove-opt">✕</button>
+                  </div>
+                {% endif %}
+              </div>
+              <button type="button" class="btn btn-outline-secondary btn-sm add-opt"
+                      data-list="list_{{ cat }}" data-name="{{ cat }}_options[]" data-placeholder="{{ placeholder }}">
+                + Add option
+              </button>
+              <p class="text-muted small mt-1 mb-0">Up to 10 options. Ties broken by which option received its first vote earliest.</p>
+            </div>
+            {% endfor %}
+          </div>
         </div>
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Description <span class="text-muted fw-normal">(optional)</span></label>
-          <textarea name="description" class="form-control" rows="2"
-                    placeholder="Any context for voters…">{{ f.get('description', '') }}</textarea>
+
+        {# ── Ride title & description ─────────────────────────────────────────── #}
+        <div class="row g-3 mb-3">
+          <div class="col-12">
+            <label class="form-label">Title</label>
+            <input type="text" name="title" class="form-control" maxlength="200" required
+                   value="{{ f.get('title', '') }}" placeholder="e.g. Sunday Morning Ride">
+          </div>
         </div>
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label fw-semibold">Ride Date <span class="text-danger">*</span></label>
+
+        {# ── Date and time ────────────────────────────────────────────────────── #}
+        <div class="row g-3 mb-3">
+          <div class="col-sm-6">
+            <label class="form-label">Date</label>
             <input type="date" name="ride_date" class="form-control" required value="{{ f.get('ride_date', '') }}">
           </div>
-          <div class="col-md-6">
-            <label class="form-label fw-semibold">Default Start Time <span class="text-muted fw-normal">(if not polling time)</span></label>
-            <input type="time" name="default_start_time" class="form-control" value="{{ f.get('default_start_time', '07:00') }}">
+          <div class="col-sm-6" id="field-start-time"
+               style="{{ 'display:none' if f.get('poll_start_time') else '' }}">
+            <label class="form-label">Start Time</label>
+            <input type="time" name="start_time" class="form-control" value="{{ f.get('start_time', '07:00') }}">
           </div>
         </div>
-        <div class="row g-3 mt-0">
-          <div class="col-md-6">
-            <label class="form-label fw-semibold">Pace <span class="text-muted fw-normal">(optional)</span></label>
+
+        {# ── Meeting location ─────────────────────────────────────────────────── #}
+        <div class="mb-3">
+          <label class="form-label">Meeting Location</label>
+          <input type="text" name="meeting_location" class="form-control" maxlength="500"
+                 value="{{ f.get('meeting_location', '') }}" placeholder="e.g. Lake Fairfax Park parking lot">
+        </div>
+
+        {# ── Pace, type, distance, elevation ─────────────────────────────────── #}
+        <div class="row g-3 mb-3">
+          <div class="col-sm-3">
+            <label class="form-label">Pace</label>
             <select name="pace_category" class="form-select">
-              <option value="">— Not specified —</option>
+              <option value="">— not set —</option>
               {% for cat, lbl in [('A','A — Fast (22+ mph)'),('B','B — Moderate (18–22 mph)'),('C','C — Casual (14–18 mph)'),('D','D — Beginner (<14 mph)')] %}
               <option value="{{ cat }}" {{ 'selected' if f.get('pace_category') == cat }}>{{ lbl }}</option>
               {% endfor %}
             </select>
           </div>
-          <div class="col-md-6">
-            <label class="form-label fw-semibold">Meeting Location <span class="text-muted fw-normal">(optional)</span></label>
-            <input type="text" name="meeting_location" class="form-control" maxlength="500"
-                   value="{{ f.get('meeting_location', '') }}" placeholder="Parking lot, coffee shop…">
+          <div class="col-sm-3">
+            <label class="form-label">Ride Type</label>
+            <select name="ride_type" class="form-select">
+              <option value="">— any —</option>
+              {% for val, lbl in [('road','Road'),('gravel','Gravel'),('social','Social'),('training','Training'),('event','Event'),('night','Night')] %}
+              <option value="{{ val }}" {{ 'selected' if f.get('ride_type') == val }}>{{ lbl }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-sm-3" id="field-distance"
+               style="{{ 'display:none' if f.get('poll_length') else '' }}">
+            <label class="form-label">Distance (miles)</label>
+            <input type="number" name="distance_miles" class="form-control" step="0.1" min="0.1"
+                   value="{{ f.get('distance_miles', '') }}" placeholder="45.0">
+          </div>
+          <div class="col-sm-3">
+            <label class="form-label">Elevation Gain (ft) <span class="text-muted fw-normal">(optional)</span></label>
+            <input type="number" name="elevation_feet" class="form-control"
+                   value="{{ f.get('elevation_feet', '') }}" placeholder="2500">
           </div>
         </div>
-      </div>
-    </div>
 
-    {# ── Poll categories ────────────────────────────────────────────── #}
-    <div class="card mb-4">
-      <div class="card-header fw-semibold">What are you polling on?</div>
-      <div class="card-body">
-        <p class="text-muted small mb-3">Select at least one category. Members vote once per selected category.</p>
+        {# ── Ride Leader ──────────────────────────────────────────────────────── #}
+        <div class="mb-3">
+          <label class="form-label">Ride Leader <span class="text-muted fw-normal">(optional)</span></label>
+          <select name="leader_id" class="form-select mb-2" id="leader_select">
+            <option value="">— None / enter manually below —</option>
+            {% for m in members %}
+            <option value="{{ m.user.id }}"
+              {{ 'selected' if f.get('leader_id') and f.get('leader_id')|int == m.user.id }}>
+              {{ m.user.username }}
+            </option>
+            {% endfor %}
+          </select>
+          <input type="text" name="ride_leader_text" id="ride_leader_text" class="form-control"
+                 placeholder="Non-member name (optional)"
+                 value="{{ f.get('ride_leader_text', '') }}">
+          <div class="form-text">Select a club member or type a non-member name.</div>
+        </div>
 
-        {% for cat, label, icon, placeholder in [
-            ('length',     'Ride Length',      '📏', 'e.g. 25 miles, 50 km, 40 miles'),
-            ('course',     'Course / Route',   '🗺️', 'e.g. Reston Loop, https://ridewithgps.com/routes/…'),
-            ('start_time', 'Start Time',       '🕖', 'e.g. 7:00 AM, 7:30 AM, 8:00 AM'),
-        ] %}
+        {# ── Route (hidden when polling course) ──────────────────────────────── #}
+        <div class="mb-3" id="field-route"
+             style="{{ 'display:none' if f.get('poll_course') else '' }}">
+          <label class="form-label">Route URL <span class="text-muted fw-normal">(optional)</span></label>
+          <input type="url" name="route_url" class="form-control" maxlength="500"
+                 value="{{ f.get('route_url', '') }}" placeholder="https://ridewithgps.com/routes/…">
+          <div class="form-text">RideWithGPS links display an interactive map on the ride page.</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Garmin GroupRide Code <span class="text-muted fw-normal">(optional)</span></label>
+          <input type="text" name="garmin_groupride_code" class="form-control" maxlength="6"
+                 inputmode="numeric" pattern="[0-9]{6}" style="max-width:160px"
+                 value="{{ f.get('garmin_groupride_code', '') }}" placeholder="123456">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Video URL <span class="text-muted fw-normal">(optional)</span></label>
+          <input type="url" name="video_url" class="form-control" maxlength="500"
+                 value="{{ f.get('video_url', '') }}" placeholder="https://www.youtube.com/watch?v=…">
+          <div class="form-text">Paste a YouTube or Vimeo URL — it will be embedded automatically.</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Max Riders <span class="text-muted fw-normal">(optional — leave blank for unlimited)</span></label>
+          <input type="number" name="max_riders" class="form-control form-control-sm" min="1" max="9999"
+                 style="max-width:140px" value="{{ f.get('max_riders', '') }}" placeholder="e.g. 20">
+        </div>
+
         <div class="mb-4">
-          <div class="form-check mb-2">
-            <input class="form-check-input category-toggle" type="checkbox" name="poll_{{ cat }}"
-                   id="toggle_{{ cat }}" value="1" data-target="opts_{{ cat }}"
-                   {{ 'checked' if f.get('poll_' + cat) }}>
-            <label class="form-check-label fw-semibold" for="toggle_{{ cat }}">
-              {{ icon }} {{ label }}
-            </label>
-          </div>
-          <div id="opts_{{ cat }}" class="option-block ps-4" style="{{ '' if f.get('poll_' + cat) else 'display:none' }}">
-            <div class="option-list" id="list_{{ cat }}">
-              {% set existing = f.getlist(cat + '_options[]') if f else [] %}
-              {% if existing %}
-                {% for val in existing %}
-                <div class="input-group mb-2 option-row">
-                  <input type="text" name="{{ cat }}_options[]" class="form-control" maxlength="200"
-                         value="{{ val }}" placeholder="{{ placeholder }}">
-                  <button type="button" class="btn btn-outline-danger remove-opt">✕</button>
-                </div>
-                {% endfor %}
-              {% else %}
-                <div class="input-group mb-2 option-row">
-                  <input type="text" name="{{ cat }}_options[]" class="form-control" maxlength="200"
-                         placeholder="{{ placeholder }}">
-                  <button type="button" class="btn btn-outline-danger remove-opt">✕</button>
-                </div>
-                <div class="input-group mb-2 option-row">
-                  <input type="text" name="{{ cat }}_options[]" class="form-control" maxlength="200"
-                         placeholder="{{ placeholder }}">
-                  <button type="button" class="btn btn-outline-danger remove-opt">✕</button>
-                </div>
-              {% endif %}
-            </div>
-            <button type="button" class="btn btn-outline-secondary btn-sm add-opt" data-list="list_{{ cat }}"
-                    data-name="{{ cat }}_options[]" data-placeholder="{{ placeholder }}">
-              + Add option
-            </button>
-            <p class="text-muted small mt-1 mb-0">Up to 10 options. Ties broken by the option that received its first vote earliest.</p>
-          </div>
+          <label class="form-label">Description <span class="text-muted fw-normal">(optional)</span></label>
+          <textarea name="description" class="form-control" rows="3"
+                    placeholder="Route notes, what to bring, etc.">{{ f.get('description', '') }}</textarea>
         </div>
-        {% endfor %}
-      </div>
-    </div>
 
-    {# ── Poll closing & finalization ────────────────────────────────── #}
-    <div class="card mb-4">
-      <div class="card-header fw-semibold">Poll Schedule</div>
-      <div class="card-body">
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Poll Closes At <span class="text-danger">*</span></label>
-          <input type="datetime-local" name="closes_at" class="form-control" required
-                 value="{{ f.get('closes_at', '') }}">
-          <div class="form-text">Voting stops at this time. Members receive no more reminders after.</div>
-        </div>
-        <div class="mb-3">
-          <label class="form-label fw-semibold">Finalization</label>
-          <div class="d-flex flex-column gap-2 mt-1">
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="finalize_mode" id="fm_auto" value="auto"
-                     {{ 'checked' if f.get('finalize_mode') == 'auto' }}>
-              <label class="form-check-label" for="fm_auto">
-                <strong>Auto-finalize</strong> — pick the most popular option automatically and create the ride
-              </label>
+        {# ── Poll schedule & finalization ─────────────────────────────────────── #}
+        <div class="card mb-4">
+          <div class="card-header fw-semibold bg-light">Poll Schedule</div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label">Poll Closes At <span class="text-danger">*</span></label>
+              <input type="datetime-local" name="closes_at" class="form-control" required
+                     value="{{ f.get('closes_at', '') }}">
+              <div class="form-text">Voting stops at this time. Set this before the ride date.</div>
             </div>
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="finalize_mode" id="fm_manual" value="manual"
-                     {{ 'checked' if f.get('finalize_mode', 'manual') != 'auto' }}>
-              <label class="form-check-label" for="fm_manual">
-                <strong>Manually finalize</strong> — you get an email when the poll closes, then choose the winning options
-              </label>
+            <div class="mb-0">
+              <label class="form-label">Finalization</label>
+              <div class="d-flex flex-column gap-2 mt-1">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="finalize_mode" id="fm_auto" value="auto"
+                         {{ 'checked' if f.get('finalize_mode') == 'auto' }}>
+                  <label class="form-check-label" for="fm_auto">
+                    <strong>Auto-finalize</strong> — when the poll closes, automatically pick the winning options, create the ride, and email voters
+                  </label>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="finalize_mode" id="fm_manual" value="manual"
+                         {{ 'checked' if f.get('finalize_mode', 'manual') != 'auto' }}>
+                  <label class="form-check-label" for="fm_manual">
+                    <strong>Manually finalize</strong> — you get an email with results when the poll closes, then choose the winning options yourself
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <div class="d-flex gap-2 justify-content-end">
-      <a href="{{ url_for('clubs.home', slug=club.slug) }}" class="btn btn-outline-secondary">Cancel</a>
-      <button type="submit" class="btn btn-paceline">Create Poll</button>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-paceline" data-testid="poll-submit">Create Poll</button>
+          <a href="{{ url_for('admin.club_rides', slug=club.slug) }}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+
+      </form>
     </div>
-  </form>
+  </div>
 </div>
+{% endblock %}
 
-<script>
-document.querySelectorAll('.category-toggle').forEach(function(cb) {
-  cb.addEventListener('change', function() {
-    var block = document.getElementById(this.dataset.target);
-    block.style.display = this.checked ? '' : 'none';
+{% block scripts %}
+<script nonce="{{ g.csp_nonce }}">
+(function () {
+  // Show/hide downstream fields when poll categories are toggled
+  document.querySelectorAll('.poll-toggle').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      var targetId = this.dataset.hides;
+      var block = document.getElementById(targetId);
+      if (block) block.style.display = this.checked ? 'none' : '';
+      // Show/hide the option-entry block
+      var catKey = this.id.replace('poll_', '');
+      var optBlock = document.getElementById('opts_' + catKey);
+      if (optBlock) optBlock.style.display = this.checked ? '' : 'none';
+    });
   });
-});
 
-document.querySelectorAll('.add-opt').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    var list = document.getElementById(this.dataset.list);
-    var rows = list.querySelectorAll('.option-row');
-    if (rows.length >= 10) { alert('Maximum 10 options per category.'); return; }
-    var row = document.createElement('div');
-    row.className = 'input-group mb-2 option-row';
-    row.innerHTML = '<input type="text" name="' + this.dataset.name + '" class="form-control" maxlength="200" placeholder="' + this.dataset.placeholder + '">'
-                  + '<button type="button" class="btn btn-outline-danger remove-opt">✕</button>';
-    list.appendChild(row);
-    row.querySelector('.remove-opt').addEventListener('click', removeRow);
+  // Leader select toggle
+  var sel = document.getElementById('leader_select');
+  var txt = document.getElementById('ride_leader_text');
+  function toggleLeader() { txt.style.display = sel.value ? 'none' : ''; }
+  sel.addEventListener('change', toggleLeader);
+  toggleLeader();
+
+  // Add / remove option rows
+  document.querySelectorAll('.add-opt').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var list = document.getElementById(this.dataset.list);
+      if (list.querySelectorAll('.option-row').length >= 10) {
+        alert('Maximum 10 options per category.');
+        return;
+      }
+      var row = document.createElement('div');
+      row.className = 'input-group mb-2 option-row';
+      row.innerHTML = '<input type="text" name="' + this.dataset.name + '" class="form-control" maxlength="200" placeholder="' + this.dataset.placeholder + '">'
+                    + '<button type="button" class="btn btn-outline-danger remove-opt">✕</button>';
+      list.appendChild(row);
+      row.querySelector('.remove-opt').addEventListener('click', removeRow);
+    });
   });
-});
 
-function removeRow() {
-  var list = this.closest('.option-list');
-  var rows = list.querySelectorAll('.option-row');
-  if (rows.length > 1) { this.closest('.option-row').remove(); }
-}
-
-document.querySelectorAll('.remove-opt').forEach(function(btn) {
-  btn.addEventListener('click', removeRow);
-});
+  function removeRow() {
+    var list = this.closest('.option-list');
+    if (list.querySelectorAll('.option-row').length > 1) {
+      this.closest('.option-row').remove();
+    }
+  }
+  document.querySelectorAll('.remove-opt').forEach(function (btn) {
+    btn.addEventListener('click', removeRow);
+  });
+})();
 </script>
 {% endblock %}

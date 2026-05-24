@@ -1233,7 +1233,10 @@ def club_rides(slug):
     club = _get_club_or_404(slug)
     all_rides = (Ride.query.filter_by(club_id=club.id)
                  .order_by(Ride.date.desc()).all())
-    return render_template('admin/club_rides.html', club=club, rides=all_rides)
+    from ..models import RidePoll
+    polls = (RidePoll.query.filter_by(club_id=club.id)
+             .order_by(RidePoll.ride_date.desc()).limit(50).all())
+    return render_template('admin/club_rides.html', club=club, rides=all_rides, polls=polls)
 
 
 @admin_bp.route('/clubs/<slug>/rides/<int:ride_id>/roster')

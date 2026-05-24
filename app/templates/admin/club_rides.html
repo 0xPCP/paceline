@@ -13,7 +13,10 @@
       </nav>
       <h1>Manage Rides</h1>
     </div>
-    <a href="{{ url_for('admin.ride_new', slug=club.slug) }}" class="btn btn-paceline">+ New Ride</a>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('polls.create', slug=club.slug) }}" class="btn btn-outline-secondary">+ New Ride Poll</a>
+      <a href="{{ url_for('admin.ride_new', slug=club.slug) }}" class="btn btn-paceline">+ New Ride</a>
+    </div>
   </div>
 </div>
 
@@ -52,6 +55,58 @@
   </div>
   {% else %}
   <p class="text-muted">No rides yet. <a href="{{ url_for('admin.ride_new', slug=club.slug) }}">Create the first one.</a></p>
+  {% endif %}
+
+  {# ── Ride polls ──────────────────────────────────────────────────────────── #}
+  {% if polls %}
+  <h2 class="mt-5 mb-3 h4">Ride Polls</h2>
+  <div class="table-responsive">
+    <div class="paceline-table-wrap"><table class="table paceline-table">
+      <thead>
+        <tr><th>Ride Date</th><th>Title</th><th>Categories</th><th>Voters</th><th>Closes / Status</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for poll in polls %}
+        <tr>
+          <td>{{ poll.ride_date.strftime('%b %-d, %Y') }}</td>
+          <td><a href="{{ url_for('polls.detail', slug=club.slug, poll_id=poll.id) }}">{{ poll.title }}</a></td>
+          <td>
+            {% if poll.poll_start_time %}<span class="badge bg-light text-dark border me-1">Start Time</span>{% endif %}
+            {% if poll.poll_length %}<span class="badge bg-light text-dark border me-1">Length</span>{% endif %}
+            {% if poll.poll_course %}<span class="badge bg-light text-dark border me-1">Course</span>{% endif %}
+          </td>
+          <td>{{ poll.unique_voter_count }}</td>
+          <td>
+            {% if poll.status == 'open' %}
+              <span class="badge bg-success">Open</span>
+              <span class="text-muted small ms-1">until {{ poll.closes_at.strftime('%-m/%-d %-I:%M %p') }}</span>
+            {% elif poll.status == 'closed' %}
+              <span class="badge bg-warning text-dark">Closed</span>
+              {% if poll.finalize_mode == 'manual' %}
+              <a href="{{ url_for('polls.finalize', slug=club.slug, poll_id=poll.id) }}" class="btn btn-paceline-sm ms-2">Finalize →</a>
+              {% endif %}
+            {% else %}
+              <span class="badge bg-secondary">Finalized</span>
+              {% if poll.ride_id %}
+              <a href="{{ url_for('clubs.ride_detail', slug=club.slug, ride_id=poll.ride_id) }}" class="text-muted small ms-1">View ride →</a>
+              {% endif %}
+            {% endif %}
+          </td>
+          <td class="d-flex gap-1">
+            <a href="{{ url_for('polls.detail', slug=club.slug, poll_id=poll.id) }}" class="btn btn-outline-secondary btn-xs">View</a>
+            {% if not poll.votes %}
+            <form method="post" action="{{ url_for('polls.delete_poll', slug=club.slug, poll_id=poll.id) }}"
+                  onsubmit="return confirm('Delete this poll?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-outline-danger btn-xs">Del</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
   {% endif %}
 </div>
 {% endblock %}

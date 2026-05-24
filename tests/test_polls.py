@@ -239,7 +239,7 @@ class TestPollAccess:
             login(client, 'a@x.com')
             rv = client.get(f'/clubs/poll-club/polls/create')
             assert rv.status_code == 200
-            assert b'Create Ride Poll' in rv.data
+            assert b'New Ride Poll' in rv.data
 
 
 # ── Create poll ───────────────────────────────────────────────────────────────
@@ -259,6 +259,7 @@ class TestPollCreate:
             rv = self._post_create(client, 'poll-club', {
                 'title': 'Weekend Ride',
                 'ride_date': future_date().isoformat(),
+                'start_time': '07:00',
                 'closes_at': closes.strftime('%Y-%m-%dT%H:%M'),
                 'finalize_mode': 'manual',
                 'poll_length': '1',
@@ -280,6 +281,8 @@ class TestPollCreate:
             rv = self._post_create(client, 'poll-club', {
                 'title': 'No Category Poll',
                 'ride_date': future_date().isoformat(),
+                'start_time': '07:00',
+                'distance_miles': '25',
                 'closes_at': future_dt(1).strftime('%Y-%m-%dT%H:%M'),
                 'finalize_mode': 'manual',
             })
@@ -294,6 +297,7 @@ class TestPollCreate:
             rv = self._post_create(client, 'poll-club', {
                 'title': 'Empty Options',
                 'ride_date': future_date().isoformat(),
+                'start_time': '07:00',
                 'closes_at': future_dt(1).strftime('%Y-%m-%dT%H:%M'),
                 'finalize_mode': 'manual',
                 'poll_length': '1',
@@ -313,6 +317,7 @@ class TestPollCreate:
             rv = self._post_create(client, 'poll-club', {
                 'title': 'Many Options',
                 'ride_date': future_date().isoformat(),
+                'start_time': '07:00',
                 'closes_at': future_dt(1).strftime('%Y-%m-%dT%H:%M'),
                 'finalize_mode': 'manual',
                 'poll_length': '1',

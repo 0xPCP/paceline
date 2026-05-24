@@ -1069,8 +1069,19 @@ class RidePoll(db.Model):
     poll_start_time  = db.Column(db.Boolean, default=False, nullable=False)
     created_at       = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
+    distance_miles      = db.Column(db.Float, nullable=True)
+    elevation_feet      = db.Column(db.Integer, nullable=True)
+    ride_type           = db.Column(db.String(20), nullable=True)
+    leader_id           = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    ride_leader         = db.Column(db.String(100), nullable=True)
+    max_riders          = db.Column(db.Integer, nullable=True)
+    video_url           = db.Column(db.String(500), nullable=True)
+    garmin_groupride_code = db.Column(db.String(6), nullable=True)
+    route_url           = db.Column(db.String(500), nullable=True)
+
     club    = db.relationship('Club', backref=db.backref('polls', lazy=True))
     creator = db.relationship('User', foreign_keys=[created_by_id])
+    leader  = db.relationship('User', foreign_keys='RidePoll.leader_id')
     ride    = db.relationship('Ride', foreign_keys=[ride_id])
     options = db.relationship('RidePollOption', backref='poll', lazy=True,
                                order_by='RidePollOption.display_order',
