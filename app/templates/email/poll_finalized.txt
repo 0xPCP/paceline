@@ -1,0 +1,16 @@
+Ride Confirmed: {{ ride.title }}
+{{ poll.club.name }}
+
+The poll is in — your ride is happening!
+
+Date:      {{ ride.date.strftime('%A, %B %-d, %Y') }}
+Start:     {{ ride.time.strftime('%-I:%M %p') }}
+{% if ride.meeting_location %}Meet at:   {{ ride.meeting_location }}
+{% endif %}Distance:  {{ ride.distance_miles | dist }}
+{% if ride.pace_category %}Pace:      {{ ride.pace_label }}
+{% endif %}
+
+You participated in the poll. Sign up now to lock in your spot:
+{{ signup_url }}
+
+— Paceline

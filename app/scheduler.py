@@ -243,6 +243,35 @@ def purge_old_error_logs(app):
             logger.info('Error log purge: removed %d entries older than %d days', deleted, retention_days)
 
 
+def process_expired_polls(app):
+    """Close open polls whose closes_at has passed; auto-finalize if mode='auto'."""
+    from datetime import datetime
+    with app.app_context():
+        from .extensions import db
+        from .models import RidePoll
+        now = datetime.utcnow()
+        expired = RidePoll.query.filter(
+            RidePoll.status == 'open',
+            RidePoll.closes_at <= now,
+        ).all()
+        for poll in expired:
+            poll.status = 'closed'
+            db.session.commit()
+            if poll.finalize_mode == 'auto':
+                try:
+                    from .routes.polls import _auto_finalize_poll
+                    _auto_finalize_poll(poll, poll.club)
+                except Exception:
+                    logger.exception('Auto-finalize failed for poll %d', poll.id)
+            else:
+                try:
+                    from .email import send_poll_closed_leader
+                    send_poll_closed_leader(poll)
+                except Exception:
+                    logger.exception('Poll closed email failed for poll %d', poll.id)
+            logger.info('Poll %d (%s) closed via scheduler', poll.id, poll.title)
+
+
 def init_scheduler(app):
     """Start the APScheduler background scheduler if AUTO_CANCEL_ENABLED config is set."""
     if not app.config.get('AUTO_CANCEL_ENABLED', True):
@@ -319,6 +348,16 @@ def init_scheduler(app):
         name='Purge old error log entries',
         replace_existing=True,
         misfire_grace_time=3600,
+    )
+    scheduler.add_job(
+        func=process_expired_polls,
+        trigger='interval',
+        minutes=10,
+        args=[app],
+        id='poll_expiry',
+        name='Process expired ride polls',
+        replace_existing=True,
+        misfire_grace_time=600,
     )
     scheduler.start()
     logger.info('Auto-cancel scheduler started (runs daily at %02d:00)', hour)

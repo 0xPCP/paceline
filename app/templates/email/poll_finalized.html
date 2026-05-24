@@ -1,0 +1,22 @@
+{% extends "email/_base.html" %}
+{% block preheader %}Ride confirmed: {{ ride.title }} on {{ ride.date.strftime('%B %-d') }} — sign up now{% endblock %}
+{% block body %}
+<div class="club-tag">{{ poll.club.name }}</div>
+<h1>Ride Confirmed: {{ ride.title }}</h1>
+
+<div class="alert alert-success">
+  The poll is in — your ride is happening!
+</div>
+
+<table class="meta-table">
+  <tr><td>Date</td><td>{{ ride.date.strftime('%A, %B %-d, %Y') }}</td></tr>
+  <tr><td>Start Time</td><td>{{ ride.time.strftime('%-I:%M %p') }}</td></tr>
+  {% if ride.meeting_location %}<tr><td>Meet At</td><td>{{ ride.meeting_location }}</td></tr>{% endif %}
+  <tr><td>Distance</td><td>{{ ride.distance_miles | dist }}</td></tr>
+  {% if ride.pace_category %}<tr><td>Pace</td><td>{{ ride.pace_label | pace }}</td></tr>{% endif %}
+</table>
+
+<p>You participated in the poll — sign up now to lock in your spot.</p>
+
+<a href="{{ signup_url }}" class="cta">View Ride &amp; Sign Up →</a>
+{% endblock %}

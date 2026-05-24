@@ -196,6 +196,7 @@ def create_app(config_class=Config):
     from .routes.stripe_connect import stripe_connect_bp
     from .routes.virtual import virtual_bp
     from .routes.friends import friends_bp
+    from .routes.polls import polls_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -209,6 +210,7 @@ def create_app(config_class=Config):
     app.register_blueprint(stripe_connect_bp, url_prefix='/stripe')
     app.register_blueprint(virtual_bp, url_prefix='/virtual')
     app.register_blueprint(friends_bp)
+    app.register_blueprint(polls_bp)
 
     from .version import __version__
     from .utils import club_theme_vars, mentionify

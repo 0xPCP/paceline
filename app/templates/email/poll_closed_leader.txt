@@ -1,0 +1,17 @@
+Poll Closed: {{ poll.title }}
+{{ poll.club.name }} · {{ poll.ride_date.strftime('%A, %B %-d, %Y') }}
+
+Voting has ended with {{ poll.unique_voter_count }} voter(s). Review results and finalize:
+
+{% for cat in poll.active_categories %}
+{{ {'length': 'Ride Length', 'course': 'Course / Route', 'start_time': 'Start Time'}[cat] | upper }}:
+{% set opts = poll.options_for(cat) %}{% set total = opts | sum(attribute='vote_count') %}{% set winner = poll.winner_for(cat) %}
+{% for opt in opts | sort(attribute='vote_count', reverse=True) -%}
+  {% if winner and winner.id == opt.id %}* {% else %}  {% endif %}{{ opt.value }} — {{ opt.vote_count }} vote{{ 's' if opt.vote_count != 1 else '' }}{% if total > 0 %} ({{ (opt.vote_count / total * 100) | int }}%){% endif %}
+
+{% endfor %}
+{% endfor %}
+
+Finalize the ride: {{ finalize_url }}
+
+— Paceline

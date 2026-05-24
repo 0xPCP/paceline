@@ -205,7 +205,8 @@
                 data-bs-toggle="tab" data-bs-target="#tab-rides"
                 type="button" role="tab">
           Rides
-          {% if upcoming %}<span class="club-tab-count">{{ upcoming|length }}</span>{% endif %}
+          {% set total_upcoming = upcoming|length + (open_polls|length if open_polls and is_member else 0) %}
+          {% if total_upcoming %}<span class="club-tab-count">{{ total_upcoming }}</span>{% endif %}
         </button>
       </li>
       {% if club.safety_guidelines or club.bylaws_url %}
@@ -504,12 +505,46 @@
     <div class="container py-4">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="club-section-title mb-0">Upcoming Rides</h4>
-        {% if current_user.is_authenticated %}
-        <a href="{{ url_for('clubs.rides', slug=club.slug) }}" class="btn btn-paceline">Full Calendar</a>
-        {% else %}
-        <a href="{{ url_for('auth.login', next=url_for('clubs.rides', slug=club.slug)) }}" class="btn btn-paceline">Full Calendar</a>
-        {% endif %}
+        <div class="d-flex gap-2 flex-wrap">
+          {% if current_user.is_authenticated and current_user.can_manage_rides(club) %}
+          <a href="{{ url_for('polls.create', slug=club.slug) }}" class="btn btn-outline-secondary btn-sm">+ Ride Poll</a>
+          {% endif %}
+          {% if current_user.is_authenticated %}
+          <a href="{{ url_for('clubs.rides', slug=club.slug) }}" class="btn btn-paceline">Full Calendar</a>
+          {% else %}
+          <a href="{{ url_for('auth.login', next=url_for('clubs.rides', slug=club.slug)) }}" class="btn btn-paceline">Full Calendar</a>
+          {% endif %}
+        </div>
       </div>
+
+      {# ── Open polls ── #}
+      {% if open_polls and is_member %}
+        {% for poll in open_polls %}
+        <a href="{{ url_for('polls.detail', slug=club.slug, poll_id=poll.id) }}" class="text-decoration-none">
+          <div class="ride-card mb-3 d-flex gap-3 align-items-start" style="border-left:3px solid #e76f51">
+            <div class="ride-date-block">
+              <div class="rdb-month">{{ poll.ride_date.strftime('%b') }}</div>
+              <div class="rdb-day">{{ poll.ride_date.day }}</div>
+            </div>
+            <div class="flex-grow-1">
+              <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                <span class="badge {% if poll.status == 'open' %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                  Poll {% if poll.status == 'open' %}Open{% else %}Closed{% endif %}
+                </span>
+                {% if poll.finalize_mode == 'auto' %}<span class="badge bg-light text-dark border" style="font-size:.65rem">Auto-finalize</span>{% endif %}
+              </div>
+              <div class="ride-title">{{ poll.title }}</div>
+              <p class="ride-meta mb-0">
+                Vote on: {{ poll.active_categories | map('replace', 'length', 'length') | map('replace', 'start_time', 'start time') | map('replace', 'course', 'course') | join(', ') }}
+                &bull; {{ poll.unique_voter_count }} voted
+                {% if poll.status == 'open' %}&bull; Closes {{ poll.closes_at.strftime('%-m/%-d %-I:%M %p') }}{% endif %}
+              </p>
+            </div>
+            <span class="btn btn-paceline-sm align-self-center">Vote →</span>
+          </div>
+        </a>
+        {% endfor %}
+      {% endif %}
 
       {% if upcoming %}
         {% set visible_rides = upcoming if current_user.is_authenticated else upcoming[:5] %}

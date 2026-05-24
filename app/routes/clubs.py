@@ -277,6 +277,13 @@ def home(slug):
                 .order_by(Ride.date.asc(), Ride.time.asc())
                 .limit(8).all())
     weather = get_weather_for_rides(upcoming)
+
+    from ..models import RidePoll
+    open_polls = (RidePoll.query
+                  .filter_by(club_id=club.id)
+                  .filter(RidePoll.status.in_(['open', 'closed']), RidePoll.ride_date >= today)
+                  .order_by(RidePoll.ride_date.asc())
+                  .all())
     is_member  = current_user.is_authenticated and current_user.is_active_member_of(club)
     is_pending = current_user.is_authenticated and current_user.is_pending_member_of(club)
     is_pending_payment = current_user.is_authenticated and current_user.is_pending_payment_member_of(club)
@@ -325,6 +332,7 @@ def home(slug):
         board_is_admin = current_user.can_manage_content(club)
 
     return render_template('clubs/home.html', club=club, upcoming=upcoming,
+                           open_polls=open_polls,
                            weather=weather, is_member=is_member, is_pending=is_pending,
                            is_pending_payment=is_pending_payment,
                            user_membership=user_membership,

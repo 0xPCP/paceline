@@ -1,0 +1,182 @@
+{% extends "base_club.html" %}
+{% block title %}Poll: {{ poll.title }} — {{ club.name }}{% endblock %}
+{% block head %}{% include 'clubs/_theme.html' %}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <nav aria-label="breadcrumb" class="mb-2">
+      <ol class="breadcrumb mb-0 small">
+        <li class="breadcrumb-item"><a href="{{ url_for('clubs.home', slug=club.slug) }}">{{ club.name }}</a></li>
+        <li class="breadcrumb-item active">Ride Poll</li>
+      </ol>
+    </nav>
+    <div class="d-flex align-items-start justify-content-between flex-wrap gap-2">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+          <span class="badge {% if poll.status == 'open' %}bg-success{% elif poll.status == 'closed' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+            {% if poll.status == 'open' %}Open{% elif poll.status == 'closed' %}Closed{% else %}Finalized{% endif %}
+          </span>
+          {% if poll.finalize_mode == 'auto' %}<span class="badge bg-light text-dark border">Auto-finalize</span>{% endif %}
+        </div>
+        <h1 class="mb-0">{{ poll.title }}</h1>
+        {% if poll.description %}<p class="text-muted mb-0 mt-1">{{ poll.description }}</p>{% endif %}
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        {% if poll.status == 'finalized' and poll.ride_id %}
+        <a href="{{ url_for('clubs.ride_detail', slug=club.slug, ride_id=poll.ride_id) }}" class="btn btn-paceline btn-sm">View Ride →</a>
+        {% endif %}
+        {% if can_manage and poll.status == 'open' %}
+        <form method="post" action="{{ url_for('polls.close_poll', slug=club.slug, poll_id=poll.id) }}"
+              onsubmit="return confirm('Close this poll now?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-outline-secondary btn-sm">Close Poll Early</button>
+        </form>
+        {% endif %}
+        {% if can_manage and poll.status == 'closed' and poll.finalize_mode == 'manual' %}
+        <a href="{{ url_for('polls.finalize', slug=club.slug, poll_id=poll.id) }}" class="btn btn-paceline btn-sm">Finalize Ride →</a>
+        {% endif %}
+        {% if can_manage and not poll.votes %}
+        <form method="post" action="{{ url_for('polls.delete_poll', slug=club.slug, poll_id=poll.id) }}"
+              onsubmit="return confirm('Delete this poll?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-outline-danger btn-sm">Delete</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container py-4" style="max-width:720px">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+    <div class="alert alert-{{ 'danger' if cat == 'danger' else ('success' if cat == 'success' else 'info') }} alert-dismissible fade show">{{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+    {% endfor %}
+  {% endwith %}
+
+  {# ── Ride meta card ─────────────────────────────────────────────── #}
+  <div class="ride-card mb-4">
+    <div class="d-flex gap-3 align-items-start">
+      <div class="ride-date-block">
+        <div class="rdb-month">{{ poll.ride_date.strftime('%b') }}</div>
+        <div class="rdb-day">{{ poll.ride_date.day }}</div>
+      </div>
+      <div class="flex-grow-1">
+        {% if poll.pace_category %}
+        <span class="pace-badge pace-{{ poll.pace_category }} mb-1">{{ poll.pace_category }}</span>
+        {% endif %}
+        <div class="ride-meta">
+          {% if poll.default_start_time and not poll.poll_start_time %}{{ poll.default_start_time.strftime('%-I:%M %p') }} &bull; {% endif %}
+          {{ poll.ride_date.strftime('%A, %B %-d, %Y') }}
+          {% if poll.meeting_location %}&bull; {{ poll.meeting_location }}{% endif %}
+        </div>
+        <div class="small text-muted mt-1">
+          {% if poll.status == 'open' %}
+          Voting closes {{ poll.closes_at.strftime('%B %-d at %-I:%M %p') }}
+          &bull; {{ poll.unique_voter_count }} voter{{ 's' if poll.unique_voter_count != 1 else '' }}
+          {% elif poll.status == 'closed' %}
+          Poll closed &bull; {{ poll.unique_voter_count }} voter{{ 's' if poll.unique_voter_count != 1 else '' }}
+          {% else %}
+          Finalized &bull; {{ poll.unique_voter_count }} voted
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Share link ──────────────────────────────────────────────────── #}
+  {% if poll.status == 'open' %}
+  <div class="mb-4 p-3 bg-light rounded border d-flex align-items-center gap-2">
+    <span class="text-muted small">Share poll:</span>
+    <input type="text" class="form-control form-control-sm"
+           value="{{ request.url }}" id="shareUrl" readonly>
+    <button class="btn btn-outline-secondary btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('shareUrl').value);this.textContent='Copied!'">Copy</button>
+  </div>
+  {% endif %}
+
+  {# ── Voting form ─────────────────────────────────────────────────── #}
+  {% if poll.is_open %}
+  <form method="post" action="{{ url_for('polls.vote', slug=club.slug, poll_id=poll.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% endif %}
+
+  {% for cat in poll.active_categories %}
+  {% set cd = cat_data[cat] %}
+  {% set total = cd.total_votes %}
+  {% set winner = poll.winner_for(cat) if poll.status != 'open' else none %}
+
+  <div class="card mb-4">
+    <div class="card-header d-flex align-items-center justify-content-between">
+      <span class="fw-semibold">{{ cat_labels[cat] }}</span>
+      <span class="badge bg-light text-dark border">{{ total }} vote{{ 's' if total != 1 else '' }}</span>
+    </div>
+    <div class="card-body p-0">
+      {% for opt in cd.options %}
+      {% set pct = (opt.vote_count / total * 100) | int if total > 0 else 0 %}
+      {% set is_voted = cd.user_voted_option_id == opt.id %}
+      {% set is_winner = winner and winner.id == opt.id %}
+      <div class="p-3 border-bottom position-relative" style="overflow:hidden">
+        {# Vote bar #}
+        <div class="position-absolute top-0 start-0 h-100"
+             style="width:{{ pct }}%;background:{% if is_winner %}rgba(16,185,129,.12){% elif is_voted %}rgba(231,111,81,.10){% else %}rgba(0,0,0,.04){% endif %};pointer-events:none;transition:width .4s"></div>
+
+        <div class="position-relative d-flex align-items-center gap-3">
+          {% if poll.is_open %}
+          <input type="radio" name="vote_{{ cat }}" value="{{ opt.id }}"
+                 class="form-check-input" id="opt_{{ opt.id }}"
+                 {{ 'checked' if is_voted }}>
+          {% endif %}
+          <div class="flex-grow-1">
+            <label for="opt_{{ opt.id }}" class="mb-0 fw-semibold {% if not poll.is_open %}d-block{% endif %}">
+              {% if is_winner %}⭐ {% endif %}{{ opt.value }}
+              {% if is_voted and poll.is_open %}<span class="badge bg-paceline ms-1" style="font-size:.65rem">Your vote</span>{% endif %}
+            </label>
+            {# Voter names (public poll) #}
+            {% set voter_names = opt.voters | map(attribute='username') | list %}
+            {% if voter_names %}
+            <div class="text-muted small mt-1">
+              {{ voter_names | join(', ') }}
+            </div>
+            {% endif %}
+          </div>
+          <div class="text-end" style="min-width:60px">
+            <span class="fw-semibold">{{ opt.vote_count }}</span>
+            {% if total > 0 %}<span class="text-muted small"> ({{ pct }}%)</span>{% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+
+  {% if poll.is_open %}
+  <div class="d-grid mb-4">
+    <button type="submit" class="btn btn-paceline btn-lg">
+      {% if poll.active_categories | length > 1 %}Submit Votes{% else %}Submit Vote{% endif %}
+    </button>
+  </div>
+  </form>
+  <p class="text-muted small text-center">
+    This is a public poll — all club members can see who voted for each option.<br>
+    You can change your vote any time before the poll closes.<br>
+    Ties are broken by the option that received its first vote earliest.
+  </p>
+  {% elif poll.status == 'closed' %}
+  <div class="alert alert-warning">
+    Voting has closed.
+    {% if can_manage and poll.finalize_mode == 'manual' %}
+    <a href="{{ url_for('polls.finalize', slug=club.slug, poll_id=poll.id) }}" class="alert-link">Finalize the ride →</a>
+    {% elif poll.finalize_mode == 'auto' %}
+    The ride will be created automatically.
+    {% endif %}
+  </div>
+  {% elif poll.status == 'finalized' %}
+  <div class="alert alert-success">
+    This poll has been finalized.
+    {% if poll.ride_id %}<a href="{{ url_for('clubs.ride_detail', slug=club.slug, ride_id=poll.ride_id) }}" class="alert-link">View the ride →</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

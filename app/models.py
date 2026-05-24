@@ -1048,6 +1048,112 @@ class UserBike(db.Model):
                                                        cascade='all, delete-orphan'))
 
 
+class RidePoll(db.Model):
+    __tablename__ = 'ride_polls'
+
+    id               = db.Column(db.Integer, primary_key=True)
+    club_id          = db.Column(db.Integer, db.ForeignKey('clubs.id'), nullable=False)
+    created_by_id    = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    title            = db.Column(db.String(200), nullable=False)
+    description      = db.Column(db.Text, nullable=True)
+    ride_date        = db.Column(db.Date, nullable=False)
+    default_start_time = db.Column(db.Time, nullable=True)
+    pace_category    = db.Column(db.String(2), nullable=True)
+    meeting_location = db.Column(db.String(500), nullable=True)
+    closes_at        = db.Column(db.DateTime, nullable=False)
+    finalize_mode    = db.Column(db.String(10), nullable=False, default='manual')  # 'auto' | 'manual'
+    status           = db.Column(db.String(12), nullable=False, default='open')   # 'open' | 'closed' | 'finalized'
+    ride_id          = db.Column(db.Integer, db.ForeignKey('rides.id'), nullable=True)
+    poll_length      = db.Column(db.Boolean, default=False, nullable=False)
+    poll_course      = db.Column(db.Boolean, default=False, nullable=False)
+    poll_start_time  = db.Column(db.Boolean, default=False, nullable=False)
+    created_at       = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    club    = db.relationship('Club', backref=db.backref('polls', lazy=True))
+    creator = db.relationship('User', foreign_keys=[created_by_id])
+    ride    = db.relationship('Ride', foreign_keys=[ride_id])
+    options = db.relationship('RidePollOption', backref='poll', lazy=True,
+                               order_by='RidePollOption.display_order',
+                               cascade='all, delete-orphan')
+    votes   = db.relationship('RidePollVote', backref='poll', lazy=True,
+                               cascade='all, delete-orphan')
+
+    @property
+    def is_open(self):
+        return self.status == 'open' and datetime.now(timezone.utc).replace(tzinfo=None) < self.closes_at
+
+    @property
+    def unique_voter_count(self):
+        return len({v.user_id for v in self.votes})
+
+    @property
+    def active_categories(self):
+        cats = []
+        if self.poll_length:     cats.append('length')
+        if self.poll_course:     cats.append('course')
+        if self.poll_start_time: cats.append('start_time')
+        return cats
+
+    def options_for(self, category):
+        return [o for o in self.options if o.category == category]
+
+    def user_vote_for(self, user_id, category):
+        for v in self.votes:
+            if v.user_id == user_id and v.category == category:
+                return v
+        return None
+
+    def winner_for(self, category):
+        opts = self.options_for(category)
+        if not opts:
+            return None
+        counts = [(o, sum(1 for v in self.votes if v.option_id == o.id)) for o in opts]
+        best = max(c for _, c in counts)
+        tied = [o for o, c in counts if c == best]
+        if len(tied) == 1:
+            return tied[0]
+        # Tie-break: option that received its first vote earliest
+        return min(tied, key=lambda o: o.first_voted_at or datetime(9999, 1, 1))
+
+
+class RidePollOption(db.Model):
+    __tablename__ = 'ride_poll_options'
+
+    id            = db.Column(db.Integer, primary_key=True)
+    poll_id       = db.Column(db.Integer, db.ForeignKey('ride_polls.id'), nullable=False)
+    category      = db.Column(db.String(20), nullable=False)  # 'length' | 'course' | 'start_time'
+    value         = db.Column(db.String(200), nullable=False)
+    display_order = db.Column(db.Integer, default=0, nullable=False)
+    first_voted_at = db.Column(db.DateTime, nullable=True)
+
+    votes = db.relationship('RidePollVote', backref='option', lazy=True)
+
+    @property
+    def vote_count(self):
+        return len(self.votes)
+
+    @property
+    def voters(self):
+        return [v.user for v in self.votes]
+
+
+class RidePollVote(db.Model):
+    __tablename__ = 'ride_poll_votes'
+
+    id        = db.Column(db.Integer, primary_key=True)
+    poll_id   = db.Column(db.Integer, db.ForeignKey('ride_polls.id'), nullable=False)
+    option_id = db.Column(db.Integer, db.ForeignKey('ride_poll_options.id'), nullable=False)
+    user_id   = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    category  = db.Column(db.String(20), nullable=False)
+    voted_at  = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = db.relationship('User', foreign_keys=[user_id])
+
+    __table_args__ = (
+        db.UniqueConstraint('poll_id', 'user_id', 'category', name='uq_poll_user_category'),
+    )
+
+
 class AppErrorLog(db.Model):
     """HTTP 4xx/5xx and unhandled exceptions logged for the superadmin dashboard."""
     __tablename__ = 'app_error_logs'

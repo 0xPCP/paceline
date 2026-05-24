@@ -1,0 +1,39 @@
+{% extends "email/_base.html" %}
+{% block preheader %}Poll closed: {{ poll.title }} — view results and finalize the ride{% endblock %}
+{% block body %}
+<div class="club-tag">{{ poll.club.name }}</div>
+<h1>Poll Closed: {{ poll.title }}</h1>
+
+<div class="alert alert-info">
+  Voting has ended. Review the results below, then finalize the ride.
+</div>
+
+<table class="meta-table">
+  <tr><td>Ride Date</td><td>{{ poll.ride_date.strftime('%A, %B %-d, %Y') }}</td></tr>
+  <tr><td>Voters</td><td>{{ poll.unique_voter_count }}</td></tr>
+  <tr><td>Closed</td><td>{{ poll.closes_at.strftime('%B %-d at %-I:%M %p') }}</td></tr>
+</table>
+
+{% for cat in poll.active_categories %}
+<h2>{{ {'length': 'Ride Length', 'course': 'Course / Route', 'start_time': 'Start Time'}[cat] }}</h2>
+<table class="meta-table">
+  {% set opts = poll.options_for(cat) %}
+  {% set total = opts | sum(attribute='vote_count') %}
+  {% set winner = poll.winner_for(cat) %}
+  {% for opt in opts | sort(attribute='vote_count', reverse=True) %}
+  <tr>
+    <td>{% if winner and winner.id == opt.id %}⭐ {% endif %}{{ opt.value }}</td>
+    <td>{{ opt.vote_count }} vote{{ 's' if opt.vote_count != 1 else '' }}{% if total > 0 %} ({{ (opt.vote_count / total * 100) | int }}%){% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endfor %}
+
+<p>The ⭐ option is the suggested winner (most votes; ties broken by first vote received).</p>
+
+<a href="{{ finalize_url }}" class="cta">Finalize the Ride →</a>
+
+<p style="margin-top:24px;font-size:.85rem;color:#6b7280">
+  You can accept the suggested winners or choose different options on the finalize page.
+</p>
+{% endblock %}

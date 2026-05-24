@@ -605,3 +605,44 @@ def send_feedback_notification(feedback):
     text = render_template('email/feedback_notification.txt', feedback=feedback)
     _send('New Paceline feedback received', recipients, html, text)
     logger.info('Feedback notification sent for feedback %d to %d recipient(s)', feedback.id, len(recipients))
+
+
+def send_poll_closed_leader(poll):
+    """Notify the ride leader when a manual-mode poll closes."""
+    leader = poll.creator
+    if not leader or not leader.email:
+        return
+    try:
+        from flask import url_for
+        finalize_url = url_for('polls.finalize', slug=poll.club.slug, poll_id=poll.id, _external=True)
+        subject = f'Poll closed: {poll.title} — ready to finalize'
+        html = render_template('email/poll_closed_leader.html', poll=poll, finalize_url=finalize_url)
+        text = render_template('email/poll_closed_leader.txt', poll=poll, finalize_url=finalize_url)
+        _send(subject, [leader.email], html, text)
+        _record_user_email(leader, 'ride_updates', subject)
+    except Exception:
+        logger.exception('Failed to send poll closed email for poll %d', poll.id)
+
+
+def send_poll_finalized(poll, ride):
+    """Email all poll voters that the ride has been confirmed."""
+    try:
+        from flask import url_for
+        ride_url = url_for('clubs.ride_detail', slug=poll.club.slug, ride_id=ride.id, _external=True)
+        signup_url = ride_url
+        voter_ids = {v.user_id for v in poll.votes}
+        if not voter_ids:
+            return
+        from .models import User
+        voters = User.query.filter(User.id.in_(voter_ids), User.is_active == True).all()
+        eligible = [u for u in voters if u.email and user_allows_email(u, 'ride_updates')]
+        if not eligible:
+            return
+        subject = f'Ride confirmed: {poll.title} on {ride.date.strftime("%B %-d")}'
+        html = render_template('email/poll_finalized.html', poll=poll, ride=ride,
+                               ride_url=ride_url, signup_url=signup_url)
+        text = render_template('email/poll_finalized.txt', poll=poll, ride=ride,
+                               ride_url=ride_url, signup_url=signup_url)
+        _send_to_users('ride_updates', subject, eligible, html, text)
+    except Exception:
+        logger.exception('Failed to send poll finalized email for poll %d', poll.id)
