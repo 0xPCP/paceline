@@ -149,12 +149,33 @@ def detail(ride_id):
         user_signup = RideSignup.query.filter_by(
             ride_id=ride.id, user_id=current_user.id).first()
 
+    # Build Open Graph metadata for share previews
+    og_title = f"{ride.title} — hosted by {ride.owner.username}"
+    if access in ('none', 'requested', 'declined'):
+        og_description = f"Private ride hosted by {ride.owner.username} — request access to view details."
+    else:
+        _og_parts = []
+        if ride.ride_type:
+            _og_parts.append(ride.ride_type.capitalize() + ' ride')
+        if ride.distance_miles:
+            _og_parts.append(f"{ride.distance_miles:.0f} mi")
+        if ride.pace_category:
+            _og_parts.append(f"{ride.pace_category} pace")
+        _og_parts.append(
+            ride.date.strftime('%-d %b') + ' at ' + ride.time.strftime('%-I:%M %p').lstrip('0')
+        )
+        if ride.meeting_location:
+            _og_parts.append(ride.meeting_location)
+        og_description = f"Hosted by {ride.owner.username} · " + ' · '.join(_og_parts)
+
     return render_template('user_rides/detail.html',
                            ride=ride, access=access,
                            invite_form=invite_form,
                            pending_invites=pending_invites,
                            accepted_invites=accepted_invites,
-                           user_signup=user_signup)
+                           user_signup=user_signup,
+                           og_title=og_title,
+                           og_description=og_description)
 
 
 @user_rides_bp.route('/<int:ride_id>/groupride-code', methods=['POST'])

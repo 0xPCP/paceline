@@ -1,6 +1,17 @@
 {% extends "base.html" %}
 {% block title %}{{ ride.title }} — Paceline{% endblock %}
 
+{% block head %}
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ request.url }}">
+<meta property="og:title" content="{{ og_title }}">
+<meta property="og:description" content="{{ og_description }}">
+<meta property="og:site_name" content="Paceline">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{{ og_title }}">
+<meta name="twitter:description" content="{{ og_description }}">
+{% endblock %}
+
 {% block content %}
 <div class="container py-4" style="max-width:960px">
   <nav aria-label="breadcrumb" class="mb-3">
@@ -338,9 +349,55 @@
       <div class="text-muted small mt-3 text-center">
         Ride by <strong>{{ ride.owner.username }}</strong>
       </div>
+
+      <div class="mt-3">
+        <button class="btn btn-outline-secondary btn-sm w-100 ride-share-btn"
+                data-share-url="{{ request.url }}"
+                data-share-title="{{ og_title }}"
+                data-share-text="{{ og_description }}">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" class="me-1"><path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg>
+          Share Ride
+        </button>
+      </div>
     </div>
 
   </div>
   {% endif %}
 </div>
+
+<div id="share-toast" class="share-toast" aria-live="polite">Link copied!</div>
+
+<script nonce="{{ g.csp_nonce }}">
+(function () {
+  var toast = document.getElementById('share-toast');
+  function showToast() {
+    if (!toast) return;
+    toast.classList.add('show');
+    setTimeout(function () { toast.classList.remove('show'); }, 2200);
+  }
+  function fallbackCopy(text) {
+    var el = document.createElement('textarea');
+    el.value = text;
+    el.style.position = 'fixed'; el.style.opacity = '0';
+    document.body.appendChild(el);
+    el.select();
+    try { document.execCommand('copy'); showToast(); } catch (e) {}
+    document.body.removeChild(el);
+  }
+  document.querySelectorAll('.ride-share-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var url = btn.dataset.shareUrl;
+      var title = btn.dataset.shareTitle;
+      var text = btn.dataset.shareText;
+      if (navigator.share) {
+        navigator.share({ title: title, text: text, url: url }).catch(function () {});
+        return;
+      }
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(showToast).catch(function () { fallbackCopy(url); });
+      } else { fallbackCopy(url); }
+    });
+  });
+})();
+</script>
 {% endblock %}
