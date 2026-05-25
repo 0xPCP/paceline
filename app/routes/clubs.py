@@ -615,8 +615,6 @@ def embed(slug):
 
 @clubs_bp.route('/<slug>/rides/<int:ride_id>')
 def ride_detail(slug, ride_id):
-    if not current_user.is_authenticated:
-        return redirect(url_for('auth.login', next=request.url))
     club = _get_club_or_404(slug)
     ride = Ride.query.filter_by(id=ride_id, club_id=club.id).first_or_404()
 
@@ -693,6 +691,22 @@ def ride_detail(slug, ride_id):
         }
 
     comment_form = RideCommentForm() if current_user.is_authenticated else None
+
+    # Build Open Graph metadata for share previews
+    _og_parts = []
+    if ride.ride_type:
+        _og_parts.append(ride.ride_type.capitalize() + ' ride')
+    if ride.distance_miles:
+        _og_parts.append(f"{ride.distance_miles:.0f} mi")
+    if ride.pace_category:
+        _og_parts.append(f"{ride.pace_category} pace")
+    _og_parts.append(
+        ride.date.strftime('%-d %b') + ' at ' + ride.time.strftime('%-I:%M %p').lstrip('0')
+    )
+    if ride.meeting_location:
+        _og_parts.append(ride.meeting_location)
+    og_title = f"{ride.title} — {club.name}"
+    og_description = club.name + ' · ' + ' · '.join(_og_parts)
     can_manage_groupride_code = False
     can_add_groupride_code = False
     if current_user.is_authenticated:
@@ -715,6 +729,8 @@ def ride_detail(slug, ride_id):
                            comment_form=comment_form,
                            can_manage_groupride_code=can_manage_groupride_code,
                            can_add_groupride_code=can_add_groupride_code,
+                           og_title=og_title,
+                           og_description=og_description,
                            media_expiry_days=current_app.config.get('MEDIA_EXPIRY_DAYS', 90),
                            media_max_per_user=current_app.config.get('MEDIA_MAX_PHOTOS_PER_USER_RIDE', 5))
 

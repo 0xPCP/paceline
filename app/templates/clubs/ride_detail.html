@@ -1,6 +1,17 @@
 {% extends "base_club.html" %}
 {% block title %}{{ ride.title }} — {{ club.name }}{% endblock %}
-{% block head %}{% include 'clubs/_theme.html' %}{% endblock %}
+{% block head %}
+{% include 'clubs/_theme.html' %}
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ request.url }}">
+<meta property="og:title" content="{{ og_title }}">
+<meta property="og:description" content="{{ og_description }}">
+<meta property="og:site_name" content="Paceline">
+{% if club.logo_url %}<meta property="og:image" content="{{ club.logo_url }}">{% endif %}
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{{ og_title }}">
+<meta name="twitter:description" content="{{ og_description }}">
+{% endblock %}
 
 {% block content %}
 <div class="page-header {{ 'page-header-cancelled' if ride.is_cancelled else '' }}">
@@ -23,6 +34,28 @@
     <p>{{ ride.date.strftime('%A, %B') }} {{ ride.date.day }}, {{ ride.date.year }} at {{ ride.time.strftime('%I:%M %p') }}</p>
   </div>
 </div>
+
+{% if membership_required and not current_user.is_authenticated %}
+<div class="container mt-3">
+  <div class="alert alert-info d-flex align-items-center gap-3 mb-0">
+    <div class="flex-grow-1">
+      <strong>{{ club.name }}</strong> requires membership to sign up for rides.
+      <a href="{{ url_for('auth.login', next=request.url) }}" class="alert-link">Sign in</a> or
+      <a href="{{ url_for('auth.register') }}" class="alert-link">create an account</a> and join the club to participate.
+    </div>
+    <a href="{{ url_for('clubs.home', slug=club.slug) }}" class="btn btn-paceline btn-sm flex-shrink-0">Join {{ club.name }}</a>
+  </div>
+</div>
+{% elif membership_required %}
+<div class="container mt-3">
+  <div class="alert alert-info d-flex align-items-center gap-3 mb-0">
+    <div class="flex-grow-1">
+      You need to be a member of <strong>{{ club.name }}</strong> to sign up for rides.
+    </div>
+    <a href="{{ url_for('clubs.home', slug=club.slug) }}" class="btn btn-paceline btn-sm flex-shrink-0">Join {{ club.name }}</a>
+  </div>
+</div>
+{% endif %}
 
 <div class="container py-4">
   <div class="row gy-4">
@@ -309,6 +342,13 @@
       </div>
 
       <div class="mt-3 d-flex flex-column gap-2">
+        <button class="btn btn-outline-secondary btn-sm w-100 ride-share-btn"
+                data-share-url="{{ request.url }}"
+                data-share-title="{{ og_title }}"
+                data-share-text="{{ og_description }}">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" class="me-1"><path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg>
+          Share Ride
+        </button>
         <a href="{{ url_for('clubs.ride_ics', slug=club.slug, ride_id=ride.id) }}" class="btn btn-outline-secondary btn-sm w-100">
           Add to Calendar
         </a>
@@ -506,4 +546,45 @@
     <a href="{{ url_for('clubs.rides', slug=club.slug) }}" class="text-muted">&larr; Back to {{ club.name }} Calendar</a>
   </div>
 </div>
+
+<div id="share-toast" class="share-toast" aria-live="polite">Link copied!</div>
+
+<script nonce="{{ g.csp_nonce }}">
+(function () {
+  var toast = document.getElementById('share-toast');
+  function showToast() {
+    if (!toast) return;
+    toast.classList.add('show');
+    setTimeout(function () { toast.classList.remove('show'); }, 2200);
+  }
+  document.querySelectorAll('.ride-share-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var url   = btn.dataset.shareUrl;
+      var title = btn.dataset.shareTitle;
+      var text  = btn.dataset.shareText;
+      if (navigator.share) {
+        navigator.share({ title: title, text: text, url: url }).catch(function () {});
+        return;
+      }
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(showToast).catch(function () {
+          fallbackCopy(url);
+        });
+      } else {
+        fallbackCopy(url);
+      }
+    });
+  });
+  function fallbackCopy(text) {
+    var el = document.createElement('textarea');
+    el.value = text;
+    el.style.position = 'fixed';
+    el.style.opacity = '0';
+    document.body.appendChild(el);
+    el.select();
+    try { document.execCommand('copy'); showToast(); } catch (e) {}
+    document.body.removeChild(el);
+  }
+})();
+</script>
 {% endblock %}

@@ -712,6 +712,37 @@ body.club-page {
 }
 .stat-label { font-size: .85rem; color: var(--paceline-gray); }
 
+/* ── Share link toast ────────────────────────────────────────────────────── */
+.share-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(1rem);
+  background: var(--paceline-dark);
+  color: #fff;
+  padding: .55rem 1.25rem;
+  border-radius: 999px;
+  font-size: .85rem;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity .18s, transform .18s;
+  z-index: 9999;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.share-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.ride-card-share-btn {
+  opacity: 0;
+  transition: opacity .15s;
+}
+.ride-card:hover .ride-card-share-btn,
+.ride-card-share-btn:focus {
+  opacity: 1;
+}
+
 /* ── Feature cards (homepage) ─────────────────────────────────────────────── */
 .feature-card {
   background: #fff;

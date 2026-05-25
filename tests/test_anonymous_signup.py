@@ -112,10 +112,13 @@ class TestAnonymousClubSignup:
         ride = _make_club_ride(db, sample_club)
         _db.session.add(RideSignup(ride_id=ride.id, user_id=regular_user.id))
         _db.session.commit()
-        # Unauthenticated users are redirected to login — they can't see any ride detail
-        rv = client.get(f'/clubs/{sample_club.slug}/rides/{ride.id}', follow_redirects=False)
-        assert rv.status_code == 302
-        assert '/auth/login' in rv.headers.get('Location', '')
+        # Ride detail is publicly accessible for sharing/OG preview, but the
+        # signup list is hidden — unauthenticated users see a "sign in" prompt instead.
+        rv = client.get(f'/clubs/{sample_club.slug}/rides/{ride.id}')
+        assert rv.status_code == 200
+        assert b'Sign in' in rv.data          # sign-in prompt shown
+        # Profile link for the signed-up user must not appear (names not exposed)
+        assert f'/users/{regular_user.username}'.encode() not in rv.data
 
 
 # ── Anonymous user ride signup ────────────────────────────────────────────────

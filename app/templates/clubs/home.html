@@ -553,19 +553,14 @@
               <div class="rdb-month">{{ ride.date.strftime('%b') }}</div>
               <div class="rdb-day">{{ ride.date.day }}</div>
             </div>
-            <div class="flex-grow-1">
+            <div class="flex-grow-1 min-w-0">
               <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
                 <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
                 {% if ride.is_cancelled %}<span class="badge bg-danger">Cancelled</span>{% endif %}
                 {% if w %}{% include '_weather_chip.html' with context %}{% endif %}
               </div>
-              {% if current_user.is_authenticated %}
               <a href="{{ url_for('clubs.ride_detail', slug=club.slug, ride_id=ride.id) }}"
                  class="ride-title">{{ ride.title }}</a>
-              {% else %}
-              <a href="{{ url_for('auth.login', next=url_for('clubs.ride_detail', slug=club.slug, ride_id=ride.id)) }}"
-                 class="ride-title">{{ ride.title }}</a>
-              {% endif %}
               <p class="ride-meta mb-0">
                 {{ ride.time.strftime('%I:%M %p').lstrip('0') }} &bull;
                 {{ ride.distance_miles | dist }}
@@ -577,6 +572,11 @@
                 {% endif %}
               </p>
             </div>
+            <button class="ride-card-share-btn btn btn-link p-1 text-muted flex-shrink-0"
+                    data-share-url="{{ url_for('clubs.ride_detail', slug=club.slug, ride_id=ride.id, _external=True) }}"
+                    title="Copy ride link" aria-label="Share ride">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg>
+            </button>
           </div>
         </div>
         {% endfor %}
@@ -766,5 +766,39 @@ function switchToTab(btnId) {
   );
   obs.observe(hero);
 })();
+
+// Ride card share buttons
+(function () {
+  var toast = document.getElementById('share-toast');
+  function showToast() {
+    if (!toast) return;
+    toast.classList.add('show');
+    setTimeout(function () { toast.classList.remove('show'); }, 2200);
+  }
+  function fallbackCopy(text) {
+    var el = document.createElement('textarea');
+    el.value = text;
+    el.style.position = 'fixed'; el.style.opacity = '0';
+    document.body.appendChild(el);
+    el.select();
+    try { document.execCommand('copy'); showToast(); } catch (e) {}
+    document.body.removeChild(el);
+  }
+  document.querySelectorAll('.ride-card-share-btn').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      var url = btn.dataset.shareUrl;
+      if (navigator.share) {
+        navigator.share({ url: url }).catch(function () {});
+        return;
+      }
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(showToast).catch(function () { fallbackCopy(url); });
+      } else { fallbackCopy(url); }
+    });
+  });
+})();
 </script>
+
+<div id="share-toast" class="share-toast" aria-live="polite">Link copied!</div>
 {% endblock %}
