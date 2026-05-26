@@ -98,7 +98,7 @@ class TestDiscovery:
             is_newbie_friendly=False,
         ))
         db.session.commit()
-        r = client.get('/discover/?range=week&source=clubs&newbie=1')
+        r = client.get('/discover/?range=week&source=clubs&new_rider=1')
         assert r.status_code == 200
         assert b'First Timer Welcome Ride' in r.data
         assert b'Hammerfest' not in r.data

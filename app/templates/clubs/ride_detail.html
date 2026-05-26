@@ -26,7 +26,7 @@
     </nav>
     <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
       <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
-      {% if ride.is_newbie_friendly %}<span class="badge-newbie">&#127807; New Rider Friendly</span>{% endif %}
+      {% if ride.is_newbie_friendly %}<span class="badge-new-rider">&#127807; New Rider Friendly</span>{% endif %}
       {% if ride.is_virtual %}<span class="badge bg-info text-dark fw-normal">Virtual</span>{% endif %}
       {% if ride.ride_type %}<span class="badge bg-secondary fw-normal">{{ ride.ride_type | capitalize }}</span>{% endif %}
       {% if ride.is_cancelled %}<span class="badge bg-danger fs-6">Cancelled</span>{% endif %}
