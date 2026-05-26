@@ -98,6 +98,18 @@ msgstr "Radfahrende verbinden"
 msgid "Connecting riders."
 msgstr "Radfahrende verbinden."
 
+msgid "Find group rides near you."
+msgstr "Finden Sie Gruppenausfahrten in Ihrer Nähe."
+
+msgid "Discover rides."
+msgstr "Ausfahrten entdecken."
+
+msgid "Join your club."
+msgstr "Treten Sie Ihrem Club bei."
+
+msgid "Paceline connects you to local cycling clubs and their ride calendars. Find a club, sign up for rides, and see everything in one place."
+msgstr "Paceline verbindet Sie mit lokalen Radsportclubs und ihren Ausfahrtkalendern. Finden Sie einen Club, melden Sie sich für Ausfahrten an und sehen Sie alles an einem Ort."
+
 msgid "Group Cycling, Simplified"
 msgstr "Gruppenradfahren, vereinfacht"
 

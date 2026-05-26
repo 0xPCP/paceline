@@ -52,7 +52,7 @@ class TestLanguageSwitching:
         client.get('/set-language/xx')
         body = get_decoded(client, '/')
         # English default preserved since 'xx' is not in SUPPORTED_LANGUAGES
-        assert 'Connecting riders' in body
+        assert 'Discover rides.' in body
 
     def test_legacy_set_language_route_redirects_for_supported_languages(self, client):
         for lang in ('fr', 'es', 'it', 'nl', 'de', 'pt'):
@@ -62,13 +62,13 @@ class TestLanguageSwitching:
     def test_language_persists_across_requests(self, client):
         set_lang(client, 'fr')
         body = get_decoded(client, '/')
-        assert 'Connecter les cyclistes' in body
+        assert 'Découvrez des sorties.' in body
 
     def test_switch_back_to_english(self, client):
         set_lang(client, 'fr')
         set_lang(client, 'en')
         body = get_decoded(client, '/')
-        assert 'Connecting riders' in body
+        assert 'Discover rides.' in body
 
 
 # ---- Homepage (index.html) --------------------------------------------------
@@ -77,14 +77,15 @@ class TestHomepageI18n:
 
     def test_english_default(self, client):
         body = get_decoded(client, '/')
-        assert 'Connecting riders' in body
+        assert 'Discover rides.' in body
         assert 'How It Works' in body
-        assert 'Discover rides' in body
+        assert 'Join your club.' in body
 
     def test_french(self, client, sample_club):
         set_lang(client, 'fr')
         body = get_decoded(client, '/')
-        assert 'Connecter les cyclistes' in body
+        assert 'Découvrez des sorties.' in body
+        assert 'Rejoignez votre club.' in body
         assert 'Comment' in body  # "Comment ça marche"
         assert 'compte gratuit' in body  # "Créer un compte gratuit"
         assert 'clubs locaux' in body  # "S'abonner aux clubs locaux"
@@ -93,33 +94,35 @@ class TestHomepageI18n:
     def test_spanish(self, client, sample_club):
         set_lang(client, 'es')
         body = get_decoded(client, '/')
-        assert 'Conectando ciclistas' in body
+        assert 'Descubra salidas.' in body
+        assert 'Únase a su club.' in body
         assert 'funciona' in body  # "Como funciona"
         assert 'Ver todos los clubes' in body
 
     def test_german(self, client, sample_club):
         set_lang(client, 'de')
         body = get_decoded(client, '/')
-        assert 'Radfahrende verbinden' in body
+        assert 'Ausfahrten entdecken.' in body
+        assert 'Treten Sie Ihrem Club bei.' in body
         assert 'funktioniert' in body  # "So funktioniert es"
         assert 'Alle Clubs durchsuchen' in body
 
     def test_italian(self, client):
         set_lang(client, 'it')
         body = get_decoded(client, '/')
-        assert 'Connettere i ciclisti' in body
+        assert 'Scopri le uscite.' in body
         assert 'Come funziona' in body
 
     def test_dutch(self, client):
         set_lang(client, 'nl')
         body = get_decoded(client, '/')
-        assert 'Fietsers verbinden' in body
+        assert 'Ontdek ritten.' in body
         assert 'Hoe het werkt' in body
 
     def test_portuguese(self, client):
         set_lang(client, 'pt')
         body = get_decoded(client, '/')
-        assert 'Conectando ciclistas' in body
+        assert 'Descubra saídas.' in body
         assert 'Como funciona' in body
 
     def test_member_badge_plural_french(self, client, sample_club):
@@ -458,7 +461,8 @@ def test_browser_homepage_english(i18n_server, browser):
     page = browser.new_page()
     page.goto(i18n_server)
     page.wait_for_selector('.hero-title')
-    assert 'Connecting riders' in page.locator('.hero-title').inner_text()
+    assert 'Discover rides.' in page.locator('.hero-title').inner_text()
+    assert 'Join your club.' in page.locator('.hero-title').inner_text()
     _screenshot(page, 'homepage_en')
     page.close()
 
@@ -468,7 +472,8 @@ def test_browser_homepage_french(i18n_server, browser):
     switch_lang_browser(page, i18n_server, 'fr')
     page.goto(i18n_server)
     page.wait_for_selector('.hero-title')
-    assert 'Connecter les cyclistes' in page.locator('.hero-title').inner_text()
+    assert 'Découvrez des sorties.' in page.locator('.hero-title').inner_text()
+    assert 'Rejoignez votre club.' in page.locator('.hero-title').inner_text()
     _screenshot(page, 'homepage_fr')
     page.close()
 
@@ -478,7 +483,8 @@ def test_browser_homepage_spanish(i18n_server, browser):
     switch_lang_browser(page, i18n_server, 'es')
     page.goto(i18n_server)
     page.wait_for_selector('.hero-title')
-    assert 'Conectando ciclistas' in page.locator('.hero-title').inner_text()
+    assert 'Descubra salidas.' in page.locator('.hero-title').inner_text()
+    assert 'Únase a su club.' in page.locator('.hero-title').inner_text()
     _screenshot(page, 'homepage_es')
     page.close()
 
@@ -488,7 +494,8 @@ def test_browser_homepage_german(i18n_server, browser):
     switch_lang_browser(page, i18n_server, 'de')
     page.goto(i18n_server)
     page.wait_for_selector('.hero-title')
-    assert 'Radfahrende verbinden' in page.locator('.hero-title').inner_text()
+    assert 'Ausfahrten entdecken.' in page.locator('.hero-title').inner_text()
+    assert 'Treten Sie Ihrem Club bei.' in page.locator('.hero-title').inner_text()
     _screenshot(page, 'homepage_de')
     page.close()
 
