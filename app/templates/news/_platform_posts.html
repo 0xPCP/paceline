@@ -9,9 +9,25 @@
       <a href="{{ url_for('main.platform_news') }}" class="btn btn-paceline-outline btn-on-light btn-sm">{{ _('View All') }}</a>
     </div>
 
-    <div class="platform-news-grid">
-      {% for post in platform_posts %}
-      <article class="platform-news-card {{ 'platform-news-card-featured' if loop.first else '' }}">
+    {% set latest_post = platform_posts[0] %}
+    <article class="platform-news-card platform-news-card-featured platform-news-card-expanded">
+      <div class="platform-news-date">{{ latest_post.published_at | strftime('%b %-d, %Y') }}</div>
+      <h3 class="platform-news-title">
+        <a href="{{ url_for('main.platform_news_detail', post_id=latest_post.id) }}">{{ latest_post.title }}</a>
+      </h3>
+      {% if latest_post.summary %}
+      <p class="platform-news-summary platform-news-summary-lead">{{ latest_post.summary }}</p>
+      {% endif %}
+      <div class="platform-news-body-preview">
+        {{ latest_post.body | markdown }}
+      </div>
+      <a href="{{ url_for('main.platform_news_detail', post_id=latest_post.id) }}" class="btn btn-paceline-outline btn-on-light btn-sm mt-3">{{ _('Open Post') }}</a>
+    </article>
+
+    {% if platform_posts|length > 1 %}
+    <div class="platform-news-grid platform-news-grid-secondary">
+      {% for post in platform_posts[1:] %}
+      <article class="platform-news-card">
         <div class="platform-news-date">{{ post.published_at | strftime('%b %-d, %Y') }}</div>
         <h3 class="platform-news-title">
           <a href="{{ url_for('main.platform_news_detail', post_id=post.id) }}">{{ post.title }}</a>
@@ -27,6 +43,7 @@
       </article>
       {% endfor %}
     </div>
+    {% endif %}
   </div>
 </section>
 {% endif %}

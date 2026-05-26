@@ -22,6 +22,34 @@ def test_homepage_shows_published_platform_posts(client, db):
     assert b'Latest from Paceline' in resp.data
     assert b'New route tools' in resp.data
     assert b'Feature updates for club ride leaders.' in resp.data
+    assert b'Paceline now has better route tools.' in resp.data
+
+
+def test_homepage_expands_latest_platform_post_and_summarizes_older_posts(client, db):
+    db.session.add(PlatformPost(
+        title='Older update',
+        summary='Older summary.',
+        body='Older full body should stay behind the link.',
+        is_published=True,
+        published_at=datetime(2026, 5, 20, tzinfo=timezone.utc),
+    ))
+    db.session.add(PlatformPost(
+        title='Newest update',
+        summary='Newest summary.',
+        body='Newest full body is visible by default.\n\n- First visible item\n- Second visible item',
+        is_published=True,
+        published_at=datetime(2026, 5, 26, tzinfo=timezone.utc),
+    ))
+    db.session.commit()
+
+    resp = client.get('/')
+
+    assert resp.status_code == 200
+    assert b'platform-news-card-expanded' in resp.data
+    assert b'Newest full body is visible by default.' in resp.data
+    assert b'First visible item' in resp.data
+    assert b'Older summary.' in resp.data
+    assert b'Older full body should stay behind the link.' not in resp.data
 
 
 def test_homepage_orders_news_after_featured_clubs(client, db):
