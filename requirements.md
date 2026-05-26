@@ -216,6 +216,8 @@ Research across ~50 major US cycling clubs (NYCC, Cascade Bicycle Club, BTCNJ, D
 
 - All third-party services (weather, maps) must be self-hostable or free/open — no paid API keys for core features
 - Every feature ships with a pytest test harness; all tests must pass before commit
+- `pip-audit -r requirements.txt` must pass before every commit and the GitHub
+  `Security Audit / dependency-audit` job must pass after every push
 - Docker on TrueNAS Scale is the deployment target — `docker compose up -d --build`
 - Multi-tenant from day one — club slugs are the isolation boundary
 - Mobile-responsive UI on all pages (Bootstrap 5, tested at 390px width)

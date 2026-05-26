@@ -243,14 +243,15 @@ def _login(page, base, email, password='TestPass1!'):
 
 def test_scenario_a_auth_gate_unauthenticated(server_info, browser):
     """
-    Unauthenticated visitors are redirected to login for protected content.
+    Unauthenticated visitors can view public ride details, but protected
+    personal content still requires login.
 
-    v0.121: Club ride detail requires login — anonymous visitors are redirected.
+    v0.140: Club ride detail is public so ride links can be shared.
     User-owned public rides still show a locked view without login.
     Profile pages require login.
 
     Screenshots:
-      A01_anon_club_ride_redirect  — redirect to login for club ride detail
+      A01_anon_club_ride_detail    — public club ride detail
       A02_anon_public_ride         — user-owned public ride, no personal data
       A03_profile_redirect         — /users/alice redirects to login
     """
@@ -262,16 +263,16 @@ def test_scenario_a_auth_gate_unauthenticated(server_info, browser):
     context = browser.new_context()
     page = context.new_page()
 
-    # A01: Club ride detail — unauthenticated users are redirected to login (auth gate)
+    # A01: Club ride detail — public enough to share, without exposing
+    # member-only personal data.
     page.goto(f'{base}/clubs/{slug}/rides/{ride_id}')
     page.wait_for_load_state('networkidle')
-    _shot(page, 'A01_anon_club_ride_redirect')
+    _shot(page, 'A01_anon_club_ride_detail')
 
-    # Must end up on the login page — ride data is protected
-    assert 'login' in page.url.lower(), \
-        f'Anonymous visitor should be redirected to login, got: {page.url}'
-    assert page.locator('input[name="email"]').is_visible(), \
-        'Login form must be shown to unauthenticated visitor'
+    assert 'Saturday Club Ride' in page.content(), \
+        'Public club ride detail should be visible to unauthenticated visitors'
+    assert "Who's coming" not in page.content(), \
+        'Anonymous visitors must not see attendee personal data'
 
     # A02: User-owned public ride — shows a locked view without login
     page.goto(f'{base}/my-rides/{alice_pub}')

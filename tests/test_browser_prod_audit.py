@@ -69,6 +69,8 @@ def ss(page: Page, name: str) -> None:
 
 def login(page: Page) -> None:
     """Authenticate as the configured prod user."""
+    if not USER_PASS:
+        pytest.skip("PROD_USER_PASSWORD is required for authenticated production browser tests")
     page.goto(f"{PROD_URL}/auth/login")
     page.wait_for_selector('input[name="email"]')
     page.fill('input[name="email"]', USER_EMAIL)

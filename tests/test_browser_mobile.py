@@ -176,7 +176,8 @@ def test_week_view_has_scroll_wrapper(server_info, browser):
     base, slug, _ = server_info
     page = mobile_page(browser)
     _login(page, base)
-    page.goto(f'{base}/clubs/{slug}/rides/?view=week')
+    next_monday = date.today() + timedelta(days=7 - date.today().weekday())
+    page.goto(f'{base}/clubs/{slug}/rides/?view=week&start={next_monday.isoformat()}')
     page.wait_for_selector('.week-grid-wrap')
 
     wrapper = page.locator('.week-grid-wrap')

@@ -10,14 +10,23 @@ Paceline runs a GitHub Actions dependency audit on pushes to `master`, pushes to
 
 The audit fails when a known vulnerable Python package version is present.
 
-## Local Check
+## Required Commit Check
 
-Run this before merging larger dependency or security changes:
+Run this before every commit and before every push:
 
 ```bash
-python -m pip install pip-audit
-pip-audit -r requirements.txt
+.venv/bin/pip-audit --cache-dir /tmp/paceline-pip-audit-cache -r requirements.txt
 ```
+
+If `pip-audit` is not installed in the local virtualenv:
+
+```bash
+.venv/bin/python -m pip install pip-audit
+```
+
+After pushing, confirm the GitHub Actions job named
+`Security Audit / dependency-audit` passes before treating the deployment as
+complete.
 
 ## Production Notes
 

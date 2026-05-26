@@ -39,6 +39,9 @@ The current codebase started as a single-club app (Reston Bike Club). It is bein
 - Tests that need data use the fixtures in `tests/conftest.py` — extend conftest rather than duplicating setup
 - If a feature requires test data beyond what conftest provides, add it to `seed.py`
 - Run the full suite before every commit: all tests must pass
+- Run the dependency/CVE audit before every commit and before every push:
+  `.venv/bin/pip-audit --cache-dir /tmp/paceline-pip-audit-cache -r requirements.txt`
+- After pushing, confirm GitHub Actions' `Security Audit / dependency-audit` job passes before treating the deploy as complete
 
 ## Headless browser / screenshot testing
 
