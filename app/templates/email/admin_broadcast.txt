@@ -1,0 +1,6 @@
+Notice from Paceline — {{ message.subject or 'Platform Notice' }}
+
+{{ message.body }}
+
+---
+You're receiving this notice because you manage a club on Paceline.

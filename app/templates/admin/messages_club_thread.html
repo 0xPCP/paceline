@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ club.name }} — Messages{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Super Admin</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.messages_inbox') }}">Messages</a></li>
+        <li class="breadcrumb-item active">{{ club.name }}</li>
+      </ol>
+    </nav>
+    <h1>{{ club.name }}</h1>
+    <p class="mb-0">Direct thread with club admins.</p>
+  </div>
+</div>
+
+<div class="container py-4" style="max-width:780px">
+
+  {% for t in threads %}
+  <div class="detail-card mb-4">
+    {% if t.root.subject %}
+    <div class="detail-card-title">{{ t.root.subject }}</div>
+    {% endif %}
+    <div class="msg-bubble msg-bubble--admin mb-3">
+      <div class="msg-meta">
+        <strong>Paceline ({{ t.root.sender.username }})</strong>
+        <span class="text-muted">{{ t.root.created_at.strftime('%b %-d, %Y %-I:%M %p') }}</span>
+      </div>
+      <p class="mb-0">{{ t.root.body }}</p>
+    </div>
+    {% for reply in t.replies %}
+    <div class="msg-bubble {% if reply.is_from_superadmin %}msg-bubble--admin{% else %}msg-bubble--club{% endif %} mb-3">
+      <div class="msg-meta">
+        <strong>{% if reply.is_from_superadmin %}Paceline ({{ reply.sender.username }}){% else %}{{ club.name }} ({{ reply.sender.username }}){% endif %}</strong>
+        <span class="text-muted">{{ reply.created_at.strftime('%b %-d, %Y %-I:%M %p') }}</span>
+      </div>
+      <p class="mb-0">{{ reply.body }}</p>
+    </div>
+    {% endfor %}
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="parent_id" value="{{ t.root.id }}">
+      <textarea name="body" class="form-control mb-2" rows="3" placeholder="Reply…" required></textarea>
+      <button class="btn btn-paceline btn-sm">Send Reply</button>
+    </form>
+  </div>
+  {% endfor %}
+
+  <div class="detail-card">
+    <h5 class="detail-card-title">New Message</h5>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="mb-2">
+        <input type="text" name="subject" class="form-control" placeholder="Subject" maxlength="300">
+      </div>
+      <div class="mb-2">
+        <textarea name="body" class="form-control" rows="4" placeholder="Message to {{ club.name }} admins…" required></textarea>
+      </div>
+      <button class="btn btn-paceline">Send Message</button>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

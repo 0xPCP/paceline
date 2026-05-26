@@ -630,9 +630,9 @@ def test_guest_club_rides_list_requires_login(client, db, sample_club):
     assert '/auth/login' in response.headers.get('Location', '')
 
 
-def test_guest_club_ride_detail_requires_login(client, db, sample_club, sample_rides):
-    """Unauthenticated visitors are redirected to login for ride detail (v0.121)."""
+def test_guest_club_ride_detail_is_public(client, db, sample_club, sample_rides):
+    """Ride detail page is publicly accessible for share/OG previews; signup requires login."""
     ride = sample_rides[0]
-    response = client.get(f'/clubs/{sample_club.slug}/rides/{ride.id}', follow_redirects=False)
-    assert response.status_code == 302
-    assert '/auth/login' in response.headers.get('Location', '')
+    response = client.get(f'/clubs/{sample_club.slug}/rides/{ride.id}')
+    assert response.status_code == 200
+    assert b'Sign Up for This Ride' not in response.data

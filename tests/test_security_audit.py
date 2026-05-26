@@ -277,13 +277,14 @@ class TestVerticalPrivilegeEscalation:
         assert resp.status_code == 302
         assert '/auth/login' in resp.headers.get('Location', '')
 
-    def test_anon_cannot_access_ride_detail(self, client, app, db):
+    def test_anon_ride_detail_is_public_but_actions_gated(self, client, app, db):
+        # Ride detail is public for OG/share previews; action buttons require login
         club = _make_club(db, slug='c')
         ride = _make_ride(db, club)
-        resp = client.get(f'/clubs/{club.slug}/rides/{ride.id}',
-                          follow_redirects=False)
-        assert resp.status_code == 302
-        assert '/auth/login' in resp.headers.get('Location', '')
+        resp = client.get(f'/clubs/{club.slug}/rides/{ride.id}')
+        assert resp.status_code == 200
+        assert b'Sign Up for This Ride' not in resp.data
+        assert b'Sign in' in resp.data
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

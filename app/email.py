@@ -646,3 +646,85 @@ def send_poll_finalized(poll, ride):
         _send_to_users('ride_updates', subject, eligible, html, text)
     except Exception:
         logger.exception('Failed to send poll finalized email for poll %d', poll.id)
+
+
+def _club_admin_emails(club):
+    """Return email addresses of all active admins for a club."""
+    from .models import ClubAdmin, User
+    admins = (User.query
+              .join(ClubAdmin, ClubAdmin.user_id == User.id)
+              .filter(ClubAdmin.club_id == club.id,
+                      ClubAdmin.role == 'admin',
+                      User.is_active == True,
+                      User.email.isnot(None))
+              .all())
+    return [u.email for u in admins if u.email]
+
+
+def send_admin_message_to_club(message, club):
+    """Email club admins when superadmin sends them a direct message."""
+    try:
+        from flask import url_for
+        recipients = _club_admin_emails(club)
+        if not recipients:
+            return
+        thread_url = url_for('admin.club_messages', slug=club.slug, _external=True)
+        subject = f'Message from Paceline: {message.subject or "New message"}'
+        html = render_template('email/admin_message_to_club.html',
+                               message=message, club=club, thread_url=thread_url)
+        text = render_template('email/admin_message_to_club.txt',
+                               message=message, club=club, thread_url=thread_url)
+        _send(subject, recipients, html, text)
+        logger.info('Admin message email sent to %d admin(s) of club %s', len(recipients), club.slug)
+    except Exception:
+        logger.exception('Failed to send admin message email to club %s', club.slug)
+
+
+def send_club_reply_to_superadmin(message, club):
+    """Email the superadmin when a club admin replies to a thread."""
+    try:
+        from .admin_stats import configured_superadmin_emails
+        from .models import User
+        configured = configured_superadmin_emails()
+        active_admins = User.query.filter_by(is_admin=True, is_active=True).all()
+        recipients = sorted({
+            email
+            for email in configured | {u.email for u in active_admins if u.email}
+            if email
+        })
+        if not recipients:
+            return
+        from flask import url_for
+        thread_url = url_for('admin.messages_club_thread', slug=club.slug, _external=True)
+        subject = f'Reply from {club.name}: {message.body[:60]}{"…" if len(message.body) > 60 else ""}'
+        html = render_template('email/club_reply_to_superadmin.html',
+                               message=message, club=club, thread_url=thread_url)
+        text = render_template('email/club_reply_to_superadmin.txt',
+                               message=message, club=club, thread_url=thread_url)
+        _send(subject, recipients, html, text)
+        logger.info('Club reply email sent for club %s', club.slug)
+    except Exception:
+        logger.exception('Failed to send club reply email for club %s', club.slug)
+
+
+def send_broadcast_to_club_admins(message):
+    """Email all club admins a broadcast notice from superadmin."""
+    try:
+        from flask import url_for
+        from .models import ClubAdmin, User
+        admins = (User.query
+                  .join(ClubAdmin, ClubAdmin.user_id == User.id)
+                  .filter(ClubAdmin.role == 'admin',
+                          User.is_active == True,
+                          User.email.isnot(None))
+                  .distinct().all())
+        recipients = [u.email for u in admins if u.email]
+        if not recipients:
+            return
+        subject = f'Notice from Paceline: {message.subject or "Platform update"}'
+        html = render_template('email/admin_broadcast.html', message=message)
+        text = render_template('email/admin_broadcast.txt', message=message)
+        _send(subject, recipients, html, text)
+        logger.info('Broadcast email sent to %d club admin(s)', len(recipients))
+    except Exception:
+        logger.exception('Failed to send broadcast email for message %d', message.id)

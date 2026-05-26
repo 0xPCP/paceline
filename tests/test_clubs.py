@@ -216,9 +216,10 @@ class TestRideDetail:
         assert b'AQI 42 Good' in resp.data
 
     def test_sign_in_prompt_for_anonymous(self, client, sample_club, one_ride, mock_weather):
-        resp = client.get(f'/clubs/test-club/rides/{one_ride.id}', follow_redirects=False)
-        assert resp.status_code == 302
-        assert '/auth/login' in resp.headers.get('Location', '')
+        # Ride detail is public for share/OG previews; anonymous users see a sign-in CTA
+        resp = client.get(f'/clubs/test-club/rides/{one_ride.id}')
+        assert resp.status_code == 200
+        assert b'Sign in' in resp.data
 
     def test_signup_button_for_authenticated(self, client, sample_club, one_ride, regular_user, mock_weather):
         login(client)

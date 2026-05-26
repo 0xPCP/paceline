@@ -51,6 +51,9 @@
       <a href="{{ url_for('admin.club_posts', slug=club.slug) }}" class="btn btn-outline-secondary btn-sm">News</a>
       {% endif %}
       {% if is_full_admin %}
+      <a href="{{ url_for('admin.club_messages', slug=club.slug) }}" class="btn btn-outline-secondary btn-sm">
+        Messages{% if unread_messages %} <span class="badge bg-danger">{{ unread_messages }}</span>{% endif %}
+      </a>
       <a href="{{ url_for('admin.club_members', slug=club.slug) }}" class="btn btn-outline-secondary btn-sm">
         All Members{% if stats.pending %} <span class="badge bg-warning text-dark">{{ stats.pending }}</span>{% endif %}
       </a>

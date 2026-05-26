@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Messages — Super Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Super Admin</a></li>
+        <li class="breadcrumb-item active">Messages</li>
+      </ol>
+    </nav>
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h1>Messages{% if total_unread %} <span class="badge bg-danger fs-6">{{ total_unread }}</span>{% endif %}</h1>
+        <p class="mb-0">Direct threads with club admins and broadcast notices.</p>
+      </div>
+      <a href="{{ url_for('admin.messages_broadcast') }}" class="btn btn-paceline">
+        Broadcast to All Club Admins
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="container py-4">
+  <div class="row g-4">
+
+    <div class="col-lg-7">
+      <h5 class="mb-3">Club Threads</h5>
+      {% if threads %}
+      <div class="list-group">
+        {% for t in threads %}
+        <a href="{{ url_for('admin.messages_club_thread', slug=t.club.slug) }}"
+           class="list-group-item list-group-item-action d-flex justify-content-between align-items-start gap-3 py-3">
+          <div class="flex-grow-1 min-w-0">
+            <div class="fw-semibold">{{ t.club.name }}</div>
+            {% if t.latest %}
+            <div class="text-muted small text-truncate">
+              {{ t.latest.body[:100] }}{% if t.latest.body | length > 100 %}…{% endif %}
+            </div>
+            <div class="text-muted" style="font-size:.75rem">
+              {{ t.latest.created_at.strftime('%b %-d, %Y') }}
+            </div>
+            {% endif %}
+          </div>
+          <div class="flex-shrink-0 text-end">
+            {% if t.unread %}
+            <span class="badge bg-danger">{{ t.unread }} unread</span>
+            {% else %}
+            <span class="text-muted small">Up to date</span>
+            {% endif %}
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="detail-card text-muted small">No club threads yet. Use the button on a club row in the dashboard to start one.</div>
+      {% endif %}
+
+      <div class="mt-4">
+        <h5>Start a New Thread</h5>
+        <form method="post" action="{{ url_for('admin.messages_club_thread', slug='__slug__') }}"
+              id="new-thread-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-2">
+            <select class="form-select" id="club-select" required>
+              <option value="">— Select a club —</option>
+              {% for club in all_clubs %}
+              <option value="{{ club.slug }}">{{ club.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-2">
+            <input type="text" name="subject" class="form-control" placeholder="Subject" maxlength="300">
+          </div>
+          <div class="mb-2">
+            <textarea name="body" class="form-control" rows="4" placeholder="Message…" required></textarea>
+          </div>
+          <button type="submit" class="btn btn-paceline">Send Message</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <h5 class="mb-3">Recent Broadcasts</h5>
+      {% if broadcasts %}
+      {% for b in broadcasts %}
+      <div class="detail-card mb-3">
+        <div class="d-flex justify-content-between align-items-start mb-1">
+          <strong>{{ b.subject or '(no subject)' }}</strong>
+          <span class="text-muted small ms-2 flex-shrink-0">{{ b.created_at.strftime('%b %-d, %Y') }}</span>
+        </div>
+        <p class="mb-0 small text-muted">{{ b.body[:200] }}{% if b.body | length > 200 %}…{% endif %}</p>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="detail-card text-muted small">No broadcasts sent yet.</div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<script nonce="{{ g.csp_nonce }}">
+(function () {
+  var select = document.getElementById('club-select');
+  var form   = document.getElementById('new-thread-form');
+  if (!select || !form) return;
+  form.addEventListener('submit', function (e) {
+    var slug = select.value;
+    if (!slug) { e.preventDefault(); return; }
+    form.action = form.action.replace('__slug__', slug);
+  });
+})();
+</script>
+{% endblock %}

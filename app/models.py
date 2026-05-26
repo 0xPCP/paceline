@@ -1165,6 +1165,33 @@ class RidePollVote(db.Model):
     )
 
 
+class AdminMessage(db.Model):
+    """Bi-directional messages between superadmin and club admins, plus broadcast notices."""
+    __tablename__ = 'admin_messages'
+
+    id                 = db.Column(db.Integer, primary_key=True)
+    # NULL club_id = broadcast to all club admins
+    club_id            = db.Column(db.Integer, db.ForeignKey('clubs.id'), nullable=True, index=True)
+    sender_id          = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    is_from_superadmin = db.Column(db.Boolean, nullable=False, default=True)
+    subject            = db.Column(db.String(300), nullable=True)   # set on root messages only
+    body               = db.Column(db.Text, nullable=False)
+    created_at         = db.Column(db.DateTime, nullable=False,
+                                   default=lambda: datetime.now(timezone.utc), index=True)
+    parent_id          = db.Column(db.Integer, db.ForeignKey('admin_messages.id'), nullable=True)
+    # is_read: for superadmin→club, did club admin read it?
+    #          for club→superadmin reply, did superadmin read it?
+    is_read            = db.Column(db.Boolean, nullable=False, default=False)
+
+    sender = db.relationship('User', foreign_keys='AdminMessage.sender_id')
+    club   = db.relationship('Club', foreign_keys='AdminMessage.club_id',
+                             backref=db.backref('admin_messages', lazy='dynamic'))
+
+    @property
+    def is_broadcast(self):
+        return self.club_id is None and self.parent_id is None
+
+
 class AppErrorLog(db.Model):
     """HTTP 4xx/5xx and unhandled exceptions logged for the superadmin dashboard."""
     __tablename__ = 'app_error_logs'

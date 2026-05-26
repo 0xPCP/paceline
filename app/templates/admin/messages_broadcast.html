@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Broadcast to Club Admins{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Super Admin</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.messages_inbox') }}">Messages</a></li>
+        <li class="breadcrumb-item active">Broadcast</li>
+      </ol>
+    </nav>
+    <h1>Broadcast to All Club Admins</h1>
+    <p class="mb-0">This notice will be emailed to every club admin. Club admins cannot reply to broadcasts.</p>
+  </div>
+</div>
+
+<div class="container py-4" style="max-width:680px">
+  <div class="detail-card">
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Subject</label>
+        <input type="text" name="subject" class="form-control" maxlength="300" required
+               placeholder="e.g. Platform update — new feature available">
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Message</label>
+        <textarea name="body" class="form-control" rows="8" required
+                  placeholder="Write your notice here…"></textarea>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-paceline"
+                onclick="return confirm('Send this broadcast to all club admins?')">Send Broadcast</button>
+        <a href="{{ url_for('admin.messages_inbox') }}" class="btn btn-outline-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

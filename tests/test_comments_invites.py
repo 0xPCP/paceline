@@ -24,10 +24,11 @@ class TestRideComments:
 
     def test_no_comment_form_when_unauthenticated(self, client, sample_club, sample_rides):
         ride = sample_rides[0]
-        resp = client.get(f'/clubs/{sample_club.slug}/rides/{ride.id}', follow_redirects=False)
-        # Unauthenticated users are now redirected to login — they cannot see the ride at all
-        assert resp.status_code == 302
-        assert '/auth/login' in resp.headers.get('Location', '')
+        # Ride detail is public for share/OG previews; comment textarea requires auth
+        resp = client.get(f'/clubs/{sample_club.slug}/rides/{ride.id}')
+        assert resp.status_code == 200
+        assert b'leave a note about this ride' not in resp.data
+        assert b'Sign in' in resp.data
 
     def test_post_comment_requires_login(self, client, sample_club, sample_rides):
         ride = sample_rides[0]

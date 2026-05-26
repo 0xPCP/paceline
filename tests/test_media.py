@@ -448,10 +448,11 @@ class TestRideDetailMediaSection:
 
     def test_upload_form_hidden_when_unauthenticated(self, client, db, sample_club):
         ride = _make_past_ride(db, sample_club)
-        # Unauthenticated users are now redirected to login — they cannot access ride detail
-        resp = client.get(f'/clubs/{sample_club.slug}/rides/{ride.id}', follow_redirects=False)
-        assert resp.status_code == 302
-        assert '/auth/login' in resp.headers.get('Location', '')
+        # Ride detail is public for share/OG previews; upload form requires auth
+        resp = client.get(f'/clubs/{sample_club.slug}/rides/{ride.id}')
+        assert resp.status_code == 200
+        assert b'Upload Photo' not in resp.data
+        assert b'Sign in' in resp.data
 
     def test_upload_form_shown_when_authenticated(self, client, db, sample_club, regular_user):
         ride = _make_past_ride(db, sample_club)

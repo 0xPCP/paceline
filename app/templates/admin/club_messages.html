@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Messages from Paceline — {{ club.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="container">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb mb-1">
+        <li class="breadcrumb-item"><a href="{{ url_for('clubs.home', slug=club.slug) }}">{{ club.name }}</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('admin.club_dashboard', slug=club.slug) }}">Admin</a></li>
+        <li class="breadcrumb-item active">Messages</li>
+      </ol>
+    </nav>
+    <h1>Messages from Paceline</h1>
+    <p class="mb-0">Direct messages from the Paceline team. You can reply to any thread below.</p>
+  </div>
+</div>
+
+<div class="container py-4" style="max-width:780px">
+
+  {% if threads %}
+  {% for t in threads %}
+  <div class="detail-card mb-4">
+    {% if t.root.subject %}
+    <div class="detail-card-title">{{ t.root.subject }}</div>
+    {% endif %}
+    <div class="msg-bubble msg-bubble--admin mb-3">
+      <div class="msg-meta">
+        <strong>Paceline</strong>
+        <span class="text-muted">{{ t.root.created_at.strftime('%b %-d, %Y %-I:%M %p') }}</span>
+      </div>
+      <p class="mb-0">{{ t.root.body }}</p>
+    </div>
+    {% for reply in t.replies %}
+    <div class="msg-bubble {% if reply.is_from_superadmin %}msg-bubble--admin{% else %}msg-bubble--club{% endif %} mb-3">
+      <div class="msg-meta">
+        <strong>{% if reply.is_from_superadmin %}Paceline{% else %}{{ club.name }}{% endif %}</strong>
+        <span class="text-muted">{{ reply.created_at.strftime('%b %-d, %Y %-I:%M %p') }}</span>
+      </div>
+      <p class="mb-0">{{ reply.body }}</p>
+    </div>
+    {% endfor %}
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="parent_id" value="{{ t.root.id }}">
+      <textarea name="body" class="form-control mb-2" rows="3" placeholder="Reply to Paceline…" required></textarea>
+      <button class="btn btn-paceline btn-sm">Send Reply</button>
+    </form>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="detail-card text-muted">
+    No messages from Paceline yet. If you need to reach us, use the contact form.
+  </div>
+  {% endif %}
+
+  {% if broadcasts %}
+  <h5 class="mt-4 mb-3">Platform Notices</h5>
+  {% for b in broadcasts %}
+  <div class="detail-card mb-3">
+    <div class="d-flex justify-content-between align-items-start mb-1">
+      <strong>{{ b.subject or 'Notice' }}</strong>
+      <span class="text-muted small">{{ b.created_at.strftime('%b %-d, %Y') }}</span>
+    </div>
+    <p class="mb-0 small">{{ b.body }}</p>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+</div>
+{% endblock %}

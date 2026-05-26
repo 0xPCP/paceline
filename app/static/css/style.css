@@ -1948,3 +1948,27 @@ a:hover { color: var(--paceline-green-dark); }
   font-weight: 500;
 }
 .board-mention:hover { text-decoration: underline; }
+
+/* ── Admin Messaging ─────────────────────────────────────────────────────── */
+.msg-bubble {
+  padding: .75rem 1rem;
+  border-radius: 10px;
+  background: #f9fafb;
+  border: 1px solid var(--paceline-border);
+}
+.msg-bubble--admin {
+  background: var(--paceline-green-pale);
+  border-color: #99f6e4;
+}
+.msg-bubble--club {
+  background: #fff;
+  border-color: var(--paceline-border);
+}
+.msg-meta {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  margin-bottom: .25rem;
+  font-size: .8rem;
+  color: var(--paceline-gray);
+}

@@ -104,6 +104,16 @@
         </div>
       </a>
     </div>
+    <div class="col-6 col-lg-3">
+      <a href="{{ url_for('admin.messages_inbox') }}" class="text-decoration-none">
+        <div class="admin-stat-card admin-stat-card--link">
+          <div class="admin-stat-num">
+            {% if unread_messages_count %}<span class="text-danger">{{ unread_messages_count }}</span>{% else %}0{% endif %}
+          </div>
+          <div class="admin-stat-label">Club Messages ↗</div>
+        </div>
+      </a>
+    </div>
   </div>
 
   {# Email monitoring #}
@@ -599,6 +609,7 @@
           <td class="d-flex gap-1">
             <a href="{{ url_for('admin.club_dashboard', slug=club.slug) }}" class="btn btn-outline-secondary btn-xs">Manage</a>
             <a href="{{ url_for('admin.club_settings', slug=club.slug) }}" class="btn btn-outline-secondary btn-xs">Settings</a>
+            <a href="{{ url_for('admin.messages_club_thread', slug=club.slug) }}" class="btn btn-outline-secondary btn-xs">Message</a>
             <a href="{{ url_for('admin.club_superadmin', slug=club.slug) }}" class="btn btn-outline-danger btn-xs">Super Admin</a>
           </td>
         </tr>
@@ -639,6 +650,7 @@
         </form>
         <a href="{{ url_for('admin.club_dashboard', slug=club.slug) }}" class="btn btn-outline-secondary btn-sm">Manage</a>
         <a href="{{ url_for('admin.club_settings', slug=club.slug) }}" class="btn btn-outline-secondary btn-sm">Settings</a>
+        <a href="{{ url_for('admin.messages_club_thread', slug=club.slug) }}" class="btn btn-outline-secondary btn-sm">Message</a>
         <a href="{{ url_for('admin.club_superadmin', slug=club.slug) }}" class="btn btn-outline-danger btn-sm">Super Admin</a>
       </div>
     </div>

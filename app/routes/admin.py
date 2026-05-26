@@ -11,7 +11,7 @@ import string
 from markupsafe import Markup, escape as html_escape
 from sqlalchemy import or_, func
 from ..extensions import db, bcrypt
-from ..models import (AdminAuditLog, AppErrorLog, BoardDigestItem, Club,
+from ..models import (AdminAuditLog, AdminMessage, AppErrorLog, BoardDigestItem, Club,
                       ClubBoardPost, ClubBoardReaction, ClubBoardReply,
                       ClubBoardSubscription, Ride, RideComment, RideMedia,
                       RideSignup, PlatformPost, SiteFeedback, User, UserEmailLog,
@@ -30,7 +30,9 @@ from ..email import (send_cancellation_emails, send_new_ride_notification,
                      send_membership_approved, send_membership_rejected, send_invite_email,
                      send_import_welcome_email, send_import_invite_email,
                      send_club_ownership_transfer_email, send_club_news_notification,
-                     set_site_setting)
+                     set_site_setting,
+                     send_admin_message_to_club, send_club_reply_to_superadmin,
+                     send_broadcast_to_club_admins)
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -391,6 +393,9 @@ def dashboard():
                     .order_by(AdminAuditLog.created_at.desc())
                     .limit(8).all())
     unread_feedback_count = SiteFeedback.query.filter_by(is_read=False).count()
+    unread_messages_count = AdminMessage.query.filter_by(
+        is_from_superadmin=False, is_read=False
+    ).count()
 
     # ── Stripe monitoring ──────────────────────────────────────────────────────
     thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
@@ -438,6 +443,7 @@ def dashboard():
                            ungeocodeable_count=ungeocodeable_count,
                            report=report, recent_audit=recent_audit,
                            unread_feedback_count=unread_feedback_count,
+                           unread_messages_count=unread_messages_count,
                            error_report=report.get('errors', {}),
                            stripe_stats=stripe_stats,
                            stripe_recent=stripe_recent,
@@ -1002,9 +1008,13 @@ def club_dashboard(slug):
                            .filter(Ride.club_id == club.id).count()),
     }
     is_full_admin = current_user.is_club_admin(club)
+    unread_messages = AdminMessage.query.filter_by(
+        club_id=club.id, is_from_superadmin=True, is_read=False
+    ).count()
     return render_template('admin/club_dashboard.html', club=club,
                            upcoming=upcoming, stats=stats,
-                           is_full_admin=is_full_admin)
+                           is_full_admin=is_full_admin,
+                           unread_messages=unread_messages)
 
 
 @admin_bp.route('/clubs/<slug>/settings', methods=['GET', 'POST'])
@@ -2216,3 +2226,190 @@ def club_import(slug):
         }
 
     return render_template('admin/club_import.html', club=club, form=form, results=results)
+
+
+# ── Superadmin ↔ Club Admin Messaging ────────────────────────────────────────
+
+@admin_bp.route('/messages')
+@superadmin_required
+def messages_inbox():
+    """Superadmin inbox: all club threads + recent broadcasts."""
+    # One row per club that has any messages, with unread reply count
+    clubs_with_msgs = (
+        db.session.query(Club)
+        .join(AdminMessage, AdminMessage.club_id == Club.id)
+        .filter(AdminMessage.parent_id.is_(None))
+        .distinct()
+        .order_by(Club.name.asc())
+        .all()
+    )
+    threads = []
+    for club in clubs_with_msgs:
+        root = (AdminMessage.query
+                .filter_by(club_id=club.id, parent_id=None)
+                .order_by(AdminMessage.created_at.desc())
+                .first())
+        unread = AdminMessage.query.filter_by(
+            club_id=club.id, is_from_superadmin=False, is_read=False
+        ).count()
+        threads.append({'club': club, 'latest': root, 'unread': unread})
+
+    broadcasts = (AdminMessage.query
+                  .filter_by(club_id=None, parent_id=None)
+                  .order_by(AdminMessage.created_at.desc())
+                  .limit(10).all())
+
+    all_clubs = Club.query.filter_by(is_hidden=False).order_by(Club.name.asc()).all()
+    total_unread = sum(t['unread'] for t in threads)
+    return render_template('admin/messages_inbox.html',
+                           threads=threads, broadcasts=broadcasts,
+                           all_clubs=all_clubs, total_unread=total_unread)
+
+
+@admin_bp.route('/messages/club/<slug>', methods=['GET', 'POST'])
+@superadmin_required
+def messages_club_thread(slug):
+    """Superadmin view/send for a specific club thread."""
+    club = _get_club_or_404(slug)
+
+    if request.method == 'POST':
+        subject = request.form.get('subject', '').strip()
+        body = request.form.get('body', '').strip()
+        parent_id_raw = request.form.get('parent_id')
+        if not body:
+            flash('Message body cannot be empty.', 'danger')
+            return redirect(url_for('admin.messages_club_thread', slug=slug))
+
+        parent_id = int(parent_id_raw) if parent_id_raw else None
+        msg = AdminMessage(
+            club_id=club.id,
+            sender_id=current_user.id,
+            is_from_superadmin=True,
+            subject=subject or None,
+            body=body,
+            parent_id=parent_id,
+            is_read=False,
+        )
+        db.session.add(msg)
+        db.session.commit()
+        send_admin_message_to_club(msg, club)
+        flash('Message sent.', 'success')
+        return redirect(url_for('admin.messages_club_thread', slug=slug))
+
+    # Mark all unread club-admin replies as read
+    AdminMessage.query.filter_by(
+        club_id=club.id, is_from_superadmin=False, is_read=False
+    ).update({'is_read': True})
+    db.session.commit()
+
+    roots = (AdminMessage.query
+             .filter_by(club_id=club.id, parent_id=None)
+             .order_by(AdminMessage.created_at.asc())
+             .all())
+    threads = []
+    for root in roots:
+        replies = (AdminMessage.query
+                   .filter_by(parent_id=root.id)
+                   .order_by(AdminMessage.created_at.asc())
+                   .all())
+        threads.append({'root': root, 'replies': replies})
+
+    return render_template('admin/messages_club_thread.html',
+                           club=club, threads=threads)
+
+
+@admin_bp.route('/messages/broadcast', methods=['GET', 'POST'])
+@superadmin_required
+def messages_broadcast():
+    """Compose and send a broadcast notice to all club admins."""
+    if request.method == 'POST':
+        subject = request.form.get('subject', '').strip()
+        body = request.form.get('body', '').strip()
+        if not subject or not body:
+            flash('Subject and body are required.', 'danger')
+            return redirect(url_for('admin.messages_broadcast'))
+
+        msg = AdminMessage(
+            club_id=None,
+            sender_id=current_user.id,
+            is_from_superadmin=True,
+            subject=subject,
+            body=body,
+            parent_id=None,
+            is_read=False,
+        )
+        db.session.add(msg)
+        db.session.commit()
+        send_broadcast_to_club_admins(msg)
+        _audit('broadcast_message', details=f'subject={subject[:80]}')
+        flash('Broadcast sent to all club admins.', 'success')
+        return redirect(url_for('admin.messages_inbox'))
+
+    return render_template('admin/messages_broadcast.html')
+
+
+# ── Club admin: view messages from superadmin and reply ──────────────────────
+
+@admin_bp.route('/clubs/<slug>/messages', methods=['GET', 'POST'])
+@club_admin_required
+def club_messages(slug):
+    """Club admin view of thread with superadmin; POST to reply."""
+    club = _get_club_or_404(slug)
+
+    if request.method == 'POST':
+        body = request.form.get('body', '').strip()
+        parent_id_raw = request.form.get('parent_id')
+        if not body:
+            flash('Reply cannot be empty.', 'danger')
+            return redirect(url_for('admin.club_messages', slug=slug))
+
+        parent_id = int(parent_id_raw) if parent_id_raw else None
+        # If no parent provided, find the most recent root message
+        if not parent_id:
+            root = (AdminMessage.query
+                    .filter_by(club_id=club.id, parent_id=None)
+                    .order_by(AdminMessage.created_at.desc())
+                    .first())
+            if root:
+                parent_id = root.id
+
+        msg = AdminMessage(
+            club_id=club.id,
+            sender_id=current_user.id,
+            is_from_superadmin=False,
+            body=body,
+            parent_id=parent_id,
+            is_read=False,
+        )
+        db.session.add(msg)
+        db.session.commit()
+        send_club_reply_to_superadmin(msg, club)
+        flash('Reply sent.', 'success')
+        return redirect(url_for('admin.club_messages', slug=slug))
+
+    # Mark all unread superadmin messages as read
+    AdminMessage.query.filter_by(
+        club_id=club.id, is_from_superadmin=True, is_read=False
+    ).update({'is_read': True})
+    db.session.commit()
+
+    roots = (AdminMessage.query
+             .filter_by(club_id=club.id, parent_id=None)
+             .order_by(AdminMessage.created_at.asc())
+             .all())
+    threads = []
+    for root in roots:
+        replies = (AdminMessage.query
+                   .filter_by(parent_id=root.id)
+                   .order_by(AdminMessage.created_at.asc())
+                   .all())
+        threads.append({'root': root, 'replies': replies})
+
+    # Recent broadcasts visible to all club admins
+    broadcasts = (AdminMessage.query
+                  .filter_by(club_id=None, parent_id=None)
+                  .order_by(AdminMessage.created_at.desc())
+                  .limit(5).all())
+
+    return render_template('admin/club_messages.html',
+                           club=club, threads=threads, broadcasts=broadcasts)

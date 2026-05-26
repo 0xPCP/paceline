@@ -1,0 +1,9 @@
+Message from Paceline — {{ message.subject or 'New message' }}
+To admins of {{ club.name }}
+
+{{ message.body }}
+
+---
+View this message and reply: {{ thread_url }}
+
+You're receiving this because you're an admin of {{ club.name }} on Paceline.

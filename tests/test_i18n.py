@@ -79,15 +79,14 @@ class TestHomepageI18n:
         body = get_decoded(client, '/')
         assert 'Connecting riders' in body
         assert 'How It Works' in body
-        assert 'Group Cycling, Simplified' in body
+        assert 'Discover rides' in body
 
     def test_french(self, client, sample_club):
         set_lang(client, 'fr')
         body = get_decoded(client, '/')
         assert 'Connecter les cyclistes' in body
-        assert 'Comment' in body  # "Comment ca marche"
-        assert 'cyclisme' in body  # "Le cyclisme en groupe, simplifie"
-        assert 'compte gratuit' in body  # "Creer un compte gratuit"
+        assert 'Comment' in body  # "Comment ça marche"
+        assert 'compte gratuit' in body  # "Créer un compte gratuit"
         assert 'clubs locaux' in body  # "S'abonner aux clubs locaux"
         assert 'Voir tous les clubs' in body
 
