@@ -852,6 +852,21 @@ body.club-page {
 .pace-C { background: #e9a800; }
 .pace-D { background: #198754; }
 
+.badge-newbie {
+  display: inline-flex;
+  align-items: center;
+  gap: .2rem;
+  font-size: .65rem;
+  font-weight: 700;
+  padding: .15rem .45rem;
+  border-radius: 4px;
+  letter-spacing: .03em;
+  color: #064e3b;
+  background: #d1fae5;
+  border: 1px solid #6ee7b7;
+  white-space: nowrap;
+}
+
 .pace-badge-lg {
   display: inline-flex;
   align-items: center;

@@ -414,6 +414,7 @@ class RideForm(FlaskForm):
     ])
     description = TextAreaField('Description / Notes', validators=[Optional()])
     max_riders = IntegerField('Max Riders (leave blank for unlimited)', validators=[Optional(), NumberRange(min=1, max=9999)])
+    is_newbie_friendly = BooleanField('New Rider Friendly — welcoming to first-time road cyclists')
     is_cancelled = BooleanField('Mark as Cancelled')
     is_recurring = BooleanField('Repeat weekly (generates 8 weeks of instances)')
     submit = SubmitField('Save Ride')

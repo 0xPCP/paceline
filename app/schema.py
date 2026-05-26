@@ -172,6 +172,9 @@ def ensure_runtime_schema():
     if ride_columns and 'garmin_groupride_code' not in ride_columns:
         db.session.execute(text('ALTER TABLE rides ADD COLUMN garmin_groupride_code VARCHAR(6)'))
         changed = True
+    if ride_columns and 'is_newbie_friendly' not in ride_columns:
+        db.session.execute(text('ALTER TABLE rides ADD COLUMN is_newbie_friendly BOOLEAN DEFAULT FALSE NOT NULL'))
+        changed = True
 
     if 'admin_audit_logs' not in inspector.get_table_names():
         from .models import AdminAuditLog

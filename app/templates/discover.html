@@ -14,7 +14,7 @@
   {# ── Source selector ──────────────────────────────────────────────────────── #}
   <div class="d-flex gap-2 mb-4 flex-wrap align-items-center">
     <span class="text-muted small me-1">Show:</span>
-    {% set src_params = dict(range=active_range, pace=active_pace, type=active_type, zip=zip_q, radius=radius, sort=active_sort) %}
+    {% set src_params = dict(range=active_range, pace=active_pace, type=active_type, zip=zip_q, radius=radius, sort=active_sort, newbie=('1' if newbie_filter else '')) %}
     {% if lat_arg is not none %}<a href="{{ url_for('main.discover', source='verified', lat=lat_arg, lng=lng_arg, **src_params) }}"
        class="btn btn-sm {{ 'btn-paceline' if source == 'verified' else 'btn-outline-secondary' }}">
       ✓ Verified Clubs
@@ -53,14 +53,14 @@
       <span class="text-muted small">Radius:</span>
       {% for r in [10, 25, 50, 100] %}
         {% if lat_arg is not none %}
-        <a href="{{ url_for('main.discover', source=source, lat=lat_arg, lng=lng_arg, zip=zip_q, radius=r, range=active_range, pace=active_pace, type=active_type, sort=active_sort) }}"
+        <a href="{{ url_for('main.discover', source=source, lat=lat_arg, lng=lng_arg, zip=zip_q, radius=r, range=active_range, pace=active_pace, type=active_type, sort=active_sort, newbie=('1' if newbie_filter else '')) }}"
            class="btn btn-xs btn-sm py-0 px-2 {{ 'btn-paceline' if r == radius else 'btn-outline-secondary' }}" style="font-size:.75rem">{{ r | dist(0) }}</a>
         {% else %}
-        <a href="{{ url_for('main.discover', source=source, zip=zip_q, radius=r, range=active_range, pace=active_pace, type=active_type, sort=active_sort) }}"
+        <a href="{{ url_for('main.discover', source=source, zip=zip_q, radius=r, range=active_range, pace=active_pace, type=active_type, sort=active_sort, newbie=('1' if newbie_filter else '')) }}"
            class="btn btn-xs btn-sm py-0 px-2 {{ 'btn-paceline' if r == radius else 'btn-outline-secondary' }}" style="font-size:.75rem">{{ r | dist(0) }}</a>
         {% endif %}
       {% endfor %}
-      <a href="{{ url_for('main.discover', source=source, range=active_range, pace=active_pace, type=active_type, sort=active_sort, no_geo=1) }}"
+      <a href="{{ url_for('main.discover', source=source, range=active_range, pace=active_pace, type=active_type, sort=active_sort, newbie=('1' if newbie_filter else ''), no_geo=1) }}"
          class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.75rem">Clear location</a>
     </div>
   </div>
@@ -75,6 +75,7 @@
       <input type="hidden" name="type" value="{{ active_type }}">
       <input type="hidden" name="radius" value="{{ radius }}">
       <input type="hidden" name="sort" value="{{ active_sort }}">
+      {% if newbie_filter %}<input type="hidden" name="newbie" value="1">{% endif %}
       <input type="text" name="zip" class="form-control form-control-sm" placeholder="Zip code (e.g. 20191)" style="max-width:140px">
       <button class="btn btn-sm btn-outline-secondary">Search</button>
     </form>
@@ -87,6 +88,7 @@
     <input type="hidden" name="type" value="{{ active_type }}">
     <input type="hidden" name="radius" value="{{ radius }}">
     <input type="hidden" name="sort" value="{{ active_sort }}">
+    {% if newbie_filter %}<input type="hidden" name="newbie" value="1">{% endif %}
     <input type="hidden" name="lat" id="geo-lat">
     <input type="hidden" name="lng" id="geo-lng">
   </form>
@@ -106,6 +108,12 @@
     {% endif %}
     <input type="hidden" name="source" value="{{ source }}">
     <input type="hidden" name="radius" value="{{ radius }}">
+    <input type="hidden" name="range" value="{{ active_range }}">
+    <input type="hidden" name="pace" value="{{ active_pace }}">
+    {% if not current_user.is_authenticated %}
+    <input type="hidden" name="sort" value="{{ active_sort }}">
+    {% endif %}
+    {% if newbie_filter %}<input type="hidden" name="newbie" value="1">{% endif %}
 
     <div class="d-flex flex-wrap gap-2 align-items-end">
 
@@ -118,11 +126,11 @@
           {% elif zip_q %}
             {% set loc_params = dict(zip=zip_q) %}
           {% endif %}
-          <a href="{{ url_for('main.discover', source=source, range='weekend', pace=active_pace, type=active_type, radius=radius, sort=active_sort, **loc_params) }}"
+          <a href="{{ url_for('main.discover', source=source, range='weekend', pace=active_pace, type=active_type, radius=radius, sort=active_sort, newbie=('1' if newbie_filter else ''), **loc_params) }}"
              class="btn btn-sm {{ 'btn-paceline' if active_range == 'weekend' else 'btn-outline-secondary' }}">This Weekend</a>
-          <a href="{{ url_for('main.discover', source=source, range='week', pace=active_pace, type=active_type, radius=radius, sort=active_sort, **loc_params) }}"
+          <a href="{{ url_for('main.discover', source=source, range='week', pace=active_pace, type=active_type, radius=radius, sort=active_sort, newbie=('1' if newbie_filter else ''), **loc_params) }}"
              class="btn btn-sm {{ 'btn-paceline' if active_range == 'week' else 'btn-outline-secondary' }}">Next 7 Days</a>
-          <a href="{{ url_for('main.discover', source=source, range='two-weeks', pace=active_pace, type=active_type, radius=radius, sort=active_sort, **loc_params) }}"
+          <a href="{{ url_for('main.discover', source=source, range='two-weeks', pace=active_pace, type=active_type, radius=radius, sort=active_sort, newbie=('1' if newbie_filter else ''), **loc_params) }}"
              class="btn btn-sm {{ 'btn-paceline' if active_range == 'two-weeks' else 'btn-outline-secondary' }}">Next 2 Weeks</a>
         </div>
       </div>
@@ -131,7 +139,7 @@
         <label class="form-label small mb-1">Pace</label>
         <div class="btn-group" role="group">
           {% for p in ['A','B','C','D'] %}
-          <a href="{{ url_for('main.discover', source=source, range=active_range, pace=('' if active_pace == p else p), type=active_type, radius=radius, sort=active_sort, **loc_params) }}"
+          <a href="{{ url_for('main.discover', source=source, range=active_range, pace=('' if active_pace == p else p), type=active_type, radius=radius, sort=active_sort, newbie=('1' if newbie_filter else ''), **loc_params) }}"
              class="btn btn-sm {{ 'pace-badge pace-' + p if active_pace == p else 'btn-outline-secondary' }}">{{ p }}</a>
           {% endfor %}
         </div>
@@ -147,6 +155,12 @@
           </option>
           {% endfor %}
         </select>
+      </div>
+
+      <div class="align-self-end">
+        <a href="{{ url_for('main.discover', source=source, range=active_range, pace=active_pace, type=active_type, radius=radius, sort=active_sort, newbie=('' if newbie_filter else '1'), **loc_params) }}"
+           class="btn btn-sm {{ 'badge-newbie border-0' if newbie_filter else 'btn-outline-secondary' }}"
+           title="Show only New Rider Friendly rides">&#127807; New Rider Friendly</a>
       </div>
 
       {% if current_user.is_authenticated %}
@@ -216,6 +230,7 @@
         {# Mobile-only badges (hidden on sm+, shown below host on small screens) #}
         <div class="d-flex d-sm-none align-items-center gap-1 mb-1 flex-wrap">
           <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
+          {% if ride.is_newbie_friendly %}<span class="badge-newbie">&#127807; New Rider Friendly</span>{% endif %}
           {% if ride.is_virtual %}<span class="badge bg-info text-dark" style="font-size:.65rem">Virtual</span>{% endif %}
           {% if ride.ride_type %}<span class="badge bg-secondary" style="font-size:.65rem">{{ ride.ride_type.title() }}</span>{% endif %}
           {% if friend_counts.get(ride.id) %}<span class="badge" style="background:var(--paceline-green,#2d6a4f);font-size:.65rem">{{ friend_counts[ride.id] }} friend{{ 's' if friend_counts[ride.id] != 1 }} going</span>{% endif %}
@@ -243,6 +258,7 @@
       <div class="rc-aside d-none d-sm-flex">
         <div class="d-flex align-items-center gap-1 flex-wrap justify-content-end">
           <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
+          {% if ride.is_newbie_friendly %}<span class="badge-newbie">&#127807; New Rider Friendly</span>{% endif %}
           {% if ride.is_virtual %}<span class="badge bg-info text-dark" style="font-size:.7rem">Virtual</span>{% endif %}
           {% if ride.ride_type %}<span class="badge bg-secondary" style="font-size:.7rem">{{ ride.ride_type.title() }}</span>{% endif %}
           {% if friend_counts.get(ride.id) %}<span class="badge" style="background:var(--paceline-green,#2d6a4f);font-size:.7rem">{{ friend_counts[ride.id] }} friend{{ 's' if friend_counts[ride.id] != 1 }} going</span>{% endif %}

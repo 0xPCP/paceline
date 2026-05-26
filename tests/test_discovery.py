@@ -83,6 +83,27 @@ class TestDiscovery:
         assert b'Gravel Adventure' in r.data
         assert b'Road Sprint' not in r.data
 
+    def test_discover_new_rider_friendly_filter(self, client, db, sample_club, mock_weather):
+        sample_club.is_verified = True
+        db.session.add(Ride(
+            club_id=sample_club.id, title='First Timer Welcome Ride',
+            date=date.today() + timedelta(days=2), time=time(8, 0),
+            meeting_location='HQ', distance_miles=20.0, pace_category='C',
+            is_newbie_friendly=True,
+        ))
+        db.session.add(Ride(
+            club_id=sample_club.id, title='Hammerfest',
+            date=date.today() + timedelta(days=2), time=time(8, 0),
+            meeting_location='HQ', distance_miles=50.0, pace_category='A',
+            is_newbie_friendly=False,
+        ))
+        db.session.commit()
+        r = client.get('/discover/?range=week&source=clubs&newbie=1')
+        assert r.status_code == 200
+        assert b'First Timer Welcome Ride' in r.data
+        assert b'Hammerfest' not in r.data
+        assert b'New Rider Friendly' in r.data
+
     def test_discover_excludes_past_rides(self, client, db, sample_club, mock_weather):
         db.session.add(Ride(
             club_id=sample_club.id, title='Old Ride',

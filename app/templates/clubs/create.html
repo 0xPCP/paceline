@@ -344,8 +344,7 @@
 
         <div class="d-flex justify-content-between mt-3">
           <button type="button" class="btn btn-outline-secondary" data-go-step="4">← Back</button>
-          <button type="submit" class="btn btn-paceline btn-lg px-5" data-testid="create-club-submit"
-        onclick="this.disabled=true;this.textContent='Creating…';this.form.submit()">Create Club</button>
+          <button type="submit" class="btn btn-paceline btn-lg px-5" data-testid="create-club-submit">Create Club</button>
         </div>
       </div>
 
@@ -549,6 +548,14 @@
   document.getElementById('ct-primary').addEventListener('input', () => syncColorText('primary'));
   document.getElementById('ct-accent').addEventListener('input', () => syncColorText('accent'));
   document.querySelector('[data-build-review]').addEventListener('click', buildReview);
+
+  document.querySelector('form').addEventListener('submit', function () {
+    const submitButton = document.querySelector('[data-testid="create-club-submit"]');
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = 'Creating…';
+    }
+  });
 
   // Initial state
   selectPreset('forest', '#2d6a4f', '#e76f51');

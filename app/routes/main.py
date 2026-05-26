@@ -427,9 +427,10 @@ def discover():
     if source not in ('verified', 'clubs', 'all'):
         source = 'verified'
 
-    pace       = request.args.get('pace', '')
-    ride_type  = request.args.get('type', '')
-    date_range = request.args.get('range', 'week')
+    pace          = request.args.get('pace', '')
+    ride_type     = request.args.get('type', '')
+    newbie_filter = request.args.get('newbie', '') == '1'
+    date_range    = request.args.get('range', 'week')
     sort       = request.args.get('sort', 'soonest')
     if sort not in ('soonest', 'recommended'):
         sort = 'soonest'
@@ -499,6 +500,8 @@ def discover():
 
     if pace in ('A', 'B', 'C', 'D'):
         query = query.filter(Ride.pace_category == pace)
+    if newbie_filter:
+        query = query.filter(Ride.is_newbie_friendly == True)   # noqa: E712
     if ride_type == 'virtual':
         query = query.filter(Ride.is_virtual == True)   # noqa: E712
     elif ride_type in ('road', 'gravel', 'social', 'training', 'event', 'night'):
@@ -564,6 +567,7 @@ def discover():
         weather=weather,
         active_pace=pace,
         active_type=ride_type,
+        newbie_filter=newbie_filter,
         active_range=date_range,
         active_sort=sort,
         source=source,

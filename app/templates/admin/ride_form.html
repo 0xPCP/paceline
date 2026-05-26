@@ -141,6 +141,12 @@
         </div>
 
         <div class="mb-3 form-check">
+          {{ form.is_newbie_friendly(class="form-check-input") }}
+          {{ form.is_newbie_friendly.label(class="form-check-label") }}
+          <div class="form-text">Mark this ride as welcoming to first-time road cyclists — a badge will appear on the ride listing and detail page.</div>
+        </div>
+
+        <div class="mb-3 form-check">
           {{ form.is_recurring(class="form-check-input") }}
           {{ form.is_recurring.label(class="form-check-label") }}
           {% if ride and ride.recurrence_instances %}
