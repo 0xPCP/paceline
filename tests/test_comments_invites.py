@@ -137,6 +137,29 @@ class TestRideComments:
         body = resp.data.decode()
         assert body.index('First comment') < body.index('Second comment')
 
+    def test_non_member_cannot_comment_on_require_membership_club(
+        self, client, sample_club, sample_rides, regular_user, app
+    ):
+        """Posting a comment on a require_membership club without membership returns 403 (H2 fix)."""
+        with app.app_context():
+            from app.extensions import db
+            sample_club.require_membership = True
+            db.session.commit()
+
+        ride = sample_rides[0]
+        _login(client, regular_user)
+        resp = client.post(
+            f'/clubs/{sample_club.slug}/rides/{ride.id}/comments',
+            data={'body': 'Should not be allowed'},
+            follow_redirects=False,
+        )
+        assert resp.status_code == 403
+
+        with app.app_context():
+            sample_club.require_membership = False
+            from app.extensions import db
+            db.session.commit()
+
 
 # ── Club Invites ───────────────────────────────────────────────────────────────
 
@@ -292,6 +315,34 @@ class TestClubInvites:
                 user_id=regular_user.id, club_id=sample_club.id
             ).first()
             assert m.status == 'active'
+
+    def test_invite_marked_used_when_existing_member_claims_it(
+        self, client, sample_club, club_admin_user, regular_user, app
+    ):
+        """Invite is marked used even when the claimer already has a membership (H1 fix)."""
+        with app.app_context():
+            from app.extensions import db
+            db.session.add(ClubMembership(
+                user_id=regular_user.id, club_id=sample_club.id, status='active'
+            ))
+            token = secrets.token_urlsafe(32)
+            invite = ClubInvite(
+                club_id=sample_club.id,
+                email=regular_user.email,
+                token=token,
+                expires_at=datetime.now(timezone.utc) + timedelta(days=7),
+                created_by=club_admin_user.id,
+            )
+            db.session.add(invite)
+            db.session.commit()
+
+        _login(client, regular_user)
+        client.get(f'/clubs/invites/{token}', follow_redirects=True)
+
+        with app.app_context():
+            inv = ClubInvite.query.filter_by(token=token).first()
+            assert inv.used_at is not None
+            assert inv.used_by_user_id == regular_user.id
 
 
 # ── Superadmin Dashboard ───────────────────────────────────────────────────────

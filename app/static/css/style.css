@@ -1828,6 +1828,36 @@ a:hover { color: var(--paceline-green-dark); }
   .board-media-count-3 .board-media-item:first-child { grid-row: auto; }
 }
 
+/* ── Calendar: agenda view on tablets/phones (≤767px) ───────────────────── */
+@media (max-width: 767px) {
+  /* Switch month and week grids to a single-column agenda list */
+  .month-grid-wrap,
+  .week-grid-wrap {
+    overflow-x: visible;
+  }
+  .month-grid {
+    display: block;
+    min-width: 0;
+    border-left: none;
+    border-top: none;
+  }
+  .month-hdr { display: none; }
+  .month-cell {
+    min-height: 0;
+    border-left: none;
+    border-right: none;
+    padding: .3rem 0;
+  }
+  .month-cell.other-month:not(:has(.cell-ride)) { display: none; }
+  .week-grid {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: .5rem;
+  }
+  .week-col:not(:has(.week-ride)) { display: none; }
+}
+
 /* ── Club Board ──────────────────────────────────────────────────────────── */
 .board-post-card {
   padding: 1rem 0;

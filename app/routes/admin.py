@@ -1241,12 +1241,14 @@ def club_members_export(slug):
 @club_ride_admin_required
 def club_rides(slug):
     club = _get_club_or_404(slug)
-    all_rides = (Ride.query.filter_by(club_id=club.id)
-                 .order_by(Ride.date.desc()).all())
+    page = request.args.get('page', 1, type=int)
+    rides_paginated = (Ride.query.filter_by(club_id=club.id)
+                       .order_by(Ride.date.desc())
+                       .paginate(page=page, per_page=50, error_out=False))
     from ..models import RidePoll
     polls = (RidePoll.query.filter_by(club_id=club.id)
              .order_by(RidePoll.ride_date.desc()).limit(50).all())
-    return render_template('admin/club_rides.html', club=club, rides=all_rides, polls=polls)
+    return render_template('admin/club_rides.html', club=club, rides=rides_paginated, polls=polls)
 
 
 @admin_bp.route('/clubs/<slug>/rides/<int:ride_id>/roster')

@@ -1,6 +1,7 @@
+import secrets
 import time
 import requests
-from flask import Blueprint, redirect, url_for, flash, request, current_app
+from flask import Blueprint, redirect, url_for, flash, request, current_app, session
 from flask_login import login_required, current_user, fresh_login_required
 from ..extensions import db
 
@@ -90,6 +91,8 @@ def connect():
         flash('Strava integration is not configured.', 'warning')
         return redirect(url_for('auth.profile'))
 
+    state = secrets.token_urlsafe(32)
+    session['strava_oauth_state'] = state
     callback_url = url_for('strava.callback', _external=True)
     auth_url = (
         f'https://www.strava.com/oauth/authorize'
@@ -97,6 +100,7 @@ def connect():
         f'&redirect_uri={callback_url}'
         f'&response_type=code'
         f'&scope=read,activity:read'
+        f'&state={state}'
     )
     return redirect(auth_url)
 
@@ -105,8 +109,10 @@ def connect():
 @fresh_login_required
 def callback():
     code = request.args.get('code')
-    if not code:
-        flash('Strava authorization failed.', 'danger')
+    state = request.args.get('state')
+    expected_state = session.pop('strava_oauth_state', None)
+    if not code or not state or state != expected_state:
+        flash('Strava authorization failed: invalid state.', 'danger')
         return redirect(url_for('auth.profile'))
 
     client_id = current_app.config.get('STRAVA_CLIENT_ID')

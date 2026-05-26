@@ -270,3 +270,48 @@ def test_settings_ignores_non_numeric_strava_id(client, app, sample_club, club_a
     assert resp.status_code == 200
     db.session.refresh(sample_club)
     assert sample_club.strava_club_id is None
+
+
+# ── OAuth state nonce (CSRF protection) ───────────────────────────────────────
+
+def _do_login(client, email='rider@test.com', password='password123'):
+    client.post('/auth/login', data={'email': email, 'password': password},
+                follow_redirects=True)
+
+
+def test_strava_connect_sets_state_in_session(client, app, regular_user):
+    """connect() stores a state nonce in the session and passes it to Strava."""
+    app.config['STRAVA_CLIENT_ID'] = 'test-client-id'
+    _do_login(client)
+    resp = client.get('/strava/connect')
+    assert resp.status_code == 302
+    location = resp.headers['Location']
+    assert 'state=' in location
+    with client.session_transaction() as sess:
+        assert 'strava_oauth_state' in sess
+
+
+def test_strava_callback_rejects_missing_state(client, app, regular_user):
+    """callback() redirects to profile with error when state param is absent."""
+    app.config['STRAVA_CLIENT_ID'] = 'test-client-id'
+    app.config['STRAVA_CLIENT_SECRET'] = 'secret'
+    _do_login(client)
+    with client.session_transaction() as sess:
+        sess['strava_oauth_state'] = 'expected-nonce'
+    resp = client.get('/strava/callback?code=abc123')
+    assert resp.status_code == 302
+    assert '/auth/profile' in resp.headers['Location']
+    with client.session_transaction() as sess:
+        assert 'strava_oauth_state' not in sess  # consumed even on failure
+
+
+def test_strava_callback_rejects_wrong_state(client, app, regular_user):
+    """callback() rejects a state that doesn't match the session nonce."""
+    app.config['STRAVA_CLIENT_ID'] = 'test-client-id'
+    app.config['STRAVA_CLIENT_SECRET'] = 'secret'
+    _do_login(client)
+    with client.session_transaction() as sess:
+        sess['strava_oauth_state'] = 'correct-nonce'
+    resp = client.get('/strava/callback?code=abc123&state=wrong-nonce')
+    assert resp.status_code == 302
+    assert '/auth/profile' in resp.headers['Location']

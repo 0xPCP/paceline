@@ -948,7 +948,7 @@ def join(slug):
         if status == 'pending_payment':
             flash(f"Your request to join {club.name} is waiting for dues payment. Use the club dues button to pay through Stripe and activate automatically.", 'info')
         elif status == 'pending':
-            flash(f"Your request to join {club.name} has been submitted. An admin will review it shortly.", 'info')
+            flash(f"Your request to join {club.name} has been submitted. An admin will review it shortly. You can browse upcoming rides while you wait.", 'info')
         else:
             flash(f"You've joined {club.name}!", 'success')
     except IntegrityError:
@@ -1009,7 +1009,7 @@ def waiver(slug):
 def ride_comment_post(slug, ride_id):
     club = _get_club_or_404(slug)
     ride = Ride.query.filter_by(id=ride_id, club_id=club.id).first_or_404()
-    if club.is_private and not current_user.is_active_member_of(club):
+    if (club.is_private or club.require_membership) and not current_user.is_active_member_of(club):
         abort(403)
     form = RideCommentForm()
     if form.validate_on_submit():
@@ -1065,7 +1065,6 @@ def invite_claim(token):
             existing.status = 'active'
         if invite.membership_expires_on:
             existing.dues_paid_until = invite.membership_expires_on
-        db.session.commit()
         flash(f"You're now an active member of {club.name}!", 'success')
     else:
         db.session.add(ClubMembership(
@@ -1074,10 +1073,10 @@ def invite_claim(token):
             status='active',
             dues_paid_until=invite.membership_expires_on,
         ))
-        invite.used_at = datetime.now(timezone.utc)
-        invite.used_by_user_id = current_user.id
-        db.session.commit()
         flash(f"Welcome to {club.name}! Your membership is active.", 'success')
+    invite.used_at = datetime.now(timezone.utc)
+    invite.used_by_user_id = current_user.id
+    db.session.commit()
 
     return redirect(url_for('clubs.home', slug=club.slug))
 

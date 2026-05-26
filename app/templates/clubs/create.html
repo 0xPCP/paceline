@@ -344,7 +344,8 @@
 
         <div class="d-flex justify-content-between mt-3">
           <button type="button" class="btn btn-outline-secondary" data-go-step="4">← Back</button>
-          <button type="submit" class="btn btn-paceline btn-lg px-5" data-testid="create-club-submit">Create Club</button>
+          <button type="submit" class="btn btn-paceline btn-lg px-5" data-testid="create-club-submit"
+        onclick="this.disabled=true;this.textContent='Creating…';this.form.submit()">Create Club</button>
         </div>
       </div>
 
