@@ -39,6 +39,7 @@
             <li><a href="#ride-tools">Use ride tools</a></li>
             <li><a href="#contact-club">Contact a club</a></li>
             <li><a href="#media">Share ride photos and videos</a></li>
+            <li><a href="#share-ride">Share a ride</a></li>
             <li><a href="#friends">Connect with friends</a></li>
           </ol>
         </div>
@@ -502,9 +503,39 @@
         </p>
       </div>
 
-      {# ── 16. Connect with friends ────────────────────────────────────── #}
+      {# ── 16. Share a ride ────────────────────────────────────────────── #}
+      <div class="mb-5" id="share-ride">
+        <h2 class="section-heading h4">16. Share a ride</h2>
+        <p class="section-body">
+          Every ride page has a <strong>Share Ride</strong> button. Tap or click it to
+          share a direct link to the ride.
+        </p>
+        <ul class="section-body">
+          <li>On a phone or tablet, tapping <strong>Share Ride</strong> opens your device's
+              native share sheet so you can send the link by text, WhatsApp, email, or any
+              other app installed on your device.</li>
+          <li>On a desktop browser, clicking <strong>Share Ride</strong> copies the link to
+              your clipboard. A small toast message confirms the copy. Paste the link wherever
+              you want to share it.</li>
+        </ul>
+        <p class="section-body">
+          Links shared to iMessage, WhatsApp, Slack, Twitter, or Facebook automatically show
+          a <strong>rich preview</strong> with the ride title, date, distance, pace, and meeting
+          location — so the recipient sees the key details without clicking through first.
+        </p>
+        <figure class="mb-0">
+          <img class="img-fluid rounded border shadow-sm"
+               src="{{ url_for('static', filename='img/help/ride-share-button.png') }}"
+               alt="Ride detail page showing the Share Ride button">
+          <figcaption class="small text-muted mt-2">
+            The Share Ride button is visible to anyone on the ride page, even before signing in.
+          </figcaption>
+        </figure>
+      </div>
+
+      {# ── 17. Connect with friends ────────────────────────────────────── #}
       <div class="mb-5" id="friends">
-        <h2 class="section-heading h4">16. Connect with friends</h2>
+        <h2 class="section-heading h4">17. Connect with friends</h2>
         <p class="section-body">
           Paceline lets you connect with other riders as friends. Friends' upcoming
           rides appear in a dedicated section on your home dashboard so you can see

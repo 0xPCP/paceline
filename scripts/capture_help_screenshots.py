@@ -248,6 +248,47 @@ def run():
         else:
             print(f"  poll creation may have failed — at {page.url}")
 
+        # ── Ride share button ─────────────────────────────────────────────────
+        print("Ride share button...")
+        page.goto(f"{PROD_URL}/clubs/paceline-demo/rides/18")
+        page.wait_for_load_state("networkidle")
+        share_btn = page.locator('.ride-share-btn').first
+        if share_btn.count() > 0:
+            share_btn.scroll_into_view_if_needed()
+            page.wait_for_timeout(300)
+            # Screenshot the card/column containing the share button
+            share_area = share_btn.locator("..").locator("..")
+            ss(page, "ride-share-button", locator=share_area)
+        else:
+            # Fall back to a partial viewport screenshot centred around the button
+            print("  (.ride-share-btn not found — screenshotting page)")
+            ss(page, "ride-share-button", full_page=False)
+
+        # ── Club admin messages view ──────────────────────────────────────────
+        print("Club admin messages view...")
+        # Send a test message from superadmin if the thread is empty
+        page.goto(f"{PROD_URL}/admin/messages/club/paceline-demo")
+        page.wait_for_load_state("networkidle")
+        if '/admin/messages/club/' in page.url:
+            existing = page.locator('.msg-bubble').count()
+            if existing == 0:
+                subj = page.locator('input[name="subject"]')
+                body = page.locator('textarea[name="body"]')
+                if subj.count() > 0 and body.count() > 0:
+                    subj.fill('Welcome to Paceline!')
+                    body.fill('Hi! Just checking in — let us know if you have any questions '
+                              'about setting up your club or if there is anything the Paceline '
+                              'team can help with.')
+                    page.locator('button[type="submit"]').last.click()
+                    page.wait_for_load_state("networkidle")
+                    page.wait_for_timeout(400)
+
+        # Screenshot the club-admin view (logged in as club admin equivalent)
+        page.goto(f"{PROD_URL}/admin/clubs/paceline-demo/messages")
+        page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(400)
+        ss(page, "club-messages", full_page=False)
+
         browser.close()
     print("Done.")
 
