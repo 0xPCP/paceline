@@ -77,6 +77,46 @@ def _strip_markdown_filter(text):
     return re.sub(r'\n+', ' ', cleaned).strip()
 
 
+def _homepage_markdown_excerpt_filter(text, max_paragraphs=2, max_list_items=4):
+    """Render a short, readable markdown excerpt for expanded homepage news."""
+    if not text:
+        return Markup('')
+
+    blocks = re.split(r'\n\s*\n', text.strip())
+    excerpt_blocks = []
+    paragraphs = 0
+    omitted = False
+
+    for block in blocks:
+        lines = [line for line in block.splitlines() if line.strip()]
+        if not lines:
+            continue
+
+        is_list = all(re.match(r'\s*[-*+]\s+', line) for line in lines)
+        if is_list:
+            shown = lines[:max_list_items]
+            excerpt_blocks.append('\n'.join(shown))
+            omitted = omitted or len(lines) > max_list_items
+            break
+
+        if paragraphs < max_paragraphs:
+            excerpt_blocks.append(block)
+            paragraphs += 1
+            continue
+
+        omitted = True
+        break
+
+    if len(excerpt_blocks) < len(blocks):
+        omitted = True
+
+    excerpt = '\n\n'.join(excerpt_blocks)
+    rendered = _markdown_filter(excerpt)
+    if omitted:
+        rendered += Markup('<p class="platform-news-excerpt-note">More in the full post.</p>')
+    return rendered
+
+
 def _dist_filter(miles, precision=1):
     """Convert a distance in miles to the user-preferred unit string (e.g. '42.5 mi' or '68.4 km')."""
     from flask import g, has_request_context
@@ -220,6 +260,7 @@ def create_app(config_class=Config):
     app.jinja_env.filters['mentionify'] = mentionify
     app.jinja_env.filters['markdown'] = _markdown_filter
     app.jinja_env.filters['strip_markdown'] = _strip_markdown_filter
+    app.jinja_env.filters['homepage_markdown_excerpt'] = _homepage_markdown_excerpt_filter
     app.jinja_env.filters['dist'] = _dist_filter
     app.jinja_env.filters['elev'] = _elev_filter
     app.jinja_env.filters['pace'] = _pace_filter

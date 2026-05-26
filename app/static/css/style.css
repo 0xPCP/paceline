@@ -626,6 +626,12 @@ body.club-page {
   margin: .85rem 0 1rem 1.1rem;
   padding-left: .75rem;
 }
+.platform-news-excerpt-note {
+  color: #6c757d;
+  font-size: .9rem;
+  font-weight: 600;
+  margin-top: .85rem;
+}
 .platform-news-list {
   display: grid;
   gap: 1rem;

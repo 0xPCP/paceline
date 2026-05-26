@@ -19,9 +19,9 @@
       <p class="platform-news-summary platform-news-summary-lead">{{ latest_post.summary }}</p>
       {% endif %}
       <div class="platform-news-body-preview">
-        {{ latest_post.body | markdown }}
+        {{ latest_post.body | homepage_markdown_excerpt }}
       </div>
-      <a href="{{ url_for('main.platform_news_detail', post_id=latest_post.id) }}" class="btn btn-paceline-outline btn-on-light btn-sm mt-3">{{ _('Open Post') }}</a>
+      <a href="{{ url_for('main.platform_news_detail', post_id=latest_post.id) }}" class="btn btn-paceline-outline btn-on-light btn-sm mt-3">{{ _('Continue Reading') }}</a>
     </article>
 
     {% if platform_posts|length > 1 %}

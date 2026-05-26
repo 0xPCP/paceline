@@ -36,7 +36,7 @@ def test_homepage_expands_latest_platform_post_and_summarizes_older_posts(client
     db.session.add(PlatformPost(
         title='Newest update',
         summary='Newest summary.',
-        body='Newest full body is visible by default.\n\n- First visible item\n- Second visible item',
+        body='Newest full body is visible by default.\n\nMore context stays visible.\n\n- First visible item\n- Second visible item\n- Third visible item\n- Fourth visible item\n- Hidden fifth item',
         is_published=True,
         published_at=datetime(2026, 5, 26, tzinfo=timezone.utc),
     ))
@@ -47,7 +47,12 @@ def test_homepage_expands_latest_platform_post_and_summarizes_older_posts(client
     assert resp.status_code == 200
     assert b'platform-news-card-expanded' in resp.data
     assert b'Newest full body is visible by default.' in resp.data
+    assert b'More context stays visible.' in resp.data
     assert b'First visible item' in resp.data
+    assert b'Fourth visible item' in resp.data
+    assert b'Hidden fifth item' not in resp.data
+    assert b'Continue Reading' in resp.data
+    assert b'More in the full post.' in resp.data
     assert b'Older summary.' in resp.data
     assert b'Older full body should stay behind the link.' not in resp.data
 
