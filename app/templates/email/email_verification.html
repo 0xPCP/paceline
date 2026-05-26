@@ -1,0 +1,8 @@
+{% extends "email/base.html" %}
+{% block content %}
+<div class="club-tag">Paceline Account</div>
+<h1>Verify your email address.</h1>
+<p>Hi {{ user.username }}, confirm that {{ recipient }} belongs to you so Paceline can use it for account recovery and important ride or club notifications.</p>
+<p><a class="button" href="{{ verify_url }}">Verify Email</a></p>
+<p class="muted">This link expires soon. If you did not request this, you can ignore this email.</p>
+{% endblock %}

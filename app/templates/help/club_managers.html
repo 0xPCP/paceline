@@ -27,6 +27,7 @@
             <li><a href="#create">Create your club</a></li>
             <li><a href="#go-public">Set up and go public</a></li>
             <li><a href="#settings">Complete club settings</a></li>
+            <li><a href="#dashboard">Use the admin dashboard</a></li>
             <li><a href="#team">Add your management team</a></li>
             <li><a href="#leaders">Add and manage ride leaders</a></li>
             <li><a href="#rides">Publish rides</a></li>
@@ -109,6 +110,12 @@
           You can hide the club again at any time — for example during an off-season
           hiatus — and unhide it when you are ready to resume.
         </p>
+        <p class="section-body">
+          Club directory cards show compact quality signals such as
+          <strong>Verified</strong>, upcoming ride count, <strong>New rider friendly</strong>,
+          <strong>Online dues</strong>, shop availability, and ride-hosting mode. Keep
+          rides current and settings complete so riders can quickly tell the club is active.
+        </p>
       </div>
 
       {# ── 3. Complete club settings ─────────────────────────────────────── #}
@@ -129,6 +136,30 @@
                alt="Club Settings page with description, location, contact, and membership fields">
           <figcaption class="small text-muted mt-2">
             Club settings control your public profile, contact details, membership rules, and safety notes.
+          </figcaption>
+        </figure>
+      </div>
+
+      {# ── Admin dashboard ─────────────────────────────────────────────── #}
+      <div class="mb-5" id="dashboard">
+        <h2 class="section-heading h4">Use the admin dashboard</h2>
+        <p class="section-body">
+          The club admin dashboard shows the club setup checklist, upcoming rides,
+          and a lightweight activity panel. Use the checklist when launching a new
+          club so riders see useful details from day one.
+        </p>
+        <p class="section-body">
+          The activity panel summarizes the last 30 days and next 30 days: new
+          members, ride signups, past/upcoming ride count, recent Stripe payment
+          volume, and ride type mix. It is meant to answer a simple question:
+          is this club page actually being used?
+        </p>
+        <figure class="mb-0">
+          <img class="img-fluid rounded border shadow-sm"
+               src="{{ url_for('static', filename='img/help/club-admin-dashboard.png') }}"
+               alt="Club admin dashboard showing setup checklist, activity metrics, and upcoming rides">
+          <figcaption class="small text-muted mt-2">
+            The admin dashboard combines launch tasks, activity trends, and ride management in one place.
           </figcaption>
         </figure>
       </div>
@@ -348,6 +379,11 @@
         <p class="section-body">
           You need a Stripe account before you start. If you do not have one,
           Stripe's onboarding will walk you through creating one.
+        </p>
+        <p class="section-body">
+          For security, Paceline may ask you to sign in again before starting
+          Stripe onboarding or disconnecting Stripe. This protects club payment
+          settings if a browser session was left open.
         </p>
         <ol class="section-body">
           <li>

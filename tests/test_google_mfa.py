@@ -68,6 +68,7 @@ def test_google_callback_creates_user_for_verified_email(client, app):
     assert user.google_sub == 'google-sub-1'
     assert user.username.startswith('google-')
     assert user.username_finalized is False
+    assert user.email_verified is True
     with client.session_transaction() as sess:
         assert sess['_user_id'] == user.get_id()
         assert sess['_paceline_trusted_browser'] is False

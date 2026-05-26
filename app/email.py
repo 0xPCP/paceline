@@ -429,6 +429,19 @@ def send_password_reset_email(user, reset_url):
     logger.info('Password reset email sent to %s', user.email)
 
 
+def send_email_verification_email(user, verify_url, email=None):
+    """Send a required email verification link."""
+    recipient = email or user.pending_email or user.email
+    if not recipient:
+        return
+    html = render_template('email/email_verification.html',
+                           user=user, verify_url=verify_url, recipient=recipient)
+    text = render_template('email/email_verification.txt',
+                           user=user, verify_url=verify_url, recipient=recipient)
+    _send('Verify your Paceline email address', [recipient], html, text)
+    logger.info('Email verification sent to %s for user %s', recipient, user.id)
+
+
 def send_club_ownership_transfer_email(transfer, accept_url):
     """Ask the proposed new club owner to confirm an ownership transfer."""
     user = transfer.to_user

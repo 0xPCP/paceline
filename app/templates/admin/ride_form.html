@@ -65,6 +65,7 @@
             {{ form.pace_category.label(class="form-label") }}
             {{ form.pace_category(class="form-select" + (" is-invalid" if form.pace_category.errors else ""), **{'data-testid': 'club-ride-pace'}) }}
             {% for e in form.pace_category.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            <div class="form-text">A = fast, B = moderate, C = casual, D = beginner.</div>
           </div>
           <div class="col-sm-3">
             {{ form.ride_type.label(class="form-label") }}
@@ -143,7 +144,7 @@
         <div class="mb-3 form-check">
           {{ form.is_newbie_friendly(class="form-check-input") }}
           {{ form.is_newbie_friendly.label(class="form-check-label") }}
-          <div class="form-text">Mark this ride as welcoming to first-time road cyclists — a badge will appear on the ride listing and detail page.</div>
+          <div class="form-text">Use this when the leader expects first-time group riders, regroups clearly, and explains route/pace norms.</div>
         </div>
 
         <div class="mb-3 form-check">

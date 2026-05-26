@@ -10,6 +10,33 @@
 </div>
 
 <div class="container py-4">
+  {% if onboarding_items and not onboarding_complete %}
+  {% set completed_onboarding = onboarding_items | selectattr('complete') | list | length %}
+  <div class="onboarding-panel mb-4" data-testid="dashboard-onboarding-checklist">
+    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+      <div>
+        <p class="section-label mb-1">Get Set Up</p>
+        <h2 class="h5 mb-1">Make Paceline work better for you</h2>
+        <p class="text-muted mb-0">Finish these quick steps so ride discovery and club pages feel more useful.</p>
+      </div>
+      <div class="onboarding-progress">{{ completed_onboarding }}/{{ onboarding_items | length }}</div>
+    </div>
+    <div class="row g-2">
+      {% for item in onboarding_items %}
+      <div class="col-md">
+        <a href="{{ item.url }}" class="onboarding-step {{ 'is-complete' if item.complete else '' }}">
+          <span class="onboarding-check">{{ '✓' if item.complete else loop.index }}</span>
+          <span>
+            <strong>{{ item.label }}</strong>
+            <small>{{ item.detail }}</small>
+          </span>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   <div class="row g-4">
 
     <!-- My upcoming signed-up rides -->
@@ -52,8 +79,19 @@
         </div>
         {% endfor %}
       {% else %}
-        <div class="text-muted">{{ _("You haven't signed up for any upcoming rides.") }}
-          {% if upcoming_club_rides %} {{ _('Check the suggestions below.') }}{% endif %}
+        <div class="empty-state empty-state-compact text-start">
+          <h5 class="mb-1">{{ _("You haven't signed up for any upcoming rides.") }}</h5>
+          <p class="text-muted mb-3">
+            {% if upcoming_club_rides %}
+            {{ _('Check the suggestions below or browse more rides near you.') }}
+            {% else %}
+            {{ _('Find a club or browse Discover Rides to add your first ride here.') }}
+            {% endif %}
+          </p>
+          <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ url_for('main.discover') }}" class="btn btn-paceline-sm">Discover Rides</a>
+            <a href="{{ url_for('clubs.index') }}" class="btn btn-outline-secondary btn-sm">Find Clubs</a>
+          </div>
         </div>
       {% endif %}
 

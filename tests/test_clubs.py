@@ -3,9 +3,9 @@ Tests for club listing, club home, membership join/leave,
 ride detail, signup, unsignup, and waiver flows.
 """
 import pytest
-from datetime import date, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from unittest.mock import patch
-from app.models import Club, ClubMembership, Ride, RideSignup, WaiverSignature
+from app.models import Club, ClubMembership, Ride, RideSignup, WaiverSignature, ClubShopItem
 from app.extensions import db
 from tests.conftest import login
 
@@ -67,6 +67,39 @@ class TestClubIndex:
         html = resp.data.decode()
         assert 'Test Cycling Club' in html
         assert 'Other Cycling Club' in html
+
+    def test_directory_shows_club_quality_signals(self, client, db, sample_club):
+        sample_club.is_verified = True
+        sample_club.stripe_account_id = 'acct_test'
+        sample_club.stripe_account_connected_at = datetime.now(timezone.utc)
+        sample_club.membership_dues_required = True
+        sample_club.membership_dues_mode = 'stripe_connect'
+        sample_club.membership_dues_amount_cents = 4500
+        db.session.add(Ride(
+            club_id=sample_club.id,
+            title='Beginner Coffee Ride',
+            date=date.today() + timedelta(days=3),
+            time=time(9, 0),
+            meeting_location='Town Center',
+            distance_miles=18,
+            pace_category='D',
+            is_newbie_friendly=True,
+        ))
+        db.session.add(ClubShopItem(
+            club_id=sample_club.id,
+            name='Club Jersey',
+            price_cents=8000,
+            is_active=True,
+        ))
+        db.session.commit()
+
+        html = client.get('/clubs/').data.decode()
+
+        assert 'Verified' in html
+        assert '1 ride soon' in html
+        assert 'New rider friendly' in html
+        assert 'Online dues' in html
+        assert 'Shop' in html
 
 
 # ── Zip code search ───────────────────────────────────────────────────────────

@@ -128,6 +128,18 @@ def test_connect_start_creates_account_and_redirects_to_onboarding(client, app, 
     assert sample_club.stripe_account_id == 'acct_123'
 
 
+def test_connect_start_requires_fresh_login(client, app, sample_club, club_admin_user):
+    app.config['STRIPE_SECRET_KEY'] = 'sk_test_fake'
+    login(client, email='clubadmin@test.com')
+    with client.session_transaction() as sess:
+        sess['_fresh'] = False
+
+    response = client.get(f'/stripe/clubs/{sample_club.slug}/connect')
+
+    assert response.status_code == 302
+    assert '/auth/login' in response.headers['Location']
+
+
 def test_connect_return_marks_account_connected_when_charges_enabled(client, app, db, sample_club, club_admin_user, monkeypatch):
     app.config['STRIPE_SECRET_KEY'] = 'sk_test_fake'
     sample_club.stripe_account_id = 'acct_123'

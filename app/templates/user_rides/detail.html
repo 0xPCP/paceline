@@ -365,6 +365,50 @@
   {% endif %}
 </div>
 
+{% if not ride.is_cancelled %}
+<div class="ride-sticky-action d-lg-none">
+  <div class="ride-sticky-meta">
+    <strong>{{ ride.date.strftime('%b') }} {{ ride.date.day }}</strong>
+    <span>{{ ride.time.strftime('%I:%M %p').lstrip('0') }} · {{ ride.distance_miles | dist }}</span>
+  </div>
+  {% if access == 'owner' %}
+    <span class="badge bg-light text-dark border">Your Ride</span>
+  {% elif access == 'accepted' and user_signup %}
+    <form method="post" action="{{ url_for('user_rides.unsignup', ride_id=ride.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <button class="btn btn-outline-secondary btn-sm">Leave Ride</button>
+    </form>
+  {% elif access == 'accepted' %}
+    <form method="post" action="{{ url_for('user_rides.signup', ride_id=ride.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <button class="btn btn-paceline-sm">Join Ride</button>
+    </form>
+  {% elif access == 'invited' %}
+    {% set my_invite = ride.invites | selectattr('user_id', 'eq', current_user.id) | first %}
+    {% if my_invite %}
+    <form method="post" action="{{ url_for('user_rides.accept_invite', ride_id=ride.id, invite_id=my_invite.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <button class="btn btn-paceline-sm">Accept</button>
+    </form>
+    {% endif %}
+  {% elif access == 'public' and current_user.is_authenticated and user_signup %}
+    <form method="post" action="{{ url_for('user_rides.unsignup', ride_id=ride.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <button class="btn btn-outline-secondary btn-sm">Cancel</button>
+    </form>
+  {% elif access == 'public' and current_user.is_authenticated and not ride.is_full %}
+    <form method="post" action="{{ url_for('user_rides.signup', ride_id=ride.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <button class="btn btn-paceline-sm">Sign Up</button>
+    </form>
+  {% elif access == 'public' and not current_user.is_authenticated %}
+    <a class="btn btn-paceline-sm" href="{{ url_for('auth.login', next=request.path) }}">Sign In</a>
+  {% else %}
+    <span class="badge bg-secondary">Full</span>
+  {% endif %}
+</div>
+{% endif %}
+
 <div id="share-toast" class="share-toast" aria-live="polite">Link copied!</div>
 
 <script nonce="{{ g.csp_nonce }}">

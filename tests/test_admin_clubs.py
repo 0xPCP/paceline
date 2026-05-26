@@ -2,8 +2,9 @@
 Tests for superadmin club creation and club admin settings editing.
 """
 import pytest
+from datetime import date, time, timedelta
 from unittest.mock import patch
-from app.models import Club
+from app.models import Club, Ride, RideSignup
 from tests.conftest import login
 
 
@@ -137,3 +138,27 @@ class TestClubSettings:
         login(client, 'clubadmin@test.com', 'password123')
         resp = client.get(f'/admin/clubs/{sample_club.slug}/')
         assert b'Settings' in resp.data
+
+    def test_club_dashboard_shows_activity_stats(self, client, club_admin_user, regular_user, sample_club, db):
+        ride = Ride(
+            club_id=sample_club.id,
+            title='Recent Road Ride',
+            date=date.today() + timedelta(days=2),
+            time=time(8, 0),
+            meeting_location='Town Center',
+            distance_miles=24,
+            pace_category='B',
+            ride_type='road',
+        )
+        db.session.add(ride)
+        db.session.flush()
+        db.session.add(RideSignup(ride_id=ride.id, user_id=regular_user.id))
+        db.session.commit()
+
+        login(client, 'clubadmin@test.com', 'password123')
+        html = client.get(f'/admin/clubs/{sample_club.slug}/').data.decode()
+
+        assert 'Club Activity' in html
+        assert 'Ride signups' in html
+        assert 'Rides past / next' in html
+        assert 'Road' in html

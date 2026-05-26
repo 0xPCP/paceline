@@ -21,7 +21,7 @@ from ..forms import (
     AccountSetupForm, DisableMfaForm, MfaCodeForm, PasswordResetRequestForm, RegisterForm,
     LoginForm, ProfileForm, SetPasswordForm, UsernameSetupForm,
 )
-from ..email import send_password_reset_email
+from ..email import send_password_reset_email, send_email_verification_email
 from ..email import DEFAULT_EMAIL_PREFERENCES, email_preferences_for
 from ..geocoding import geocode_zip
 from ..gear import GEAR_CATALOG
@@ -77,6 +77,31 @@ def _mfa_code_valid(user, code):
 
 def _password_reset_serializer():
     return URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt='paceline-password-reset')
+
+
+def _email_verification_serializer():
+    return URLSafeTimedSerializer(current_app.config['SECRET_KEY'], salt='paceline-email-verification')
+
+
+def _email_verification_payload(user, email, purpose):
+    return {
+        'user_id': user.id,
+        'email': (email or '').strip().lower(),
+        'purpose': purpose,
+        'session_token_version': user.session_token_version or 0,
+    }
+
+
+def _email_verification_token(user, email=None, purpose='registration'):
+    target = (email or user.pending_email or user.email).strip().lower()
+    return _email_verification_serializer().dumps(_email_verification_payload(user, target, purpose))
+
+
+def _send_email_verification(user, email=None, purpose='registration'):
+    target = (email or user.pending_email or user.email).strip().lower()
+    token = _email_verification_token(user, target, purpose=purpose)
+    verify_url = url_for('auth.verify_email', token=token, _external=True)
+    send_email_verification_email(user, verify_url, email=target)
 
 
 def _delete_current_user_account(user):
@@ -217,6 +242,8 @@ def _user_from_google_profile(profile):
     user = User.query.filter_by(email=email).first()
     if user:
         user.google_sub = google_sub
+        user.email_verified = True
+        user.email_verified_at = user.email_verified_at or datetime.now(timezone.utc)
         return user
 
     superadmin_emails = {
@@ -232,6 +259,8 @@ def _user_from_google_profile(profile):
         password_hash=bcrypt.generate_password_hash(secrets.token_urlsafe(32)).decode('utf-8'),
         is_admin=User.query.count() == 0 or email in superadmin_emails,
         is_active=True,
+        email_verified=True,
+        email_verified_at=datetime.now(timezone.utc),
     )
     db.session.add(user)
     return user
@@ -266,18 +295,20 @@ def register():
             username=form.username.data,
             username_finalized=True,
             email=form.email.data.lower(),
+            email_verified=False,
             password_hash=hashed,
             is_admin=is_first_user or is_configured_superadmin,
         )
         db.session.add(user)
         db.session.commit()
+        _send_email_verification(user, purpose='registration')
 
         login_user(user)
         _mark_interactive_login()
         if is_first_user:
-            flash(_('Account created — you have been granted admin access as the first user.'), 'success')
+            flash(_('Account created — you have been granted admin access as the first user. Please verify your email.'), 'success')
         else:
-            flash(_('Welcome! Your account has been created.'), 'success')
+            flash(_('Welcome! Your account has been created. Please verify your email.'), 'success')
         next_page = request.args.get('next')
         if next_page and is_safe_url(next_page):
             return redirect(next_page)
@@ -327,7 +358,7 @@ def password_reset_request():
     form = PasswordResetRequestForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data.lower()).first()
-        if user and user.is_active:
+        if user and user.is_active and user.email_verified:
             _send_password_reset(user)
         flash('If that email is on a Paceline account, a password reset link has been sent.', 'info')
         return redirect(url_for('auth.login'))
@@ -341,6 +372,86 @@ def password_reset_profile_request():
     _send_password_reset(current_user)
     flash('We sent a password setup/reset link to your account email.', 'success')
     return redirect(url_for('auth.profile'))
+
+
+@auth_bp.route('/verify-email/resend', methods=['POST'])
+@login_required
+@limiter.limit('3 per minute; 10 per hour')
+def resend_email_verification():
+    target = current_user.pending_email or current_user.email
+    purpose = 'email_change' if current_user.pending_email else 'registration'
+    if current_user.email_verified and not current_user.pending_email:
+        flash('Your email is already verified.', 'info')
+        return redirect(url_for('auth.profile'))
+    _send_email_verification(current_user, email=target, purpose=purpose)
+    flash('Verification email sent. Check your inbox.', 'success')
+    return redirect(url_for('auth.profile'))
+
+
+@auth_bp.route('/verify-email/<token>')
+@limiter.limit('10 per minute; 30 per hour')
+def verify_email(token):
+    try:
+        max_age = current_app.config.get('EMAIL_VERIFICATION_MAX_AGE_SECONDS', 86400)
+        data = _email_verification_serializer().loads(token, max_age=max_age)
+    except SignatureExpired:
+        flash('That email verification link has expired. Request a new one from your profile.', 'danger')
+        return redirect(url_for('auth.login'))
+    except BadSignature:
+        flash('That email verification link is invalid.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    user = db.session.get(User, data.get('user_id'))
+    if not user or not user.is_active:
+        flash('That email verification link is invalid.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    purpose = data.get('purpose') or 'registration'
+    target_email = (data.get('email') or '').strip().lower()
+    expected = _email_verification_payload(user, target_email, purpose)
+    if data != expected:
+        flash('That email verification link has already been used or is no longer valid.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    if purpose == 'email_change':
+        if target_email != (user.pending_email or '').lower():
+            flash('That email change is no longer pending.', 'danger')
+            return redirect(url_for('auth.profile' if current_user.is_authenticated else 'auth.login'))
+        if User.query.filter(User.email == target_email, User.id != user.id).first():
+            user.pending_email = None
+            db.session.commit()
+            flash('That email address is already used by another account.', 'danger')
+            return redirect(url_for('auth.profile' if current_user.is_authenticated else 'auth.login'))
+        old_email = user.email
+        user.email = target_email
+        user.pending_email = None
+        user.email_verified = True
+        user.email_verified_at = datetime.now(timezone.utc)
+        user.revoke_sessions()
+        db.session.add(AdminAuditLog(
+            actor_id=user.id if current_user.is_authenticated and current_user.id == user.id else None,
+            target_user_id=user.id,
+            action='email_verified_change',
+            details=f'Changed from {old_email} to {user.email}',
+        ))
+    else:
+        if target_email != user.email.lower():
+            flash('That email verification link no longer matches this account.', 'danger')
+            return redirect(url_for('auth.login'))
+        user.email_verified = True
+        user.email_verified_at = datetime.now(timezone.utc)
+        db.session.add(AdminAuditLog(
+            actor_id=user.id if current_user.is_authenticated and current_user.id == user.id else None,
+            target_user_id=user.id,
+            action='email_verified',
+        ))
+    db.session.commit()
+
+    if current_user.is_authenticated and current_user.id == user.id and purpose == 'email_change':
+        login_user(user)
+        _mark_interactive_login()
+    flash('Email verified.', 'success')
+    return redirect(url_for('auth.profile' if current_user.is_authenticated else 'auth.login'))
 
 
 @auth_bp.route('/password-reset/<token>', methods=['GET', 'POST'])
@@ -512,6 +623,8 @@ def setup_account(token):
         user.password_hash = bcrypt.generate_password_hash(
             form.password.data
         ).decode('utf-8')
+        user.email_verified = True
+        user.email_verified_at = user.email_verified_at or datetime.now(timezone.utc)
         user.revoke_sessions()
         invite.used_at = datetime.now(timezone.utc)
         invite.used_by_user_id = user.id
@@ -564,14 +677,17 @@ def profile():
             getattr(form, field_name).data = prefs.get(key, DEFAULT_EMAIL_PREFERENCES.get(key, True))
     if form.validate_on_submit():
         email_changed = False
-        if form.email.data.lower() != current_user.email:
-            if User.query.filter_by(email=form.email.data.lower()).first():
+        submitted_email = form.email.data.lower().strip()
+        if submitted_email != current_user.email:
+            if User.query.filter(User.email == submitted_email, User.id != current_user.id).first():
                 flash(_('An account with that email already exists.'), 'danger')
+                return redirect(url_for('auth.profile'))
+            if User.query.filter(User.pending_email == submitted_email, User.id != current_user.id).first():
+                flash(_('Another account is already verifying that email address.'), 'danger')
                 return redirect(url_for('auth.profile'))
             email_changed = True
 
         old_email = current_user.email
-        current_user.email     = form.email.data.lower()
         current_user.gender    = form.gender.data or None
         current_user.bio       = (form.bio.data or '').strip() or None
         strava_profile_url = canonical_strava_profile_url(form.strava_profile_url.data)
@@ -617,19 +733,21 @@ def profile():
                     flash(_('Zip code saved but could not be geocoded.'), 'warning')
 
         if email_changed:
+            current_user.pending_email = submitted_email
             db.session.add(AdminAuditLog(
                 actor_id=current_user.id,
                 target_user_id=current_user.id,
-                action='email_changed',
-                details=f'Changed from {old_email} to {current_user.email}',
+                action='email_change_requested',
+                details=f'Requested change from {old_email} to {submitted_email}',
             ))
-            current_user.revoke_sessions()
         db.session.commit()
         if email_changed:
-            login_user(current_user)
-            _mark_interactive_login()
+            _send_email_verification(current_user, email=submitted_email, purpose='email_change')
         refresh_locale()
-        flash(_('Profile updated.'), 'success')
+        if email_changed:
+            flash(_('Profile updated. Verify your new email address before it replaces your current account email.'), 'success')
+        else:
+            flash(_('Profile updated.'), 'success')
         return redirect(url_for('auth.profile'))
 
     owned = set(current_user.gear_inventory or [])

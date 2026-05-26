@@ -79,6 +79,86 @@ def _can_transfer_club_owner(club):
     return owner is None and current_user.is_club_admin(club)
 
 
+def _club_admin_activity_stats(club, today=None):
+    today = today or date.today()
+    window_start = today - timedelta(days=30)
+    window_end = today + timedelta(days=30)
+    now = datetime.now(timezone.utc)
+    window_start_dt = now - timedelta(days=30)
+
+    ride_type_rows = (db.session.query(Ride.ride_type, func.count(Ride.id))
+                      .filter(
+                          Ride.club_id == club.id,
+                          Ride.date >= window_start,
+                          Ride.date <= window_end,
+                          Ride.is_cancelled == False,  # noqa: E712
+                      )
+                      .group_by(Ride.ride_type)
+                      .order_by(func.count(Ride.id).desc())
+                      .limit(4)
+                      .all())
+    ride_type_counts = [
+        {
+            'label': (ride_type or 'road').replace('_', ' ').title(),
+            'count': int(count or 0),
+        }
+        for ride_type, count in ride_type_rows
+    ]
+
+    dues_revenue = (db.session.query(func.coalesce(func.sum(ClubMembershipPayment.amount_cents), 0))
+                    .filter(
+                        ClubMembershipPayment.club_id == club.id,
+                        ClubMembershipPayment.status == 'paid',
+                        ClubMembershipPayment.paid_at >= window_start_dt,
+                    )
+                    .scalar() or 0)
+    shop_revenue = (db.session.query(func.coalesce(func.sum(ClubShopOrder.amount_cents), 0))
+                    .filter(
+                        ClubShopOrder.club_id == club.id,
+                        ClubShopOrder.status == 'paid',
+                        ClubShopOrder.paid_at >= window_start_dt,
+                    )
+                    .scalar() or 0)
+
+    return {
+        'members_30d': ClubMembership.query.filter(
+            ClubMembership.club_id == club.id,
+            ClubMembership.status == 'active',
+            ClubMembership.joined_at >= window_start_dt,
+        ).count(),
+        'rides_last_30d': Ride.query.filter(
+            Ride.club_id == club.id,
+            Ride.date >= window_start,
+            Ride.date < today,
+            Ride.is_cancelled == False,  # noqa: E712
+        ).count(),
+        'rides_next_30d': Ride.query.filter(
+            Ride.club_id == club.id,
+            Ride.date >= today,
+            Ride.date <= window_end,
+            Ride.is_cancelled == False,  # noqa: E712
+        ).count(),
+        'signups_30d': (RideSignup.query
+                        .join(Ride, RideSignup.ride_id == Ride.id)
+                        .filter(
+                            Ride.club_id == club.id,
+                            RideSignup.created_at >= window_start_dt,
+                        )
+                        .count()),
+        'waitlist_30d': (RideSignup.query
+                         .join(Ride, RideSignup.ride_id == Ride.id)
+                         .filter(
+                             Ride.club_id == club.id,
+                             RideSignup.created_at >= window_start_dt,
+                             RideSignup.is_waitlist == True,  # noqa: E712
+                         )
+                         .count()),
+        'dues_revenue_30d': int(dues_revenue),
+        'shop_revenue_30d': int(shop_revenue),
+        'ride_type_counts': ride_type_counts,
+    }
+
+
 def _find_user_by_email(email):
     email = (email or '').strip().lower()
     if not email:
@@ -1011,10 +1091,52 @@ def club_dashboard(slug):
     unread_messages = AdminMessage.query.filter_by(
         club_id=club.id, is_from_superadmin=True, is_read=False
     ).count()
+    activity_stats = _club_admin_activity_stats(club, today=today)
+    leader_count = ClubLeader.query.filter_by(club_id=club.id).count()
+    setup_items = [
+        {
+            'label': 'Add club branding',
+            'detail': 'Logo, banner, description, and location help riders recognize the club.',
+            'complete': bool((club.logo_key or club.logo_url) and club.description),
+            'url': url_for('admin.club_settings', slug=club.slug),
+        },
+        {
+            'label': 'Create the first ride',
+            'detail': 'A visible upcoming ride makes the club page immediately useful.',
+            'complete': stats['total_rides'] > 0,
+            'url': url_for('admin.ride_new', slug=club.slug),
+        },
+        {
+            'label': 'Invite or import members',
+            'detail': 'Seed the roster so riders know the club is active.',
+            'complete': stats['members'] > 1,
+            'url': url_for('admin.club_invites', slug=club.slug),
+        },
+        {
+            'label': 'Add ride leaders',
+            'detail': 'Leaders make ride pages feel trustworthy and easier to contact.',
+            'complete': leader_count > 0,
+            'url': url_for('admin.club_leaders', slug=club.slug),
+        },
+        {
+            'label': 'Review payments and shop',
+            'detail': 'Connect Stripe only if this club will collect dues or sell items.',
+            'complete': bool(club.stripe_connect_ready or not club.membership_dues_required),
+            'url': url_for('admin.club_settings', slug=club.slug) + '#membership-section',
+        },
+        {
+            'label': 'Share or embed rides',
+            'detail': 'Use the club page or embedded ride list on an existing website.',
+            'complete': stats['total_rides'] > 0,
+            'url': url_for('clubs.embed', slug=club.slug),
+        },
+    ]
     return render_template('admin/club_dashboard.html', club=club,
                            upcoming=upcoming, stats=stats,
                            is_full_admin=is_full_admin,
-                           unread_messages=unread_messages)
+                           unread_messages=unread_messages,
+                           setup_items=setup_items,
+                           activity_stats=activity_stats)
 
 
 @admin_bp.route('/clubs/<slug>/settings', methods=['GET', 'POST'])
@@ -2196,6 +2318,7 @@ def club_import(slug):
                 new_user = User(
                     username=_make_username(email),
                     email=email,
+                    email_verified=False,
                     password_hash=placeholder_pw,
                 )
                 db.session.add(new_user)

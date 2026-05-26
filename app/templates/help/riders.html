@@ -53,6 +53,24 @@
           your profile, and see ride details that are limited to members. You can
           sign up with an email and password or with your Google account.
         </p>
+        <p class="section-body">
+          If you sign up with an email and password, Paceline sends a verification
+          link to that address. Verify it so password resets, security notices, and
+          required club notifications can reliably reach you.
+        </p>
+        <p class="section-body">
+          New accounts see a short setup checklist on the dashboard. It points you
+          to the highest-impact first steps: add a location, upload a profile photo,
+          choose recommendation preferences, join a club, and sign up for a ride.
+        </p>
+        <figure class="mb-0">
+          <img class="img-fluid rounded border shadow-sm"
+               src="{{ url_for('static', filename='img/help/dashboard-onboarding.png') }}"
+               alt="Dashboard setup checklist for a new Paceline rider">
+          <figcaption class="small text-muted mt-2">
+            The dashboard checklist keeps new-rider setup short and focused.
+          </figcaption>
+        </figure>
       </div>
 
       {# ── 2. Find clubs near you ───────────────────────────────────────── #}
@@ -223,6 +241,12 @@
           include emergency contact information, a gear inventory, and a Strava connection.
         </p>
         <p class="section-body">
+          Profile settings are grouped into tabs: <strong>Account</strong>,
+          <strong>Privacy</strong>, <strong>Recommendations</strong>, and
+          <strong>Notifications</strong>. Links from dashboard setup open the right
+          tab directly.
+        </p>
+        <p class="section-body">
           The <strong>Club Memberships</strong> section on your profile shows all
           the clubs you have joined and each membership's current status, so you
           can track which memberships are active or expiring soon.
@@ -253,6 +277,14 @@
             The Distance units dropdown on your profile. Your choice updates all distances and elevations site-wide.
           </figcaption>
         </figure>
+        <figure class="mt-3 mb-0">
+          <img class="img-fluid rounded border shadow-sm"
+               src="{{ url_for('static', filename='img/help/profile-tabs.png') }}"
+               alt="Profile page showing Account, Privacy, Recommendations, and Notifications tabs">
+          <figcaption class="small text-muted mt-2">
+            Profile tabs keep account, privacy, recommendation, and notification settings separate.
+          </figcaption>
+        </figure>
       </div>
 
       {# ── 9. Upload a profile photo ────────────────────────────────────── #}
@@ -265,7 +297,7 @@
         </p>
         <p class="section-body">
           To upload a photo, open <strong>Profile</strong> and click
-          <strong>Upload Photo</strong> in the Profile Photo card. Choose a JPEG,
+          <strong>Change Photo</strong> in the Profile Photo card. Choose a JPEG,
           PNG, WebP, or GIF file from your device.
         </p>
         <p class="section-body">
@@ -326,6 +358,11 @@
           password. The link is sent to your account email.
         </p>
         <p class="section-body">
+          If you change your account email from Profile, Paceline keeps your current
+          email active until you verify the new one. A banner appears until the
+          verification is complete.
+        </p>
+        <p class="section-body">
           If you sign in with a password, you can add MFA from <strong>Profile</strong>.
           Scan the QR code with an authenticator app, save the backup codes, and use
           one backup code only if you lose access to your authenticator app.
@@ -337,6 +374,11 @@
         <p class="section-body">
           You can permanently delete your account from <strong>Profile</strong>.
           If you own a club, transfer or delete that club first.
+        </p>
+        <p class="section-body">
+          Use the <strong>Feedback</strong> button or the footer feedback link if
+          something feels confusing, broken, or missing. Feedback goes to the
+          Paceline superadmin inbox for review.
         </p>
       </div>
 

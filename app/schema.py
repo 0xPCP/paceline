@@ -81,6 +81,15 @@ def ensure_runtime_schema():
     if 'recommendation_ride_types' not in user_columns:
         db.session.execute(text('ALTER TABLE users ADD COLUMN recommendation_ride_types JSON'))
         changed = True
+    if 'email_verified' not in user_columns:
+        db.session.execute(text('ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT TRUE NOT NULL'))
+        changed = True
+    if 'email_verified_at' not in user_columns:
+        db.session.execute(text('ALTER TABLE users ADD COLUMN email_verified_at TIMESTAMP'))
+        changed = True
+    if 'pending_email' not in user_columns:
+        db.session.execute(text('ALTER TABLE users ADD COLUMN pending_email VARCHAR(255)'))
+        changed = True
 
     club_columns = {col['name'] for col in inspector.get_columns('clubs')} if 'clubs' in inspector.get_table_names() else set()
     if club_columns and 'sport_type' not in club_columns:
@@ -275,12 +284,14 @@ def promote_superadmins():
     superadmin_emails = _configured_superadmin_emails()
     if not superadmin_emails:
         return
-    from .models import User
-    users = User.query.filter(User.email.in_(superadmin_emails)).all()
-    changed = False
-    for user in users:
-        if not user.is_admin:
-            user.is_admin = True
-            changed = True
-    if changed:
+    inspector = inspect(db.engine)
+    if 'users' not in inspector.get_table_names():
+        return
+    placeholders = ', '.join(f':email_{idx}' for idx, _ in enumerate(superadmin_emails))
+    params = {f'email_{idx}': email for idx, email in enumerate(superadmin_emails)}
+    result = db.session.execute(
+        text(f'UPDATE users SET is_admin = TRUE WHERE lower(email) IN ({placeholders}) AND is_admin = FALSE'),
+        params,
+    )
+    if result.rowcount:
         db.session.commit()

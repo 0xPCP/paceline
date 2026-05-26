@@ -284,6 +284,7 @@
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
               <button type="submit" class="btn btn-outline-secondary w-100">Cancel My Signup</button>
             </form>
+            <p class="text-muted small mt-2 mb-0">You'll receive cancellation and morning reminder emails if those notifications are enabled in your profile.</p>
             {% elif user_waitlisted %}
             <div class="alert alert-info mt-3 mb-0 py-2 small">
               You're on the waitlist. You'll be notified if a spot opens up.
@@ -297,6 +298,7 @@
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
               <button type="submit" class="btn btn-outline-secondary w-100">Join Waitlist</button>
             </form>
+            <a class="btn btn-link btn-sm w-100 mt-1" href="{{ url_for('main.discover', source='all', range='two-weeks', pace=ride.pace_category, type=ride.ride_type or '') }}">Find Similar Rides</a>
             {% else %}
             <form method="post" action="{{ url_for('clubs.ride_signup', slug=club.slug, ride_id=ride.id) }}" class="mt-3">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
@@ -547,6 +549,44 @@
     <a href="{{ url_for('clubs.rides', slug=club.slug) }}" class="text-muted">&larr; Back to {{ club.name }} Calendar</a>
   </div>
 </div>
+
+{% if not ride.is_cancelled %}
+<div class="ride-sticky-action d-lg-none">
+  <div class="ride-sticky-meta">
+    <strong>{{ ride.date.strftime('%b') }} {{ ride.date.day }}</strong>
+    <span>{{ ride.time.strftime('%I:%M %p').lstrip('0') }} · {{ ride.distance_miles | dist }}</span>
+  </div>
+  {% if current_user.is_authenticated %}
+    {% if membership_required and not user_signed_up and not user_waitlisted %}
+    <a class="btn btn-warning btn-sm" href="{{ url_for('clubs.home', slug=club.slug) }}">Join Club</a>
+    {% elif waiver_required %}
+    <a class="btn btn-warning btn-sm" href="{{ url_for('clubs.waiver', slug=club.slug, next=request.url) }}">Sign Waiver</a>
+    {% elif user_signed_up %}
+    <form method="post" action="{{ url_for('clubs.ride_unsignup', slug=club.slug, ride_id=ride.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <button class="btn btn-outline-secondary btn-sm">Cancel</button>
+    </form>
+    {% elif user_waitlisted %}
+    <form method="post" action="{{ url_for('clubs.ride_unsignup', slug=club.slug, ride_id=ride.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <button class="btn btn-outline-secondary btn-sm">Leave Waitlist</button>
+    </form>
+    {% elif ride.is_full %}
+    <form method="post" action="{{ url_for('clubs.ride_signup', slug=club.slug, ride_id=ride.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <button class="btn btn-outline-secondary btn-sm">Join Waitlist</button>
+    </form>
+    {% else %}
+    <form method="post" action="{{ url_for('clubs.ride_signup', slug=club.slug, ride_id=ride.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <button class="btn btn-paceline-sm">Sign Up</button>
+    </form>
+    {% endif %}
+  {% else %}
+  <a class="btn btn-paceline-sm" href="{{ url_for('auth.login', next=request.path) }}">Sign In</a>
+  {% endif %}
+</div>
+{% endif %}
 
 <div id="share-toast" class="share-toast" aria-live="polite">Link copied!</div>
 

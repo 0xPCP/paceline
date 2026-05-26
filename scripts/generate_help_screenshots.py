@@ -295,6 +295,9 @@ def main():
             shot(page, 'club-settings.png', 'h1')
             shot_element(page, 'club-dues-settings.png', '#membership-section')
 
+            page.goto(f'{BASE_URL}/admin/clubs/nova-paceline/')
+            shot(page, 'club-admin-dashboard.png', '[data-testid="club-admin-activity"]')
+
             page.goto(f'{BASE_URL}/admin/clubs/nova-paceline/team')
             shot(page, 'club-team.png', 'h1')
 
@@ -318,6 +321,10 @@ def main():
 
             context.clear_cookies()
             login(page, email='rider@example.com')
+            page.goto(f'{BASE_URL}/')
+            shot(page, 'dashboard-onboarding.png', '[data-testid="dashboard-onboarding-checklist"]')
+            page.goto(f'{BASE_URL}/auth/profile#profile-recommendations')
+            shot(page, 'profile-tabs.png', '.profile-tabs')
             page.goto(f'{BASE_URL}/clubs/nova-paceline/')
             shot(page, 'club-dues-payment.png', 'button:has-text("Pay Club Dues")')
 

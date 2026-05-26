@@ -186,6 +186,15 @@
     </div>
   </form>
 
+  <div class="pace-help-strip mb-4">
+    <strong>Pace guide:</strong>
+    <span><b>A</b> fast</span>
+    <span><b>B</b> moderate</span>
+    <span><b>C</b> casual</span>
+    <span><b>D</b> beginner</span>
+    <span class="text-muted">Look for <span class="badge-new-rider">&#127807; New Rider Friendly</span> if you are new to group rides.</span>
+  </div>
+
   {# ── Results ───────────────────────────────────────────────────────────────── #}
   {% if rides %}
   <p class="text-muted small mb-3">
@@ -274,13 +283,17 @@
     {% if source == 'verified' %}
     <p class="mb-1">No verified club rides found for the selected filters.</p>
     <p class="small">
-      <a href="{{ url_for('main.discover', source='clubs', range=active_range, pace=active_pace, type=active_type, zip=zip_q, radius=radius) }}">Show all clubs</a>
-      or <a href="{{ url_for('main.discover', source='all', range=active_range, pace=active_pace, type=active_type, zip=zip_q, radius=radius) }}">show all rides</a>.
+      <a href="{{ url_for('main.discover', source='clubs', range=active_range, pace=active_pace, type=active_type, zip=zip_q, radius=radius, new_rider=('1' if new_rider_filter else '')) }}">Show all clubs</a>
+      or <a href="{{ url_for('main.discover', source='all', range=active_range, pace=active_pace, type=active_type, zip=zip_q, radius=radius, new_rider=('1' if new_rider_filter else '')) }}">show all rides</a>.
     </p>
     {% else %}
     <p class="mb-1">No rides found for the selected filters.</p>
     <p class="small">Try expanding the date range or adjusting your location.</p>
     {% endif %}
+    <div class="d-flex justify-content-center gap-2 flex-wrap mt-3">
+      <a href="{{ url_for('main.discover', source='all', range='two-weeks') }}" class="btn btn-paceline-sm">Clear Filters</a>
+      <a href="{{ url_for('clubs.index') }}" class="btn btn-outline-secondary btn-sm">Find Clubs</a>
+    </div>
   </div>
   {% endif %}
 

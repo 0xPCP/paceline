@@ -42,6 +42,88 @@
     </div>
   </div>
 
+  <div class="admin-activity-panel mb-4" data-testid="club-admin-activity">
+    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+      <div>
+        <p class="section-label mb-1">Club Activity</p>
+        <h2 class="h5 mb-1">Last 30 days and next 30 days</h2>
+        <p class="text-muted mb-0">Use this to spot whether rides, signups, and paid activity are growing.</p>
+      </div>
+      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin.club_rides', slug=club.slug) }}">Review rides</a>
+    </div>
+    <div class="row g-3">
+      <div class="col-6 col-lg-3">
+        <div class="activity-metric">
+          <span>{{ activity_stats.members_30d }}</span>
+          <small>New members</small>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="activity-metric">
+          <span>{{ activity_stats.signups_30d }}</span>
+          <small>Ride signups</small>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="activity-metric">
+          <span>{{ activity_stats.rides_last_30d }} / {{ activity_stats.rides_next_30d }}</span>
+          <small>Rides past / next</small>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="activity-metric">
+          <span>${{ '%.2f'|format((activity_stats.dues_revenue_30d + activity_stats.shop_revenue_30d) / 100) }}</span>
+          <small>Paid through Stripe</small>
+        </div>
+      </div>
+    </div>
+    {% if activity_stats.ride_type_counts %}
+    {% set max_ride_type = activity_stats.ride_type_counts | map(attribute='count') | max %}
+    <div class="activity-bars mt-3">
+      {% for item in activity_stats.ride_type_counts %}
+      <div class="activity-bar-row">
+        <span>{{ item.label }}</span>
+        <div class="activity-bar-track">
+          <div class="activity-bar-fill" style="width: {{ (item.count / max_ride_type * 100) | round(0, 'floor') }}%"></div>
+        </div>
+        <strong>{{ item.count }}</strong>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-muted small mb-0 mt-3">Ride type trends will appear after this club has recent ride activity.</p>
+    {% endif %}
+  </div>
+
+  {% if setup_items %}
+  {% set completed_setup = setup_items | selectattr('complete') | list | length %}
+  {% if completed_setup < setup_items | length %}
+  <div class="onboarding-panel mb-4" data-testid="club-admin-setup-checklist">
+    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+      <div>
+        <p class="section-label mb-1">Club Setup</p>
+        <h2 class="h5 mb-1">Make {{ club.name }} easier for riders to use</h2>
+        <p class="text-muted mb-0">Complete these steps to turn a new club page into a useful ride hub.</p>
+      </div>
+      <div class="onboarding-progress">{{ completed_setup }}/{{ setup_items | length }}</div>
+    </div>
+    <div class="row g-2">
+      {% for item in setup_items %}
+      <div class="col-md-6 col-xl-4">
+        <a href="{{ item.url }}" class="onboarding-step {{ 'is-complete' if item.complete else '' }}">
+          <span class="onboarding-check">{{ '✓' if item.complete else loop.index }}</span>
+          <span>
+            <strong>{{ item.label }}</strong>
+            <small>{{ item.detail }}</small>
+          </span>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+  {% endif %}
+
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0">Upcoming Rides</h4>
     <div class="d-flex gap-2 flex-wrap">

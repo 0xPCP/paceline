@@ -13,6 +13,14 @@ def test_donate_page_shows_feedback_form(client):
     assert b'name="message"' in resp.data
 
 
+def test_sitewide_feedback_prompt_links_to_existing_form(client):
+    resp = client.get('/')
+    assert resp.status_code == 200
+    assert b'class="site-feedback-fab"' in resp.data
+    assert b'/donate#feedback' in resp.data
+    assert b'Send Feedback' in resp.data
+
+
 def test_submit_feedback_stores_item_and_sends_email(client, admin_user):
     with patch('app.routes.main.send_feedback_notification') as mock_send:
         resp = client.post('/feedback', data={

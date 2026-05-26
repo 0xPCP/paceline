@@ -137,6 +137,12 @@ def _user_dashboard(today, platform_posts=None):
         recommended_rides = recommend_rides_for_user(current_user, today=today, limit=4)
         recommended_clubs = recommend_clubs_for_user(current_user, today=today, limit=4)
 
+    onboarding_items = _dashboard_onboarding_items(
+        active_club_ids=active_club_ids,
+        signed_up_ride_ids=signed_up_ride_ids,
+    )
+    onboarding_complete = all(item['complete'] for item in onboarding_items)
+
     return render_template('dashboard.html',
                            my_rides=my_rides,
                            upcoming_club_rides=upcoming_club_rides,
@@ -151,7 +157,50 @@ def _user_dashboard(today, platform_posts=None):
                            pending_friend_requests=pending_friend_requests,
                            friend_counts=friend_counts,
                            recommended_rides=recommended_rides,
-                           recommended_clubs=recommended_clubs)
+                           recommended_clubs=recommended_clubs,
+                           onboarding_items=onboarding_items,
+                           onboarding_complete=onboarding_complete)
+
+
+def _dashboard_onboarding_items(active_club_ids, signed_up_ride_ids):
+    has_preferences = bool(current_user.recommendation_ride_types)
+    if not has_preferences:
+        # A rider with signup history has given the recommender enough signal
+        # even if they have not explicitly checked ride-type preferences.
+        has_preferences = bool(signed_up_ride_ids)
+
+    return [
+        {
+            'label': 'Add your location',
+            'detail': 'Helps find nearby rides and clubs.',
+            'complete': bool(current_user.zip_code or (current_user.lat and current_user.lng)),
+            'url': url_for('auth.profile') + '#profile-account',
+        },
+        {
+            'label': 'Add a profile photo',
+            'detail': 'Makes member lists and ride rosters feel familiar.',
+            'complete': bool(current_user.profile_photo_key),
+            'url': url_for('auth.profile') + '#profile-account',
+        },
+        {
+            'label': 'Pick ride preferences',
+            'detail': 'Improves ride and club recommendations.',
+            'complete': has_preferences,
+            'url': url_for('auth.profile') + '#profile-recommendations',
+        },
+        {
+            'label': 'Join your first club',
+            'detail': 'Follow a local club to see its rides on your dashboard.',
+            'complete': bool(active_club_ids),
+            'url': url_for('clubs.index'),
+        },
+        {
+            'label': 'Sign up for a ride',
+            'detail': 'Your upcoming rides will stay organized here.',
+            'complete': bool(signed_up_ride_ids),
+            'url': url_for('main.discover'),
+        },
+    ]
 
 
 @main_bp.route('/recommendations/hide', methods=['POST'])

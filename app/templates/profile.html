@@ -78,6 +78,29 @@
         <form method="post" novalidate>
           {{ form.hidden_tag() }}
 
+          <ul class="nav nav-tabs profile-tabs mb-3" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="profile-account-tab" data-bs-toggle="tab"
+                      data-bs-target="#profile-account" type="button" role="tab">Account</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="profile-privacy-tab" data-bs-toggle="tab"
+                      data-bs-target="#profile-privacy" type="button" role="tab">Privacy</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="profile-recommendations-tab" data-bs-toggle="tab"
+                      data-bs-target="#profile-recommendations" type="button" role="tab">Recommendations</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="profile-notifications-tab" data-bs-toggle="tab"
+                      data-bs-target="#profile-notifications" type="button" role="tab">Notifications</button>
+            </li>
+          </ul>
+
+          <div class="tab-content">
+            <div class="tab-pane fade show active" id="profile-account" role="tabpanel"
+                 aria-labelledby="profile-account-tab" tabindex="0">
+
           <div class="mb-3">
             <label class="form-label">Username</label>
             <div class="form-control bg-light">{{ current_user.username }}</div>
@@ -89,6 +112,13 @@
             {{ form.email.label(class="form-label") }}
             {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
             {% for e in form.email.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            {% if current_user.pending_email %}
+            <div class="form-text text-warning">Pending verification: {{ current_user.pending_email }}</div>
+            {% elif not current_user.email_verified %}
+            <div class="form-text text-warning">Your current email is not verified yet.</div>
+            {% else %}
+            <div class="form-text text-success">Email verified.</div>
+            {% endif %}
           </div>
 
           <div class="mb-3">
@@ -150,6 +180,10 @@
             </div>
           </div>
 
+            </div>
+            <div class="tab-pane fade" id="profile-privacy" role="tabpanel"
+                 aria-labelledby="profile-privacy-tab" tabindex="0">
+
           <hr class="my-3">
           <h6 class="mb-1">Privacy</h6>
           <p class="text-muted small mb-2">By default your profile is visible only to accepted friends. Make it public to appear on member lists and in search.</p>
@@ -157,6 +191,10 @@
             {{ form.profile_is_public(class="form-check-input") }}
             {{ form.profile_is_public.label(class="form-check-label") }}
           </div>
+
+            </div>
+            <div class="tab-pane fade" id="profile-recommendations" role="tabpanel"
+                 aria-labelledby="profile-recommendations-tab" tabindex="0">
 
           <hr class="my-3">
           <h6 class="mb-1">Recommendations</h6>
@@ -192,6 +230,10 @@
             <div class="form-text">Leave all unchecked to let Paceline infer ride types from your signup history. Virtual rides are only recommended if selected or previously ridden.</div>
           </div>
 
+            </div>
+            <div class="tab-pane fade" id="profile-notifications" role="tabpanel"
+                 aria-labelledby="profile-notifications-tab" tabindex="0">
+
           <hr class="my-3">
           <h6 class="mb-1">Email Notifications</h6>
           <p class="text-muted small mb-3">Choose which Paceline emails you want to receive. Account security emails are always sent.</p>
@@ -215,6 +257,8 @@
               </div>
             </div>
             {% endfor %}
+          </div>
+            </div>
           </div>
 
           <div class="d-flex gap-2">
@@ -500,6 +544,22 @@
 <script nonce="{{ g.csp_nonce }}" src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
 <script nonce="{{ g.csp_nonce }}">
 (function () {
+  var hash = window.location.hash;
+  if (hash && document.querySelector(hash + '.tab-pane')) {
+    var tabButton = document.querySelector('[data-bs-target="' + hash + '"]');
+    if (tabButton && window.bootstrap) {
+      window.bootstrap.Tab.getOrCreateInstance(tabButton).show();
+    }
+  }
+  document.querySelectorAll('.profile-tabs [data-bs-toggle="tab"]').forEach(function (tab) {
+    tab.addEventListener('shown.bs.tab', function (event) {
+      var target = event.target.getAttribute('data-bs-target');
+      if (target) {
+        history.replaceState(null, '', target);
+      }
+    });
+  });
+
   var cropModal    = document.getElementById('cropModal');
   var cropperImg   = document.getElementById('cropperImg');
   var fileInput    = document.getElementById('photoFileInput');

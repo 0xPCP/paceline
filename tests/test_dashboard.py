@@ -38,6 +38,30 @@ def sign_waiver(db, user, club, waiver):
 
 
 class TestDashboardSignupButton:
+    def test_new_user_dashboard_shows_onboarding_checklist(
+            self, client, regular_user, mock_weather):
+        login(client)
+        r = client.get('/', follow_redirects=True)
+        assert r.status_code == 200
+        assert b'data-testid="dashboard-onboarding-checklist"' in r.data
+        assert b'Add your location' in r.data
+        assert b'Join your first club' in r.data
+
+    def test_completed_user_dashboard_hides_onboarding_checklist(
+            self, client, db, sample_club, regular_user, mock_weather):
+        regular_user.zip_code = '20191'
+        regular_user.profile_photo_key = 'avatars/test.jpg'
+        regular_user.recommendation_ride_types = ['road']
+        join_club(db, regular_user, sample_club)
+        ride = make_future_ride(db, sample_club)
+        db.session.add(RideSignup(ride_id=ride.id, user_id=regular_user.id))
+        db.session.commit()
+
+        login(client)
+        r = client.get('/', follow_redirects=True)
+        assert r.status_code == 200
+        assert b'data-testid="dashboard-onboarding-checklist"' not in r.data
+
     def test_signup_button_shown_active_member_no_waiver(
             self, client, db, app, sample_club, regular_user, mock_weather):
         """Active member, club has no waiver → Sign Up button shown."""

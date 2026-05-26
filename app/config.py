@@ -93,6 +93,12 @@ class Config:
         'https://openidconnect.googleapis.com/v1/userinfo',
     ).strip()
     PASSWORD_RESET_MAX_AGE_SECONDS = int(os.environ.get('PASSWORD_RESET_MAX_AGE_SECONDS', 3600))
+    EMAIL_VERIFICATION_MAX_AGE_SECONDS = int(os.environ.get('EMAIL_VERIFICATION_MAX_AGE_SECONDS', 86400))
+
+    # Flask-Limiter. Use Redis in production so limits are shared across
+    # workers/instances, e.g. redis://:<password>@<host>:6379/0.
+    RATELIMIT_STORAGE_URI = os.environ.get('RATELIMIT_STORAGE_URI', 'memory://')
+    RATELIMIT_HEADERS_ENABLED = os.environ.get('RATELIMIT_HEADERS_ENABLED', 'true').lower() == 'true'
 
     # Media uploads — see docs/media_strategy.md for rationale and update guidance
     UPLOAD_FOLDER = os.environ.get(

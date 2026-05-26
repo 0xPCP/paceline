@@ -76,6 +76,31 @@
 
 {% block content %}{% endblock %}
 
+{% if current_user.is_authenticated and (not current_user.email_verified or current_user.pending_email) %}
+<div class="email-verification-banner" role="status">
+  <div>
+    <strong>{{ _('Verify your email') }}</strong>
+    <span>
+      {% if current_user.pending_email %}
+      {{ _('Check %(email)s to finish changing your account email.', email=current_user.pending_email) }}
+      {% else %}
+      {{ _('Check %(email)s so account recovery and important notifications work.', email=current_user.email) }}
+      {% endif %}
+    </span>
+  </div>
+  <form method="post" action="{{ url_for('auth.resend_email_verification') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <button class="btn btn-sm btn-outline-light">{{ _('Resend') }}</button>
+  </form>
+</div>
+{% endif %}
+
+{% if request.endpoint != 'main.donate' and not (current_user.is_authenticated and (not current_user.email_verified or current_user.pending_email)) %}
+<a class="site-feedback-fab" href="{{ url_for('main.donate') }}#feedback" aria-label="Send Paceline feedback">
+  {{ _('Feedback') }}
+</a>
+{% endif %}
+
 {% if current_user.is_authenticated %}
 <form id="logout-form" method="post" action="{{ url_for('auth.logout') }}" class="d-none">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
@@ -96,6 +121,7 @@
           <li><a href="{{ url_for('main.help_index') }}">{{ _('Help') }}</a></li>
           <li><a href="{{ url_for('main.about') }}">{{ _('About') }}</a></li>
           <li><a href="{{ url_for('main.donate') }}">{{ _('Donate') }}</a></li>
+          <li><a href="{{ url_for('main.donate') }}#feedback">{{ _('Send Feedback') }}</a></li>
           <li><a href="{{ url_for('main.privacy') }}">Privacy</a></li>
           <li><a href="{{ url_for('main.data_use') }}">Data Use</a></li>
           {% if not current_user.is_authenticated %}

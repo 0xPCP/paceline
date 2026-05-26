@@ -3,6 +3,7 @@ import calendar as cal_module
 from datetime import date, datetime, timedelta, timezone
 from flask import Blueprint, render_template, redirect, url_for, flash, request, abort, Response
 from flask_login import login_required, current_user, fresh_login_required
+from sqlalchemy import case, func
 from sqlalchemy.exc import IntegrityError
 import requests as http_requests
 from ..extensions import db
@@ -73,6 +74,60 @@ def _notify_friends_of_signup(signer, ride, club):
         logging.getLogger(__name__).exception('Error notifying friends for ride %d', ride.id)
 
 
+def _club_quality_signals(clubs):
+    club_ids = [club.id for club in clubs]
+    if not club_ids:
+        return {}
+
+    today = date.today()
+    soon = today + timedelta(days=14)
+    ride_rows = (db.session.query(
+        Ride.club_id,
+        func.count(Ride.id),
+        func.sum(case((Ride.is_newbie_friendly == True, 1), else_=0)),  # noqa: E712
+    )
+        .filter(
+            Ride.club_id.in_(club_ids),
+            Ride.is_cancelled == False,  # noqa: E712
+            Ride.date >= today,
+            Ride.date <= soon,
+        )
+        .group_by(Ride.club_id)
+        .all())
+
+    shop_rows = (db.session.query(ClubShopItem.club_id, func.count(ClubShopItem.id))
+                 .filter(
+                     ClubShopItem.club_id.in_(club_ids),
+                     ClubShopItem.is_active == True,  # noqa: E712
+                 )
+                 .group_by(ClubShopItem.club_id)
+                 .all())
+
+    ride_counts = {
+        club_id: {
+            'upcoming': int(upcoming or 0),
+            'new_rider': int(new_rider or 0),
+        }
+        for club_id, upcoming, new_rider in ride_rows
+    }
+    shop_counts = {club_id: int(count or 0) for club_id, count in shop_rows}
+
+    signals = {}
+    for club in clubs:
+        counts = ride_counts.get(club.id, {'upcoming': 0, 'new_rider': 0})
+        has_online_dues = bool(club.membership_dues_required and club.stripe_dues_ready)
+        has_shop = bool(club.stripe_connect_ready and shop_counts.get(club.id, 0))
+        signals[club.id] = {
+            'upcoming': counts['upcoming'],
+            'new_rider': counts['new_rider'],
+            'verified': bool(club.is_verified),
+            'rides_only': club.hosting_mode == 'rides_only',
+            'online_dues': has_online_dues,
+            'shop': has_shop,
+        }
+    return signals
+
+
 # ── Club directory ────────────────────────────────────────────────────────────
 
 @clubs_bp.route('/')
@@ -107,9 +162,11 @@ def index():
         else:
             clubs = all_clubs
 
+    club_quality = _club_quality_signals(clubs)
+
     return render_template('clubs/index.html', clubs=clubs, q=q,
                            zip_q=zip_q, radius=radius, distances=distances,
-                           geo_error=geo_error)
+                           geo_error=geo_error, club_quality=club_quality)
 
 
 @clubs_bp.route('/map/')

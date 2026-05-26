@@ -15,17 +15,67 @@ class TestRegistration:
         assert resp.status_code == 200
 
     def test_register_creates_user(self, client, db):
-        resp = client.post('/auth/register', data={
-            'username': 'newrider',
-            'email': 'newrider@rbc.com',
-            'password': 'StrongPass1!',
-            'confirm_password': 'StrongPass1!',
-            'policy_ack': 'y',
-        }, follow_redirects=True)
+        with pytest.MonkeyPatch.context() as mp:
+            sent = []
+            mp.setattr('app.routes.auth.send_email_verification_email',
+                       lambda user, verify_url, email=None: sent.append((user.email, verify_url, email)))
+            resp = client.post('/auth/register', data={
+                'username': 'newrider',
+                'email': 'newrider@rbc.com',
+                'password': 'StrongPass1!',
+                'confirm_password': 'StrongPass1!',
+                'policy_ack': 'y',
+            }, follow_redirects=True)
         assert resp.status_code == 200
         user = User.query.filter_by(username='newrider').first()
         assert user is not None
         assert user.username_finalized is True
+        assert user.email_verified is False
+        assert sent and sent[0][0] == 'newrider@rbc.com'
+
+    def test_email_verification_token_marks_email_verified(self, client, db):
+        from app.routes.auth import _email_verification_token
+        user = User(
+            username='verifyme',
+            email='verifyme@example.com',
+            email_verified=False,
+            password_hash='hash',
+        )
+        db.session.add(user)
+        db.session.commit()
+        token = _email_verification_token(user, purpose='registration')
+
+        resp = client.get(f'/auth/verify-email/{token}', follow_redirects=True)
+
+        db.session.refresh(user)
+        assert resp.status_code == 200
+        assert user.email_verified is True
+        assert user.email_verified_at is not None
+
+    def test_profile_email_change_requires_new_email_verification(self, client, regular_user, db, monkeypatch):
+        sent = []
+        monkeypatch.setattr('app.routes.auth.send_email_verification_email',
+                            lambda user, verify_url, email=None: sent.append((verify_url, email)))
+        login(client, 'rider@test.com', 'password123')
+
+        resp = client.post('/auth/profile', data={
+            'username': regular_user.username,
+            'email': 'new-rider-email@example.com',
+            'zip_code': regular_user.zip_code or '',
+            'gender': '',
+            'bio': '',
+            'strava_profile_url': '',
+            'language': '',
+            'distance_unit': '',
+            'emergency_contact_name': '',
+            'emergency_contact_phone': '',
+        }, follow_redirects=True)
+
+        db.session.refresh(regular_user)
+        assert resp.status_code == 200
+        assert regular_user.email == 'rider@test.com'
+        assert regular_user.pending_email == 'new-rider-email@example.com'
+        assert sent and sent[0][1] == 'new-rider-email@example.com'
 
     def test_first_user_becomes_admin(self, client, db):
         client.post('/auth/register', data={
@@ -148,6 +198,12 @@ class TestLogin:
         from app.config import Config
         assert Config.SESSION_COOKIE_SECURE is True
         assert Config.REMEMBER_COOKIE_SECURE is True
+
+    def test_rate_limit_storage_has_production_ready_config(self):
+        from app.config import Config
+        assert hasattr(Config, 'RATELIMIT_STORAGE_URI')
+        assert Config.RATELIMIT_STORAGE_URI
+        assert Config.RATELIMIT_HEADERS_ENABLED is True
 
     def test_production_secure_cookie_rejects_development_secret(self, monkeypatch):
         from app import create_app

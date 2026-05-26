@@ -46,6 +46,7 @@
     <div class="col-md-6 col-lg-4">
       <a href="{{ url_for('clubs.home', slug=club.slug) }}" class="text-decoration-none">
         <div class="ride-card h-100">
+          {% set signals = club_quality.get(club.id, {}) %}
           <div class="d-flex justify-content-between align-items-start mb-2">
             <h5 class="mb-0">{{ club.name }}</h5>
             <div class="d-flex flex-column align-items-end gap-1">
@@ -56,6 +57,26 @@
             </div>
           </div>
           {% if club.city %}<p class="text-muted small mb-1">{{ club.city }}, {{ club.state }}{% if club.zip_code %} {{ club.zip_code }}{% endif %}</p>{% endif %}
+          <div class="club-quality-signals mb-2">
+            {% if signals.verified %}
+            <span class="club-signal club-signal-strong">{{ _('Verified') }}</span>
+            {% endif %}
+            {% if signals.upcoming %}
+            <span class="club-signal">{{ ngettext('%(num)s ride soon', '%(num)s rides soon', signals.upcoming) }}</span>
+            {% endif %}
+            {% if signals.new_rider %}
+            <span class="club-signal">{{ _('New rider friendly') }}</span>
+            {% endif %}
+            {% if signals.online_dues %}
+            <span class="club-signal">{{ _('Online dues') }}</span>
+            {% endif %}
+            {% if signals.shop %}
+            <span class="club-signal">{{ _('Shop') }}</span>
+            {% endif %}
+            {% if signals.rides_only %}
+            <span class="club-signal">{{ _('Ride hosting') }}</span>
+            {% endif %}
+          </div>
           {% if club.description %}<p class="text-muted small mb-2">{% set preview = club.description | strip_markdown %}{{ preview[:140] }}{% if preview|length > 140 %}…{% endif %}</p>{% endif %}
           <span class="btn btn-paceline-sm">{{ _('View Club') }}</span>
         </div>

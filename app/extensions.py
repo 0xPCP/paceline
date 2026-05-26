@@ -21,9 +21,8 @@ login_manager.needs_refresh_message_category = 'info'
 csrf = CSRFProtect()
 mail = Mail()
 babel = Babel()
-# In-memory storage is per-worker; with 4 gunicorn workers each tracks
-# independently (effective limit is ~4x rate). Acceptable at current scale.
-# Upgrade to Redis storage if exact cross-worker rate limiting is required.
+# Storage is configured through RATELIMIT_STORAGE_URI. Local/test defaults to
+# memory://; production should use Redis so limits apply across all workers.
 with warnings.catch_warnings():
     warnings.simplefilter('ignore')
     limiter = Limiter(key_func=get_remote_address, default_limits=[])

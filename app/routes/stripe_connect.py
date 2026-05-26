@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta, timezone
 
 from flask import Blueprint, abort, current_app, flash, redirect, request, url_for
-from flask_login import current_user, login_required
+from flask_login import current_user, fresh_login_required, login_required
 from sqlalchemy.exc import IntegrityError
 
 from ..extensions import csrf, db
@@ -30,7 +30,7 @@ def _admin_club_or_404(slug):
 
 
 @stripe_connect_bp.route('/clubs/<slug>/connect')
-@login_required
+@fresh_login_required
 def connect_club(slug):
     club = _admin_club_or_404(slug)
     if not current_user.is_club_admin(club):
@@ -93,7 +93,7 @@ def onboarding_return(slug):
 
 
 @stripe_connect_bp.route('/clubs/<slug>/disconnect', methods=['POST'])
-@login_required
+@fresh_login_required
 def disconnect_club(slug):
     club = _admin_club_or_404(slug)
     if not current_user.is_club_admin(club):

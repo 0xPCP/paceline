@@ -39,6 +39,9 @@ def test_club_manager_help_page(client):
     assert b'$45 dues are charged as $46 total' in resp.data
     assert b'is not refunded' in resp.data
     assert b'Clubs handle their own refunds' in resp.data
+    assert b'Use the admin dashboard' in resp.data
+    assert b'activity panel summarizes the last 30 days and next 30 days' in resp.data
+    assert b'sign in again before starting' in resp.data
     assert b'club shop' in resp.data
     assert b'Use advanced ride options' in resp.data
     assert b'Garmin GroupRide' in resp.data
@@ -51,6 +54,7 @@ def test_club_manager_help_page(client):
     assert b'img/help/club-dues-payment.png' in resp.data
     assert b'img/help/club-team.png' in resp.data
     assert b'img/help/club-rides-admin.png' in resp.data
+    assert b'img/help/club-admin-dashboard.png' in resp.data
 
 
 def test_rider_help_page(client):
@@ -68,9 +72,14 @@ def test_rider_help_page(client):
     assert b'https://www.strava.com/athletes/123456' in resp.data
     assert b'Message board activity is bundled into a daily digest' in resp.data
     assert b'account and security emails are always sent' in resp.data
+    assert b'Verify it so password resets' in resp.data
+    assert b'Profile settings are grouped into tabs' in resp.data
+    assert b'Feedback goes to the' in resp.data
     assert b'img/help/find-clubs.png' in resp.data
     assert b'img/help/discover-rides.png' in resp.data
     assert b'img/help/ride-detail.png' in resp.data
+    assert b'img/help/dashboard-onboarding.png' in resp.data
+    assert b'img/help/profile-tabs.png' in resp.data
 
 
 def test_help_screenshots_exist():
@@ -81,9 +90,12 @@ def test_help_screenshots_exist():
         'club-dues-payment.png',
         'club-team.png',
         'club-rides-admin.png',
+        'club-admin-dashboard.png',
         'find-clubs.png',
         'discover-rides.png',
         'ride-detail.png',
+        'dashboard-onboarding.png',
+        'profile-tabs.png',
     }
     for filename in expected:
         path = HELP_IMAGE_DIR / filename
