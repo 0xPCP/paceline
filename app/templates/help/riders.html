@@ -575,6 +575,44 @@
         </p>
       </div>
 
+      {# ── 18. New Rider Friendly rides ───────────────────────────────── #}
+      <div class="mb-5" id="new-rider-friendly">
+        <h2 class="section-heading h4">18. New Rider Friendly rides</h2>
+        <p class="section-body">
+          Some rides are flagged as <strong>New Rider Friendly</strong> — a green badge
+          that signals the group is welcoming and supportive of first-time road cyclists.
+          Whether you just bought your first road bike, haven't ridden in years, or are
+          new to group riding, these rides are a great place to start.
+        </p>
+        <p class="section-body">
+          New Rider Friendly rides typically mean:
+        </p>
+        <ul class="section-body">
+          <li>No one gets dropped — the group rides together and waits at intersections.</li>
+          <li>Ride leaders are happy to answer questions about gear, etiquette, or the route.</li>
+          <li>The pace is relaxed and beginner-appropriate.</li>
+          <li>It is a judgement-free zone — everyone was new once.</li>
+        </ul>
+
+        <h5 class="mt-3 mb-2">Finding New Rider Friendly rides</h5>
+        <p class="section-body">
+          On the <a href="{{ url_for('main.discover') }}">Discover Rides</a> page, click the
+          <strong>🌿 New Rider Friendly</strong> filter button in the filter bar. The page will
+          show only flagged rides. Click the button again to clear the filter.
+          The badge also appears directly on each ride card so you can spot them at a glance
+          while browsing.
+        </p>
+        <figure class="mb-0">
+          <img class="img-fluid rounded border shadow-sm"
+               src="{{ url_for('static', filename='img/help/ride-new-rider-filter.png') }}"
+               alt="Discover page with New Rider Friendly filter active, showing matching ride cards with the green badge">
+          <figcaption class="small text-muted mt-2">
+            The 🌿 New Rider Friendly filter on the Discover page shows only rides flagged for beginners.
+            The badge also appears on each ride card and on the ride detail page.
+          </figcaption>
+        </figure>
+      </div>
+
       <div class="alert alert-info">
         New to a ride or club? Read the ride notes, check the pace, arrive early,
         and ask the ride leader if you are unsure whether the ride is a good fit.
