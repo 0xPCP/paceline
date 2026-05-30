@@ -269,3 +269,46 @@ def test_settings_saves_banner_url(client, app, sample_club, club_admin_user):
     assert resp.status_code == 200
     db.session.refresh(sample_club)
     assert sample_club.banner_url == 'https://example.com/banner.jpg'
+
+
+def test_club_default_homepage_layout_is_magazine(app, db):
+    club = Club(slug='layout-default', name='Layout Default Club')
+    db.session.add(club)
+    db.session.commit()
+    assert club.homepage_layout == 'magazine'
+
+
+def test_settings_saves_homepage_layout(client, app, sample_club, club_admin_user):
+    from tests.conftest import login
+    login(client, email='clubadmin@test.com')
+
+    resp = client.post(
+        f'/admin/clubs/{sample_club.slug}/settings',
+        data={
+            'name': sample_club.name,
+            'homepage_layout': 'newspaper',
+            'cancel_rain_prob': '80',
+            'cancel_wind_mph': '35',
+            'cancel_temp_min_f': '28',
+            'cancel_temp_max_f': '100',
+        },
+        follow_redirects=True,
+    )
+    assert resp.status_code == 200
+    db.session.refresh(sample_club)
+    assert sample_club.homepage_layout == 'newspaper'
+
+
+def test_club_home_uses_selected_homepage_layout(client, app, sample_club, db):
+    sample_club.homepage_layout = 'newspaper'
+    db.session.commit()
+
+    resp = client.get(f'/clubs/{sample_club.slug}/')
+    assert resp.status_code == 200
+    assert b'remix-paper' in resp.data
+
+
+def test_club_home_layout_preview_override(client, app, sample_club):
+    resp = client.get(f'/clubs/{sample_club.slug}/?layout=dashboard')
+    assert resp.status_code == 200
+    assert b'club-concept-dashboard' in resp.data

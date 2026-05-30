@@ -252,6 +252,7 @@ class Club(db.Model):
 
     # Hosting mode: 'full' (complete club platform) or 'rides_only' (ride calendar only)
     hosting_mode = db.Column(db.String(20), default='full', nullable=False)
+    homepage_layout = db.Column(db.String(20), default='magazine', nullable=False)
 
     # Visibility
     is_hidden = db.Column(db.Boolean, default=True, nullable=False)

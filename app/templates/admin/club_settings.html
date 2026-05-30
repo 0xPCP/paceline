@@ -154,6 +154,29 @@
         </div>
 
         <div class="mb-3">
+          {{ form.homepage_layout.label(class="form-label") }}
+          {{ form.homepage_layout(class="form-select" + (" is-invalid" if form.homepage_layout.errors else "")) }}
+          <div class="form-text">
+            Layouts use the primary and accent colors above, so clubs can match their own branding.
+          </div>
+          {% for e in form.homepage_layout.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          <div class="row g-2 mt-2">
+            <div class="col-md-4">
+              <a class="btn btn-sm btn-outline-secondary w-100" target="_blank" rel="noopener"
+                 href="{{ url_for('clubs.home', slug=club.slug, layout='magazine') }}">Preview Magazine</a>
+            </div>
+            <div class="col-md-4">
+              <a class="btn btn-sm btn-outline-secondary w-100" target="_blank" rel="noopener"
+                 href="{{ url_for('clubs.home', slug=club.slug, layout='dashboard') }}">Preview Dashboard</a>
+            </div>
+            <div class="col-md-4">
+              <a class="btn btn-sm btn-outline-secondary w-100" target="_blank" rel="noopener"
+                 href="{{ url_for('clubs.home', slug=club.slug, layout='newspaper') }}">Preview Newspaper</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-3">
           {{ form.strava_club_id.label(class="form-label") }}
           {{ form.strava_club_id(class="form-control font-monospace" + (" is-invalid" if form.strava_club_id.errors else ""),
               placeholder="e.g. 12345", value=(club.strava_club_id or '')) }}

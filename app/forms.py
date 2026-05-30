@@ -166,6 +166,11 @@ class ClubSettingsForm(FlaskForm):
         Regexp(r'^#[0-9a-fA-F]{6}$', message='Enter a valid hex color (e.g. #e76f51).'),
     ])
     banner_url    = StringField('Banner Image URL', validators=[Optional(), SafeURL(), Length(max=500)])
+    homepage_layout = SelectField('Club Homepage Layout', default='magazine', choices=[
+        ('magazine',  'Magazine — balanced club story, rides, news, and sidebar info'),
+        ('dashboard', 'Dashboard — rides-first layout for active weekly calendars'),
+        ('newspaper', 'Newspaper — classic bulletin layout with rides and club news columns'),
+    ])
     # Visibility
     is_hidden = BooleanField('Hide club from public listings')
 

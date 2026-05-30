@@ -388,7 +388,17 @@ def home(slug):
             club_id=club.id, user_id=current_user.id).first() is not None
         board_is_admin = current_user.can_manage_content(club)
 
-    return render_template('clubs/home.html', club=club, upcoming=upcoming,
+    layout_override = request.args.get('layout')
+    allowed_layouts = {'magazine', 'dashboard', 'newspaper'}
+    layout = (
+        layout_override
+        if layout_override in allowed_layouts
+        else (club.homepage_layout if club.homepage_layout in allowed_layouts else 'magazine')
+    )
+    template = 'clubs/home_concept.html'
+
+    return render_template(template, club=club, upcoming=upcoming,
+                           club_home_layout=layout,
                            open_polls=open_polls,
                            weather=weather, is_member=is_member, is_pending=is_pending,
                            is_pending_payment=is_pending_payment,

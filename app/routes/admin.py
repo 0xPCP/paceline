@@ -1192,6 +1192,12 @@ def club_settings(slug):
         club.theme_primary = (form.theme_primary.data or '').strip().lower() or None
         club.theme_accent  = (form.theme_accent.data or '').strip().lower() or None
         club.banner_url    = form.banner_url.data or None
+        raw_homepage_layout = form.homepage_layout.data or 'magazine'
+        club.homepage_layout = (
+            raw_homepage_layout
+            if raw_homepage_layout in ('magazine', 'dashboard', 'newspaper')
+            else 'magazine'
+        )
 
         raw_strava = (form.strava_club_id.data or '').strip()
         club.strava_club_id = int(raw_strava) if raw_strava.isdigit() else None

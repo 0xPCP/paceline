@@ -1,0 +1,354 @@
+{% extends "base_club.html" %}
+{% block title %}{{ club.name }}{% endblock %}
+{% block head %}{% include 'clubs/_theme.html' %}{% endblock %}
+
+{% macro club_actions(surface='dark') %}
+  <div class="club-concept-actions">
+    {% if current_user.is_authenticated %}
+      {% if is_member %}
+        {% if club.membership_dues_required and club.stripe_dues_ready and user_membership and user_membership.dues_paid_until and (user_membership.dues_paid_until - today).days <= 30 %}
+        <form method="post" action="{{ url_for('stripe_connect.dues_checkout', slug=club.slug) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <button class="btn btn-paceline">Renew Membership</button>
+        </form>
+        {% endif %}
+        <form method="post" action="{{ url_for('clubs.leave', slug=club.slug) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <button class="btn {{ 'btn-outline-light' if surface == 'dark' else 'btn-outline-secondary' }}">Leave Club</button>
+        </form>
+      {% elif is_pending %}
+        <span class="btn {{ 'btn-outline-light' if surface == 'dark' else 'btn-outline-secondary' }} disabled">Pending Approval</span>
+      {% elif is_pending_payment %}
+        {% if club.stripe_dues_ready %}
+        <form method="post" action="{{ url_for('stripe_connect.dues_checkout', slug=club.slug) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <button class="btn btn-paceline">Pay Club Dues</button>
+        </form>
+        {% else %}
+        <span class="btn {{ 'btn-outline-light' if surface == 'dark' else 'btn-outline-secondary' }} disabled">Payment Pending</span>
+        {% endif %}
+      {% else %}
+        <form method="post" action="{{ url_for('clubs.join', slug=club.slug) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <button class="btn btn-paceline">Join Club</button>
+        </form>
+      {% endif %}
+    {% else %}
+      <a href="{{ url_for('auth.login') }}" class="btn btn-paceline">Sign In to Join</a>
+    {% endif %}
+    {% if current_user.is_authenticated and current_user.is_club_admin(club) %}
+    <a href="{{ url_for('admin.club_dashboard', slug=club.slug) }}" class="btn {{ 'btn-outline-light' if surface == 'dark' else 'btn-outline-secondary' }}">Admin</a>
+    {% endif %}
+    {% if is_member %}
+    <a href="{{ url_for('clubs.club_members', slug=club.slug) }}" class="btn {{ 'btn-outline-light' if surface == 'dark' else 'btn-outline-secondary' }}">Members</a>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+{% macro stat_grid() %}
+  <div class="club-concept-stats">
+    <div>
+      <strong>{{ club_stats.members }}</strong>
+      <span>Members</span>
+    </div>
+    <div>
+      <strong>{{ club_stats.total_rides }}</strong>
+      <span>Rides hosted</span>
+    </div>
+    <div>
+      <strong>{{ club_stats.total_miles | dist(0) }}</strong>
+      <span>Hosted</span>
+    </div>
+    <div>
+      <strong>{{ club_stats.founded or '—' }}</strong>
+      <span>Founded</span>
+    </div>
+  </div>
+{% endmacro %}
+
+{% macro social_links() %}
+  {% set has_social = club.facebook_url or club.instagram_url or club.twitter_url or club.newsletter_url or club.whatsapp_url or club.strava_club_id %}
+  {% if has_social %}
+  <div class="club-concept-social">
+    {% if club.facebook_url %}<a href="{{ club.facebook_url }}" target="_blank" rel="noopener">Facebook</a>{% endif %}
+    {% if club.instagram_url %}<a href="{{ club.instagram_url }}" target="_blank" rel="noopener">Instagram</a>{% endif %}
+    {% if club.twitter_url %}<a href="{{ club.twitter_url }}" target="_blank" rel="noopener">Twitter</a>{% endif %}
+    {% if club.strava_club_id %}<a href="https://www.strava.com/clubs/{{ club.strava_club_id }}" target="_blank" rel="noopener">Strava</a>{% endif %}
+    {% if club.newsletter_url %}<a href="{{ club.newsletter_url }}" target="_blank" rel="noopener">Newsletter</a>{% endif %}
+    {% if club.whatsapp_url %}<a href="{{ club.whatsapp_url }}" target="_blank" rel="noopener">WhatsApp</a>{% endif %}
+  </div>
+  {% endif %}
+{% endmacro %}
+
+{% macro ride_row(ride) %}
+  {% set w = weather.get(ride.id) %}
+  <article class="club-concept-ride">
+    <div class="club-concept-date">
+      <span>{{ ride.date.strftime('%b') }}</span>
+      <strong>{{ ride.date.day }}</strong>
+    </div>
+    <div class="min-w-0">
+      <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+        <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
+        {% if ride.is_newbie_friendly %}<span class="badge-new-rider">New Rider Friendly</span>{% endif %}
+        {% if w %}{% include '_weather_chip.html' with context %}{% endif %}
+      </div>
+      <a href="{{ url_for('clubs.ride_detail', slug=club.slug, ride_id=ride.id) }}" class="club-concept-ride-title">{{ ride.title }}</a>
+      <p>{{ ride.time.strftime('%I:%M %p').lstrip('0') }} · {{ ride.distance_miles | dist }}{% if ride.elevation_feet %} · {{ ride.elevation_feet | elev }}{% endif %} · {{ ride.signup_count }} signed up</p>
+    </div>
+  </article>
+{% endmacro %}
+
+{% macro info_panel() %}
+  <aside class="club-concept-panel">
+    {{ stat_grid() }}
+    {% if club.current_waiver %}
+    <div class="club-concept-mini">
+      <h3>Waiver</h3>
+      {% if current_user.is_authenticated and current_user.has_signed_waiver(club) %}
+      <p class="text-success mb-0">Signed for {{ today.year }}</p>
+      {% elif current_user.is_authenticated %}
+      <p>Required before ride signup.</p>
+      <a href="{{ url_for('clubs.waiver', slug=club.slug) }}" class="btn btn-paceline-sm">Review &amp; Sign</a>
+      {% else %}
+      <p><a href="{{ url_for('auth.login') }}">Sign in</a> to accept the club waiver.</p>
+      {% endif %}
+    </div>
+    {% endif %}
+    <div class="club-concept-mini">
+      <h3>Contact</h3>
+      <p>{{ club.contact_email or 'Message club managers and ride leaders through Paceline.' }}</p>
+      {% if current_user.is_authenticated %}
+      <a href="{{ url_for('clubs.club_contact', slug=club.slug) }}" class="btn btn-paceline-sm">Message Club</a>
+      {% else %}
+      <a href="{{ url_for('auth.login', next=url_for('clubs.club_contact', slug=club.slug)) }}" class="btn btn-paceline-sm">Sign In to Message</a>
+      {% endif %}
+    </div>
+    {% if club.leaders %}
+    <div class="club-concept-mini">
+      <div class="d-flex align-items-center justify-content-between gap-2">
+        <h3>Ride Leaders</h3>
+        <a href="{{ url_for('clubs.club_leaders_public', slug=club.slug) }}">View all</a>
+      </div>
+      <div class="club-concept-leaders">
+        {% for leader in club.leaders[:4] %}
+        <div>
+          {% if leader.user and leader.user.profile_photo_key %}
+          <img src="{{ url_for('main.profile_photo', username=leader.user.username) }}" alt="{{ leader.name }} profile photo">
+          {% elif leader.photo_url %}
+          <img src="{{ leader.photo_url }}" alt="{{ leader.name }}" onerror="this.style.display='none'">
+          {% else %}
+          <span>{{ leader.name[0].upper() }}</span>
+          {% endif %}
+          <p>{{ leader.name }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </aside>
+{% endmacro %}
+
+{% macro sponsors_band() %}
+  {% if club.sponsors %}
+  <section class="club-concept-sponsors">
+    <div class="container">
+      <h2>Partners &amp; Sponsors</h2>
+      <div>
+        {% for sponsor in club.sponsors %}
+        {% if sponsor.website %}<a href="{{ sponsor.website }}" target="_blank" rel="noopener">{% else %}<span>{% endif %}
+          {% if sponsor.logo_key %}
+          <img src="{{ url_for('clubs.serve_sponsor_logo', slug=club.slug, sponsor_id=sponsor.id) }}" alt="{{ sponsor.name }}" onerror="this.style.display='none'">
+          {% elif sponsor.logo_url %}
+          <img src="{{ sponsor.logo_url }}" alt="{{ sponsor.name }}" onerror="this.style.display='none'">
+          {% endif %}
+          <small>{{ sponsor.name }}</small>
+        {% if sponsor.website %}</a>{% else %}</span>{% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+{% endmacro %}
+
+{% set is_dashboard = club_home_layout == 'dashboard' %}
+{% set nr = upcoming[0] if upcoming else none %}
+
+{% block content %}
+{% if club_home_layout == 'newspaper' %}
+<main class="club-remix club-remix-{{ club_home_layout }}">
+  <section class="remix-paper">
+    <header>
+      <div class="remix-paper-date">{{ today.strftime('%A, %B %d, %Y') }}</div>
+      <h1>{{ club.name }}</h1>
+      <p>{% if club.tagline %}{{ club.tagline }}{% endif %}</p>
+      {{ club_actions('light') }}
+    </header>
+    <div class="remix-paper-grid">
+      <section class="remix-paper-lead">
+        <h2>Upcoming Rides</h2>
+        {% for ride in upcoming[:5] %}{{ ride_row(ride) }}{% endfor %}
+      </section>
+      <section>
+        <h2>Club News</h2>
+        {% for post in club.posts[:3] %}<article><time>{{ post.published_at.strftime('%b %d') }}</time><h3>{{ post.title }}</h3><div>{{ post.body | homepage_markdown_excerpt }}</div></article>{% endfor %}
+      </section>
+      <aside>{{ info_panel() }}</aside>
+    </div>
+  </section>
+
+  <section class="container remix-common">
+    {% if club.safety_guidelines or club.bylaws_url %}
+    <div class="club-concept-section">
+      <div class="club-concept-section-head"><h2>Safety &amp; Rules</h2>{% if club.bylaws_url %}<a href="{{ club.bylaws_url }}" target="_blank" rel="noopener">Bylaws</a>{% endif %}</div>
+      {% if club.safety_guidelines %}<div class="club-concept-safety">{{ club.safety_guidelines | markdown }}</div>{% endif %}
+    </div>
+    {% endif %}
+  </section>
+  {{ sponsors_band() }}
+</main>
+{% else %}
+<main class="club-concept {{ 'club-concept-dashboard' if is_dashboard else 'club-concept-magazine' }}">
+  <section class="club-concept-hero">
+    {% if club.banner_url %}<img class="club-concept-hero-img" src="{{ club.banner_url }}" alt="" loading="lazy">{% endif %}
+    <div class="club-concept-hero-shade"></div>
+    <div class="container">
+      <div class="club-concept-hero-grid">
+        <div>
+          {% if club.logo_url %}<img src="{{ club.logo_url }}" alt="{{ club.name }} logo" class="club-concept-logo" onerror="this.style.display='none'">{% endif %}
+          <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+            <h1>{{ club.name }}</h1>
+            {% if club.is_verified %}<span class="verified-badge">Verified</span>{% endif %}
+            {% if club.is_private %}<span class="badge bg-dark">Private</span>{% endif %}
+          </div>
+          {% if club.tagline %}<p class="club-concept-tagline">{{ club.tagline }}</p>{% endif %}
+          <p class="club-concept-meta">{% if club.city %}{{ club.city }}, {{ club.state }} · {% endif %}{{ club.member_count }} member{{ 's' if club.member_count != 1 else '' }}{% if club_stats.founded %} · Est. {{ club_stats.founded }}{% endif %}</p>
+          {{ social_links() }}
+        </div>
+        <div class="club-concept-hero-card">
+          {% if nr %}
+          <span>Next ride</span>
+          <h2>{{ nr.title }}</h2>
+          <p>{{ nr.date.strftime('%A, %B') }} {{ nr.date.day }} · {{ nr.time.strftime('%I:%M %p').lstrip('0') }} · {{ nr.distance_miles | dist }}</p>
+          <a href="{{ url_for('clubs.ride_detail', slug=club.slug, ride_id=nr.id) }}" class="btn btn-paceline">View Ride</a>
+          {% else %}
+          <span>Calendar</span>
+          <h2>No upcoming rides</h2>
+          <p>Check back soon for the next club ride.</p>
+          {% endif %}
+          {{ club_actions('dark') }}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {% if is_member and club.membership_dues_required and user_membership and user_membership.dues_paid_until %}
+  {% set days_left = (user_membership.dues_paid_until - today).days %}
+  {% if days_left <= 30 %}
+  <div class="container mt-3">
+    <div class="alert {% if days_left <= 7 %}alert-danger{% else %}alert-warning{% endif %} mb-0">
+      <strong>Your membership {% if days_left <= 0 %}expired{% else %}expires in {{ days_left }} days{% endif %}.</strong>
+      {% if club.stripe_dues_ready %}<form method="post" action="{{ url_for('stripe_connect.dues_checkout', slug=club.slug) }}" class="d-inline ms-2"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}" /><button class="btn btn-sm btn-warning">Renew Now</button></form>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+  {% endif %}
+
+  <nav class="club-concept-nav">
+    <div class="container">
+      <a href="#rides">Rides</a>
+      <a href="#about">About</a>
+      {% if club.posts %}<a href="#news">News</a>{% endif %}
+      {% if is_member %}<a href="#board">Board</a>{% endif %}
+      {% if club.safety_guidelines or club.bylaws_url %}<a href="#safety">Safety</a>{% endif %}
+      {% if has_shop_items %}<a href="{{ url_for('clubs.club_shop', slug=club.slug) }}">Shop</a>{% endif %}
+    </div>
+  </nav>
+
+  {% if is_dashboard %}
+  <section class="container club-concept-dashboard-grid py-4">
+    <div>
+      <section id="rides" class="club-concept-section club-concept-priority">
+        <div class="club-concept-section-head">
+          <h2>Upcoming Rides</h2>
+          <a href="{{ url_for('clubs.rides', slug=club.slug) if current_user.is_authenticated else url_for('auth.login', next=url_for('clubs.rides', slug=club.slug)) }}">Full calendar</a>
+        </div>
+        {% if open_polls and is_member %}
+          {% for poll in open_polls[:2] %}
+          <a href="{{ url_for('polls.detail', slug=club.slug, poll_id=poll.id) }}" class="club-concept-poll">Poll: {{ poll.title }} · {{ poll.unique_voter_count }} voted</a>
+          {% endfor %}
+        {% endif %}
+        {% for ride in upcoming[:6] %}{{ ride_row(ride) }}{% else %}<p class="text-muted mb-0">No upcoming rides scheduled.</p>{% endfor %}
+      </section>
+
+      <section id="news" class="club-concept-section">
+        <div class="club-concept-section-head"><h2>News &amp; Announcements</h2>{% if current_user.is_authenticated and current_user.can_manage_content(club) %}<a href="{{ url_for('admin.club_posts', slug=club.slug) }}">Manage</a>{% endif %}</div>
+        <div class="club-concept-news-list">
+          {% for post in club.posts[:3] %}
+          <article>
+            <time>{{ post.published_at.strftime('%b %d, %Y') }}</time>
+            <h3>{{ post.title }}</h3>
+            <div>{{ post.body | homepage_markdown_excerpt }}</div>
+          </article>
+          {% else %}<p class="text-muted mb-0">No news posted yet.</p>{% endfor %}
+        </div>
+      </section>
+    </div>
+    <div>
+      {{ info_panel() }}
+      {% if is_member %}
+      <section id="board" class="club-concept-section mt-3">
+        <div class="club-concept-section-head"><h2>Board</h2><a href="{{ url_for('board.board', slug=club.slug) }}">Open</a></div>
+        {% for post in board_posts[:3] %}
+        <article class="club-concept-board-preview">{{ post.body | strip_markdown }}</article>
+        {% else %}<p class="text-muted mb-0">No posts yet.</p>{% endfor %}
+      </section>
+      {% endif %}
+    </div>
+  </section>
+  {% else %}
+  <section class="container club-concept-magazine-grid py-4">
+    <div>
+      <section id="about" class="club-concept-section club-concept-about">
+        <h2>About {{ club.name }}</h2>
+        {% if club.description %}<div>{{ club.description | markdown }}</div>{% else %}<p class="text-muted mb-0">This club has not added a description yet.</p>{% endif %}
+      </section>
+      <section id="rides" class="club-concept-section">
+        <div class="club-concept-section-head">
+          <h2>Ride Calendar</h2>
+          <a href="{{ url_for('clubs.rides', slug=club.slug) if current_user.is_authenticated else url_for('auth.login', next=url_for('clubs.rides', slug=club.slug)) }}">Full calendar</a>
+        </div>
+        <div class="club-concept-ride-grid">
+          {% for ride in upcoming[:4] %}{{ ride_row(ride) }}{% else %}<p class="text-muted mb-0">No upcoming rides scheduled.</p>{% endfor %}
+        </div>
+      </section>
+      {% if club.posts %}
+      <section id="news" class="club-concept-section">
+        <div class="club-concept-section-head"><h2>Latest Club News</h2>{% if current_user.is_authenticated and current_user.can_manage_content(club) %}<a href="{{ url_for('admin.club_posts', slug=club.slug) }}">Manage</a>{% endif %}</div>
+        <div class="club-concept-featured-news">
+          {% for post in club.posts[:3] %}
+          <article>
+            <time>{{ post.published_at.strftime('%B %d, %Y') }}</time>
+            <h3>{{ post.title }}</h3>
+            <div>{{ post.body | homepage_markdown_excerpt }}</div>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+      {% endif %}
+    </div>
+    <div>{{ info_panel() }}</div>
+  </section>
+  {% endif %}
+
+  {% if club.safety_guidelines or club.bylaws_url %}
+  <section id="safety" class="container club-concept-section mb-4">
+    <div class="club-concept-section-head"><h2>Safety &amp; Rules</h2>{% if club.bylaws_url %}<a href="{{ club.bylaws_url }}" target="_blank" rel="noopener">Bylaws</a>{% endif %}</div>
+    {% if club.safety_guidelines %}<div class="club-concept-safety">{{ club.safety_guidelines | markdown }}</div>{% endif %}
+  </section>
+  {% endif %}
+
+  {{ sponsors_band() }}
+</main>
+{% endif %}
+{% endblock %}

@@ -268,6 +268,486 @@ body.club-page {
   color: #374151;
 }
 
+/* ── Club homepage concepts ─────────────────────────────────────────────── */
+.club-concept {
+  --concept-ink: #17211f;
+  --concept-muted: #60716d;
+  --layout-primary: var(--paceline-primary, #2d6a4f);
+  --layout-accent: var(--paceline-accent, var(--paceline-orange));
+  background: #f6f8f6;
+}
+.club-concept-hero {
+  position: relative;
+  min-height: 520px;
+  display: flex;
+  align-items: end;
+  overflow: hidden;
+  color: #fff;
+  background: var(--layout-primary);
+}
+.club-concept-dashboard .club-concept-hero { min-height: 420px; }
+.club-concept-hero-img,
+.club-concept-hero-shade {
+  position: absolute;
+  inset: 0;
+}
+.club-concept-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.club-concept-hero-shade {
+  background:
+    linear-gradient(90deg, rgba(8, 20, 18, .82) 0%, rgba(8, 20, 18, .56) 46%, rgba(8, 20, 18, .22) 100%),
+    linear-gradient(0deg, rgba(8, 20, 18, .76) 0%, rgba(8, 20, 18, .04) 72%);
+}
+.club-concept-hero .container {
+  position: relative;
+  z-index: 1;
+  padding-top: 4rem;
+  padding-bottom: 3rem;
+}
+.club-concept-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 2rem;
+  align-items: end;
+}
+.club-concept-logo {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 8px;
+  padding: .45rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 16px 36px rgba(0,0,0,.28);
+}
+.club-concept h1 {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(2.5rem, 8vw, 5.4rem);
+  line-height: .94;
+  font-weight: 700;
+  max-width: 780px;
+  margin: 0;
+}
+.club-concept-tagline {
+  max-width: 680px;
+  color: rgba(255,255,255,.9);
+  font-size: 1.12rem;
+  line-height: 1.55;
+  margin: .5rem 0 .55rem;
+}
+.club-concept-meta {
+  color: rgba(255,255,255,.72);
+  font-size: .92rem;
+  margin: 0 0 1rem;
+}
+.club-concept-social {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+}
+.club-concept-social a {
+  color: #fff;
+  text-decoration: none;
+  border: 1px solid rgba(255,255,255,.34);
+  border-radius: 999px;
+  padding: .32rem .72rem;
+  font-size: .78rem;
+  font-weight: 700;
+  background: rgba(255,255,255,.1);
+  backdrop-filter: blur(8px);
+}
+.club-concept-hero-card,
+.club-concept-section,
+.club-concept-panel {
+  background: #fff;
+  border: 1px solid #e1e7e4;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+}
+.club-concept-hero-card {
+  color: var(--concept-ink);
+  padding: 1.25rem;
+  background: rgba(255,255,255,.94);
+  backdrop-filter: blur(10px);
+}
+.club-concept-hero-card > span {
+  display: block;
+  color: var(--layout-primary);
+  font-size: .74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  margin-bottom: .25rem;
+}
+.club-concept-hero-card h2 {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 2rem;
+  line-height: 1;
+  margin: 0 0 .45rem;
+}
+.club-concept-hero-card p {
+  color: var(--concept-muted);
+  font-size: .92rem;
+  margin-bottom: 1rem;
+}
+.club-concept-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .55rem;
+  margin-top: 1rem;
+}
+.club-concept-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(255,255,255,.96);
+  border-bottom: 1px solid #dfe7e2;
+}
+.club-concept-nav .container {
+  display: flex;
+  gap: .4rem;
+  overflow-x: auto;
+}
+.club-concept-nav a {
+  color: var(--concept-ink);
+  text-decoration: none;
+  font-weight: 800;
+  font-size: .82rem;
+  padding: .95rem .75rem;
+  white-space: nowrap;
+}
+.club-concept-nav a:hover { color: var(--layout-primary); }
+.club-concept-magazine-grid,
+.club-concept-dashboard-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+.club-concept-magazine-grid { grid-template-columns: minmax(0, 1fr) 340px; }
+.club-concept-dashboard-grid { grid-template-columns: minmax(0, 1.55fr) minmax(300px, .8fr); }
+.club-concept-section {
+  padding: 1.35rem;
+  margin-bottom: 1.25rem;
+}
+.club-concept-priority { border-top: 4px solid var(--layout-primary); }
+.club-concept-section h2,
+.club-concept-mini h3,
+.club-concept-sponsors h2 {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.55rem;
+  line-height: 1;
+  color: var(--concept-ink);
+  margin: 0 0 1rem;
+}
+.club-concept-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.club-concept-section-head h2,
+.club-concept-mini h3 { margin: 0; }
+.club-concept-section-head a,
+.club-concept-mini a {
+  font-size: .82rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+.club-concept-about {
+  font-size: 1.05rem;
+  line-height: 1.78;
+}
+.club-concept-about p:last-child,
+.club-concept-safety p:last-child { margin-bottom: 0; }
+.club-concept-ride-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .75rem;
+}
+.club-concept-ride {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: .8rem;
+  padding: .85rem;
+  border: 1px solid #e4ebe8;
+  border-radius: 8px;
+  background: #fbfdfc;
+}
+.club-concept-date {
+  text-align: center;
+  border-right: 1px solid #dfe7e2;
+  padding-right: .7rem;
+}
+.club-concept-date span {
+  display: block;
+  color: var(--layout-primary);
+  font-size: .68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.club-concept-date strong {
+  display: block;
+  color: var(--concept-ink);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 2rem;
+  line-height: .95;
+}
+.club-concept-ride-title {
+  display: block;
+  color: var(--concept-ink);
+  font-weight: 800;
+  text-decoration: none;
+  line-height: 1.25;
+}
+.club-concept-ride p {
+  color: var(--concept-muted);
+  font-size: .82rem;
+  margin: .18rem 0 0;
+}
+.club-concept-panel {
+  overflow: hidden;
+}
+.club-concept-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid #e1e7e4;
+}
+.club-concept-stats div {
+  padding: .95rem;
+  border-right: 1px solid #e1e7e4;
+  border-bottom: 1px solid #e1e7e4;
+}
+.club-concept-stats div:nth-child(even) { border-right: 0; }
+.club-concept-stats div:nth-child(n+3) { border-bottom: 0; }
+.club-concept-stats strong {
+  display: block;
+  color: var(--concept-ink);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.7rem;
+  line-height: 1;
+}
+.club-concept-stats span {
+  color: var(--concept-muted);
+  font-size: .74rem;
+  font-weight: 700;
+}
+.club-concept-mini {
+  padding: 1rem;
+  border-bottom: 1px solid #e1e7e4;
+}
+.club-concept-mini:last-child { border-bottom: 0; }
+.club-concept-mini p {
+  color: var(--concept-muted);
+  font-size: .88rem;
+}
+.club-concept-leaders {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: .65rem;
+  margin-top: .8rem;
+}
+.club-concept-leaders img,
+.club-concept-leaders span {
+  display: block;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 0 auto .35rem;
+  background: var(--layout-primary);
+  color: #fff;
+  text-align: center;
+  line-height: 48px;
+  font-weight: 800;
+}
+.club-concept-leaders p {
+  color: var(--concept-ink);
+  font-size: .73rem;
+  font-weight: 800;
+  line-height: 1.15;
+  text-align: center;
+  margin: 0;
+}
+.club-concept-featured-news,
+.club-concept-news-list {
+  display: grid;
+  gap: .85rem;
+}
+.club-concept-featured-news { grid-template-columns: repeat(3, 1fr); }
+.club-concept-featured-news article,
+.club-concept-news-list article,
+.club-concept-board-preview,
+.club-concept-poll {
+  border: 1px solid #e4ebe8;
+  border-radius: 8px;
+  padding: .95rem;
+  background: #fbfdfc;
+}
+.club-concept-poll {
+  display: block;
+  margin-bottom: .75rem;
+  text-decoration: none;
+  font-weight: 800;
+}
+.club-concept-featured-news time,
+.club-concept-news-list time {
+  color: var(--layout-primary);
+  font-size: .72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.club-concept-featured-news h3,
+.club-concept-news-list h3 {
+  color: var(--concept-ink);
+  font-size: 1rem;
+  font-weight: 800;
+  margin: .25rem 0 .5rem;
+}
+.club-concept-featured-news div,
+.club-concept-news-list div,
+.club-concept-board-preview {
+  color: var(--concept-muted);
+  font-size: .86rem;
+  line-height: 1.55;
+}
+.club-concept-featured-news div > :last-child,
+.club-concept-news-list div > :last-child { margin-bottom: 0; }
+.club-concept-safety {
+  columns: 2;
+  column-gap: 2rem;
+  color: var(--concept-muted);
+  line-height: 1.7;
+}
+.club-concept-sponsors {
+  background: #fff;
+  border-top: 1px solid #e1e7e4;
+  padding: 1.5rem 0;
+}
+.club-concept-sponsors h2 {
+  color: var(--concept-muted);
+  font-size: .95rem;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+.club-concept-sponsors .container > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: .85rem;
+}
+.club-concept-sponsors a,
+.club-concept-sponsors span {
+  display: flex;
+  min-height: 88px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  border: 1px solid #e4ebe8;
+  border-radius: 8px;
+  padding: .7rem;
+}
+.club-concept-sponsors img {
+  max-width: 150px;
+  height: 46px;
+  object-fit: contain;
+}
+.club-concept-sponsors small {
+  color: var(--concept-muted);
+  font-weight: 800;
+  margin-top: .35rem;
+}
+
+/* ── More distinct club homepage studies ────────────────────────────────── */
+.club-remix {
+  --remix-ink: #141a18;
+  --remix-muted: #66736f;
+  --layout-primary: var(--paceline-primary, #2d6a4f);
+  --layout-accent: var(--paceline-accent, var(--paceline-orange));
+  min-height: 100vh;
+  background: #f4f6f2;
+  color: var(--remix-ink);
+}
+.remix-kicker {
+  display: inline-block;
+  color: var(--layout-primary);
+  font-size: .74rem;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  margin-bottom: .55rem;
+}
+.club-remix h1,
+.club-remix h2,
+.club-remix h3 {
+  font-family: 'Barlow Condensed', sans-serif;
+  letter-spacing: 0;
+}
+.remix-paper {
+  max-width: 1220px;
+  margin: 1.25rem auto;
+  padding: 0 1rem;
+}
+.remix-paper header {
+  text-align: center;
+  background: #fff;
+  border: 1px solid var(--layout-primary);
+  border-left: 0;
+  border-right: 0;
+  padding: 1.4rem 1rem;
+}
+.remix-paper-date {
+  font-size: .76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: var(--remix-muted);
+}
+.remix-paper h1 {
+  font-size: clamp(3.2rem, 10vw, 7rem);
+  line-height: .85;
+  margin: .2rem 0;
+}
+.remix-paper header p {
+  color: var(--remix-muted);
+  margin: 0 auto 1rem;
+  max-width: 760px;
+}
+.remix-paper-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, .9fr) 320px;
+  gap: 1rem;
+  padding-top: 1rem;
+}
+.remix-paper-grid > section,
+.remix-paper-grid > aside {
+  background: #fff;
+  border: 1px solid #dfe6e1;
+  border-radius: 3px;
+  padding: 1rem;
+}
+.remix-paper h2 {
+  font-size: 2.2rem;
+  border-bottom: 2px solid var(--layout-primary);
+  padding-bottom: .35rem;
+}
+.remix-paper article {
+  border-bottom: 1px solid #dfe6e1;
+  padding: .8rem 0;
+}
+.remix-paper article:last-child {
+  border-bottom: 0;
+}
+.remix-paper time {
+  color: var(--layout-primary);
+  font-size: .72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.remix-common {
+  padding-top: 1.25rem;
+}
+
 /* ── Sponsor strip ───────────────────────────────────────────────────────── */
 .sponsor-strip {
   border-top: 1px solid var(--paceline-border);
@@ -2318,4 +2798,77 @@ a:hover { color: var(--paceline-green-dark); }
   margin-bottom: .25rem;
   font-size: .8rem;
   color: var(--paceline-gray);
+}
+
+@media (max-width: 991.98px) {
+  .club-concept-hero-grid,
+  .club-concept-magazine-grid,
+  .club-concept-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  .club-concept-hero {
+    min-height: 0;
+  }
+  .club-concept-hero .container {
+    padding-top: 3rem;
+    padding-bottom: 1.5rem;
+  }
+  .club-concept-hero-card {
+    max-width: 100%;
+  }
+  .club-concept-featured-news,
+  .club-concept-ride-grid {
+    grid-template-columns: 1fr;
+  }
+  .club-concept-safety {
+    columns: 1;
+  }
+  .remix-paper-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 575px) {
+  .club-concept h1 {
+    font-size: 2.45rem;
+  }
+  .club-concept-logo {
+    width: 68px;
+    height: 68px;
+  }
+  .club-concept-tagline {
+    font-size: .98rem;
+  }
+  .club-concept-hero-card h2 {
+    font-size: 1.55rem;
+  }
+  .club-concept-actions .btn,
+  .club-concept-actions form {
+    width: 100%;
+  }
+  .club-concept-actions .btn {
+    display: block;
+  }
+  .club-concept-section {
+    padding: 1rem;
+  }
+  .club-concept-ride {
+    grid-template-columns: 44px minmax(0, 1fr);
+    padding: .75rem;
+  }
+  .club-concept-date {
+    padding-right: .55rem;
+  }
+  .club-concept-date strong {
+    font-size: 1.55rem;
+  }
+  .club-concept-leaders {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .remix-paper h1 {
+    font-size: 3rem;
+  }
+  .remix-paper {
+    margin-top: .5rem;
+  }
 }
