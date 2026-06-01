@@ -548,7 +548,7 @@ def discover():
              .order_by(Ride.date.asc(), Ride.time.asc()))
 
     if pace in ('A', 'B', 'C', 'D'):
-        query = query.filter(Ride.pace_category == pace)
+        query = query.filter(Ride.includes_pace(pace))
     if new_rider_filter:
         query = query.filter(Ride.is_newbie_friendly == True)   # noqa: E712
     if ride_type == 'virtual':

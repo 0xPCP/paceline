@@ -1,11 +1,12 @@
 {% extends "base.html" %}
+{% import "_ride_pace.html" as ride_pace %}
 {% block title %}{{ ride.title }} — Reston Bike Club{% endblock %}
 
 {% block content %}
 <div class="page-header {{ 'page-header-cancelled' if ride.is_cancelled else '' }}">
   <div class="container">
     <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
-      <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
+      {{ ride_pace.badges(ride) }}
       {% if ride.is_cancelled %}<span class="badge bg-danger fs-6">Cancelled</span>{% endif %}
     </div>
     <h1>{{ ride.title }}</h1>
@@ -28,7 +29,14 @@
           <dd>{{ ride.distance_miles | dist }}{% if ride.elevation_feet %} &bull; {{ ride.elevation_feet | elev }} elevation gain{% endif %}</dd>
 
           <dt>Pace</dt>
-          <dd>{{ ride.pace_label | pace }}</dd>
+          <dd>
+            {% if ride.is_multi_pace %}
+              {{ ride.pace_summary }} groups on the same course
+              <div class="text-muted small">{{ ride.pace_detail_labels | join(' · ') }}</div>
+            {% else %}
+              {{ ride.pace_label | pace }}
+            {% endif %}
+          </dd>
 
           {% if ride.ride_leader %}
           <dt>Ride Leader</dt>

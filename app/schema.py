@@ -184,6 +184,12 @@ def ensure_runtime_schema():
     if ride_columns and 'is_newbie_friendly' not in ride_columns:
         db.session.execute(text('ALTER TABLE rides ADD COLUMN is_newbie_friendly BOOLEAN DEFAULT FALSE NOT NULL'))
         changed = True
+    if ride_columns and 'is_multi_pace' not in ride_columns:
+        db.session.execute(text('ALTER TABLE rides ADD COLUMN is_multi_pace BOOLEAN DEFAULT FALSE NOT NULL'))
+        changed = True
+    if ride_columns and 'pace_categories' not in ride_columns:
+        db.session.execute(text('ALTER TABLE rides ADD COLUMN pace_categories JSON'))
+        changed = True
 
     if 'admin_audit_logs' not in inspector.get_table_names():
         from .models import AdminAuditLog

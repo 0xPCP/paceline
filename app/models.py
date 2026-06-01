@@ -7,6 +7,12 @@ from .security import video_embed_url
 from .sports import DEFAULT_SPORT, normalize_sport, normalize_sport_preferences
 
 RIDE_TYPE_VALUES = ('road', 'gravel', 'social', 'training', 'event', 'night', 'virtual')
+RIDE_PACE_LABELS = {
+    'A': 'A — Fast (22+ mph)',
+    'B': 'B — Moderate (18–22 mph)',
+    'C': 'C — Casual (14–18 mph)',
+    'D': 'D — Beginner (<14 mph)',
+}
 
 
 @login_manager.user_loader
@@ -879,6 +885,8 @@ class Ride(db.Model):
     distance_miles = db.Column(db.Float, nullable=False)
     elevation_feet = db.Column(db.Integer, nullable=True)
     pace_category = db.Column(db.String(2), nullable=False)  # A, B, C, D
+    is_multi_pace = db.Column(db.Boolean, default=False, nullable=False, server_default='false')
+    pace_categories = db.Column(db.JSON, nullable=True)
     ride_type = db.Column(db.String(20), nullable=True)  # road, gravel, social, training, event, night
     is_virtual = db.Column(db.Boolean, default=False, nullable=False, server_default='false')
     virtual_platform = db.Column(db.String(64), nullable=True)   # zwift, rouvy, wahoo, etc.
@@ -959,13 +967,32 @@ class Ride(db.Model):
 
     @property
     def pace_label(self):
-        labels = {
-            'A': 'A — Fast (22+ mph)',
-            'B': 'B — Moderate (18–22 mph)',
-            'C': 'C — Casual (14–18 mph)',
-            'D': 'D — Beginner (<14 mph)',
-        }
-        return labels.get(self.pace_category, self.pace_category)
+        if self.is_multi_pace:
+            return f"{self.pace_summary} — Multiple paces"
+        return RIDE_PACE_LABELS.get(self.pace_category, self.pace_category)
+
+    @property
+    def display_pace_categories(self):
+        categories = self.pace_categories if self.is_multi_pace else None
+        if not isinstance(categories, list):
+            categories = [self.pace_category] if self.pace_category else []
+        valid = [p for p in categories if p in RIDE_PACE_LABELS]
+        return valid or ([self.pace_category] if self.pace_category else [])
+
+    @property
+    def pace_summary(self):
+        return ' / '.join(self.display_pace_categories)
+
+    @property
+    def pace_detail_labels(self):
+        return [RIDE_PACE_LABELS.get(p, p) for p in self.display_pace_categories]
+
+    @classmethod
+    def includes_pace(cls, pace):
+        return db.or_(
+            cls.pace_category == pace,
+            cls.pace_categories.cast(db.String).like(f'%"{pace}"%'),
+        )
 
 
 class RideSignup(db.Model):

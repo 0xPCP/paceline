@@ -65,7 +65,7 @@
             {{ form.pace_category.label(class="form-label") }}
             {{ form.pace_category(class="form-select" + (" is-invalid" if form.pace_category.errors else ""), **{'data-testid': 'club-ride-pace'}) }}
             {% for e in form.pace_category.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
-            <div class="form-text">A = fast, B = moderate, C = casual, D = beginner.</div>
+            <div class="form-text">Used for sorting, map color, and single-pace rides.</div>
           </div>
           <div class="col-sm-3">
             {{ form.ride_type.label(class="form-label") }}
@@ -82,6 +82,28 @@
             {{ form.elevation_feet(class="form-control" + (" is-invalid" if form.elevation_feet.errors else ""), placeholder="2500", **{'data-testid': 'club-ride-elevation'}) }}
             {% for e in form.elevation_feet.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
           </div>
+        </div>
+
+        <div class="mb-3 form-check">
+          {{ form.is_multi_pace(class="form-check-input" + (" is-invalid" if form.is_multi_pace.errors else ""), id="multi_pace_cb", **{'data-testid': 'club-ride-multi-pace'}) }}
+          {{ form.is_multi_pace.label(class="form-check-label fw-semibold") }}
+          {% for e in form.is_multi_pace.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+          <div class="form-text">Use this when one posted ride has separate pace groups riding the same course.</div>
+        </div>
+
+        <div id="multi-pace-fields" class="mb-3 p-3 border rounded bg-light" style="display:none">
+          <div class="form-label fw-semibold mb-2">Pace groups riding this course</div>
+          <div class="row g-2">
+            {% for field in [form.multi_pace_a, form.multi_pace_b, form.multi_pace_c, form.multi_pace_d] %}
+            <div class="col-sm-6">
+              <div class="form-check">
+                {{ field(class="form-check-input") }}
+                {{ field.label(class="form-check-label") }}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="form-text mt-2">Select at least two. The fastest selected group becomes the primary pace.</div>
         </div>
 
         <div class="mb-3">
@@ -194,6 +216,25 @@
     }
     vCb.addEventListener('change', toggleVirtual);
     toggleVirtual();
+
+    const multiCb = document.getElementById('multi_pace_cb');
+    const multiFields = document.getElementById('multi-pace-fields');
+    const paceSelect = document.querySelector('[name="pace_category"]');
+    const paceChecks = Array.from(multiFields.querySelectorAll('input[type="checkbox"]'));
+    function toggleMultiPace() {
+      multiFields.style.display = multiCb.checked ? '' : 'none';
+      if (multiCb.checked && !paceChecks.some((input) => input.checked)) {
+        const current = multiFields.querySelector('[name="multi_pace_' + paceSelect.value.toLowerCase() + '"]');
+        if (current) current.checked = true;
+      }
+    }
+    multiCb.addEventListener('change', toggleMultiPace);
+    paceSelect.addEventListener('change', function () {
+      if (!multiCb.checked) return;
+      const current = multiFields.querySelector('[name="multi_pace_' + paceSelect.value.toLowerCase() + '"]');
+      if (current) current.checked = true;
+    });
+    toggleMultiPace();
   })();
 </script>
 {% endblock %}

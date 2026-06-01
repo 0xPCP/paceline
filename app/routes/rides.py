@@ -27,7 +27,7 @@ def _list_view():
     pace = request.args.get('pace', '')
     query = Ride.query.filter(Ride.date >= today).order_by(Ride.date.asc(), Ride.time.asc())
     if pace in ('A', 'B', 'C', 'D'):
-        query = query.filter(Ride.pace_category == pace)
+        query = query.filter(Ride.includes_pace(pace))
     rides = query.all()
     weather = get_weather_for_rides(rides)
     return render_template('calendar_list.html', rides=rides, active_pace=pace,

@@ -1327,6 +1327,13 @@ body.club-page {
   letter-spacing: .05em;
   color: #fff;
 }
+.pace-badge-group {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  flex-wrap: wrap;
+  vertical-align: middle;
+}
 .pace-A { background: #dc3545; }
 .pace-B { background: #fd7e14; }
 .pace-C { background: #e9a800; }

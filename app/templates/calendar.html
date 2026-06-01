@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_ride_pace.html" as ride_pace %}
 {% block title %}Ride Calendar — Reston Bike Club{% endblock %}
 
 {% block content %}
@@ -35,7 +36,7 @@
         </div>
         <div class="ride-row-main">
           <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-            <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
+            {{ ride_pace.badges(ride) }}
             {% if ride.is_cancelled %}<span class="badge bg-danger">Cancelled</span>{% endif %}
             <span class="ride-row-time">{{ ride.time.strftime('%I:%M %p') }}</span>
           </div>

@@ -225,7 +225,7 @@ def club_map():
                 'title':      ride.title,
                 'date':       ride.date.isoformat(),
                 'time':       ride.time.strftime('%H:%M') if ride.time else None,
-                'pace':       ride.pace_category,
+                'pace':       ride.pace_summary,
                 'ride_type':  ride.ride_type or 'road',
                 'distance':   ride.distance_miles,
                 'club_name':  geo['name'],
@@ -552,7 +552,7 @@ def _list_view(club):
              .filter(Ride.date >= today)
              .order_by(Ride.date.asc(), Ride.time.asc()))
     if pace in ('A', 'B', 'C', 'D'):
-        query = query.filter(Ride.pace_category == pace)
+        query = query.filter(Ride.includes_pace(pace))
     if ride_type in RIDE_TYPES:
         query = query.filter(Ride.ride_type == ride_type)
     rides = query.all()
@@ -766,7 +766,7 @@ def ride_detail(slug, ride_id):
     if ride.distance_miles:
         _og_parts.append(f"{ride.distance_miles:.0f} mi")
     if ride.pace_category:
-        _og_parts.append(f"{ride.pace_category} pace")
+        _og_parts.append(f"{ride.pace_summary} pace")
     _og_parts.append(
         ride.date.strftime('%-d %b') + ' at ' + ride.time.strftime('%-I:%M %p').lstrip('0')
     )

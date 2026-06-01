@@ -267,6 +267,36 @@ def test_branch_c_admin_creates_multiple_ride_types(client, db, mock_weather):
         assert title.encode() in resp.data, f'{title!r} not found on calendar page'
 
 
+def test_admin_creates_multi_pace_ride(client, db, mock_weather):
+    user = _make_user(db, 'multipacemgr', 'multipacemgr@test.com')
+    club = _make_club(db, 'multipaceclub', 'Multi-Pace Club')
+    db.session.add(ClubAdmin(user_id=user.id, club_id=club.id, role='admin'))
+    db.session.commit()
+
+    login(client, 'multipacemgr@test.com', 'TestPass1!')
+
+    resp = client.post(
+        f'/admin/clubs/{club.slug}/rides/new',
+        data={
+            **_ride_form_data(title='Three Speed Saturday', pace='B'),
+            'is_multi_pace': 'y',
+            'multi_pace_a': 'y',
+            'multi_pace_b': 'y',
+            'multi_pace_c': 'y',
+        },
+        follow_redirects=True,
+    )
+    assert resp.status_code == 200
+    ride = Ride.query.filter_by(club_id=club.id, title='Three Speed Saturday').first()
+    assert ride is not None
+    assert ride.is_multi_pace is True
+    assert ride.pace_category == 'A'
+    assert ride.pace_categories == ['A', 'B', 'C']
+
+    resp = client.get(f'/clubs/{club.slug}/rides/?pace=C')
+    assert b'Three Speed Saturday' in resp.data
+
+
 # ── Branch D: Ride manager — limited access ───────────────────────────────────
 
 def test_branch_d_ride_manager_limited_access(client, db, mock_weather):

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_ride_pace.html" as ride_pace %}
 {% block title %}My Dashboard — Paceline{% endblock %}
 
 {% block content %}
@@ -53,7 +54,7 @@
             </div>
             <div class="flex-grow-1">
               <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
+                {{ ride_pace.badges(ride) }}
                 {% if ride.owner_id %}
                   <span class="badge bg-primary">{{ _('Your Ride') }}</span>
                 {% else %}
@@ -123,7 +124,7 @@
             </div>
             <div class="flex-grow-1 min-width-0">
               <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
+                {{ ride_pace.badges(ride) }}
                 {% if ride.is_virtual %}<span class="badge bg-info text-dark" style="font-size:.65rem">Virtual</span>{% endif %}
                 {% if ride.ride_type %}<span class="badge bg-secondary" style="font-size:.65rem">{{ ride.ride_type.title() }}</span>{% endif %}
                 <span class="badge bg-light text-dark border" style="font-size:.7rem">{{ rec.reason }}</span>
@@ -208,7 +209,7 @@
             </div>
             <div class="flex-grow-1">
               <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
+                {{ ride_pace.badges(ride) }}
                 <span class="text-muted small">
                   <a href="{{ url_for('main.public_profile', username=friend_user.username) }}" class="text-muted text-decoration-none">@{{ friend_user.username }}</a>
                   is going
@@ -247,7 +248,7 @@
             </div>
             <div class="flex-grow-1 min-width-0">
               <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
+                {{ ride_pace.badges(ride) }}
                 {% if ride.owner_id %}
                   <span class="text-muted small"><a href="{{ url_for('main.public_profile', username=ride.owner.username) }}" class="text-muted text-decoration-none">@{{ ride.owner.username }}</a></span>
                 {% else %}

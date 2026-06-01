@@ -94,6 +94,23 @@ class TestPaceLabel:
         ride = make_ride(db, sample_club, pace_category=pace)
         assert ride.pace_label == expected
 
+    def test_multi_pace_summary_and_labels(self, app, db, sample_club):
+        ride = make_ride(
+            db,
+            sample_club,
+            pace_category='A',
+            is_multi_pace=True,
+            pace_categories=['A', 'B', 'C'],
+        )
+        assert ride.display_pace_categories == ['A', 'B', 'C']
+        assert ride.pace_summary == 'A / B / C'
+        assert ride.pace_label == 'A / B / C — Multiple paces'
+        assert ride.pace_detail_labels == [
+            'A — Fast (22+ mph)',
+            'B — Moderate (18–22 mph)',
+            'C — Casual (14–18 mph)',
+        ]
+
 
 # ── Signup count ──────────────────────────────────────────────────────────────
 

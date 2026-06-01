@@ -14,7 +14,7 @@ from sqlalchemy.exc import IntegrityError
 
 from ..extensions import db
 from ..models import Ride, RideSignup, User, UserRideInvite
-from ..forms import UserRideForm, UserRideInviteForm
+from ..forms import UserRideForm, UserRideInviteForm, selected_ride_paces, validate_ride_paces, populate_ride_pace_fields
 
 user_rides_bp = Blueprint('user_rides', __name__)
 
@@ -77,7 +77,7 @@ def create():
         return redirect(url_for('user_rides.list_rides'))
 
     form = UserRideForm()
-    if form.validate_on_submit():
+    if form.validate_on_submit() and validate_ride_paces(form):
         # Re-check quota just before saving
         if current_user.user_rides_this_week() >= MAX_RIDES_PER_WEEK:
             flash(f'You can only create {MAX_RIDES_PER_WEEK} rides per week.', 'warning')
@@ -88,6 +88,7 @@ def create():
             return render_template('user_rides/create.html', form=form,
                                    rides_used=current_user.user_rides_this_week(),
                                    max_rides=MAX_RIDES_PER_WEEK)
+        pace_categories = selected_ride_paces(form)
         ride = Ride(
             owner_id=current_user.id,
             club_id=None,
@@ -98,7 +99,9 @@ def create():
             meeting_location=form.meeting_location.data or None,
             distance_miles=form.distance_miles.data,
             elevation_feet=form.elevation_feet.data,
-            pace_category=form.pace_category.data,
+            pace_category=pace_categories[0],
+            is_multi_pace=form.is_multi_pace.data,
+            pace_categories=pace_categories if form.is_multi_pace.data else None,
             ride_type=form.ride_type.data,
             ride_leader=form.ride_leader.data or current_user.username,
             route_url=form.route_url.data or None,
@@ -160,7 +163,7 @@ def detail(ride_id):
         if ride.distance_miles:
             _og_parts.append(f"{ride.distance_miles:.0f} mi")
         if ride.pace_category:
-            _og_parts.append(f"{ride.pace_category} pace")
+            _og_parts.append(f"{ride.pace_summary} pace")
         _og_parts.append(
             ride.date.strftime('%-d %b') + ' at ' + ride.time.strftime('%-I:%M %p').lstrip('0')
         )
@@ -217,13 +220,19 @@ def groupride_code(ride_id):
 def edit(ride_id):
     ride = _get_own_ride_or_404(ride_id)
     form = UserRideForm(obj=ride)
-    if form.validate_on_submit():
+    if request.method == 'GET':
+        populate_ride_pace_fields(form, ride)
+    if form.validate_on_submit() and validate_ride_paces(form):
         if not form.is_virtual.data and not form.meeting_location.data:
             form.meeting_location.errors.append('Meeting location is required for in-person rides.')
             return render_template('user_rides/create.html', form=form, ride=ride,
                                    rides_used=current_user.user_rides_this_week(),
                                    max_rides=MAX_RIDES_PER_WEEK)
         form.populate_obj(ride)
+        pace_categories = selected_ride_paces(form)
+        ride.pace_category = pace_categories[0]
+        ride.is_multi_pace = form.is_multi_pace.data
+        ride.pace_categories = pace_categories if form.is_multi_pace.data else None
         ride.meeting_location = form.meeting_location.data or None
         if not form.route_url.data:
             ride.route_url = None

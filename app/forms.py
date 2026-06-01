@@ -9,6 +9,13 @@ from wtforms.validators import DataRequired, Email, EqualTo, Length, Optional, U
 from .security import is_safe_external_url
 from .strava_profile import canonical_strava_profile_url
 
+PACE_CHOICES = [
+    ('A', 'A — Fast (22+ mph)'),
+    ('B', 'B — Moderate (18–22 mph)'),
+    ('C', 'C — Casual (14–18 mph)'),
+    ('D', 'D — Beginner (<14 mph)'),
+]
+
 
 class SafeURL(URL):
     """URL validator that rejects javascript:, data:, vbscript: and any other non-http(s) scheme."""
@@ -397,12 +404,12 @@ class RideForm(FlaskForm):
     meeting_location = StringField('Meeting Location', validators=[Optional(), Length(max=500)])
     distance_miles = FloatField('Distance (miles)', validators=[DataRequired(), NumberRange(min=0.1)])
     elevation_feet = IntegerField('Elevation Gain (feet)', validators=[Optional()])
-    pace_category = SelectField('Pace Category', choices=[
-        ('A', 'A — Fast (22+ mph)'),
-        ('B', 'B — Moderate (18–22 mph)'),
-        ('C', 'C — Casual (14–18 mph)'),
-        ('D', 'D — Beginner (<14 mph)'),
-    ])
+    pace_category = SelectField('Primary Pace Category', choices=PACE_CHOICES)
+    is_multi_pace = BooleanField('Multiple paces on the same route')
+    multi_pace_a = BooleanField('A — Fast (22+ mph)')
+    multi_pace_b = BooleanField('B — Moderate (18–22 mph)')
+    multi_pace_c = BooleanField('C — Casual (14–18 mph)')
+    multi_pace_d = BooleanField('D — Beginner (<14 mph)')
     ride_type = SelectField('Ride Type', choices=[
         ('road',     'Road'),
         ('gravel',   'Gravel'),
@@ -436,12 +443,12 @@ class UserRideForm(FlaskForm):
     meeting_location = StringField('Meeting Location', validators=[Optional(), Length(max=500)])
     distance_miles   = FloatField('Distance (miles)', validators=[DataRequired(), NumberRange(min=0.1)])
     elevation_feet   = IntegerField('Elevation Gain (feet)', validators=[Optional()])
-    pace_category    = SelectField('Pace Category', choices=[
-        ('A', 'A — Fast (22+ mph)'),
-        ('B', 'B — Moderate (18–22 mph)'),
-        ('C', 'C — Casual (14–18 mph)'),
-        ('D', 'D — Beginner (<14 mph)'),
-    ])
+    pace_category    = SelectField('Primary Pace Category', choices=PACE_CHOICES)
+    is_multi_pace    = BooleanField('Multiple paces on the same route')
+    multi_pace_a     = BooleanField('A — Fast (22+ mph)')
+    multi_pace_b     = BooleanField('B — Moderate (18–22 mph)')
+    multi_pace_c     = BooleanField('C — Casual (14–18 mph)')
+    multi_pace_d     = BooleanField('D — Beginner (<14 mph)')
     ride_type = SelectField('Ride Type', choices=[
         ('road',     'Road'),
         ('gravel',   'Gravel'),
@@ -465,3 +472,30 @@ class UserRideForm(FlaskForm):
 class UserRideInviteForm(FlaskForm):
     identifier = StringField('Username or Email', validators=[DataRequired(), Length(max=255)])
     submit = SubmitField('Invite')
+
+
+def selected_ride_paces(form):
+    if not form.is_multi_pace.data:
+        return [form.pace_category.data] if form.pace_category.data else []
+    selected = []
+    for pace in ('A', 'B', 'C', 'D'):
+        if getattr(form, f'multi_pace_{pace.lower()}').data:
+            selected.append(pace)
+    return selected
+
+
+def validate_ride_paces(form):
+    if not form.is_multi_pace.data:
+        return True
+    selected = selected_ride_paces(form)
+    if len(selected) < 2:
+        form.is_multi_pace.errors.append('Select at least two pace groups for a multi-pace ride.')
+        return False
+    return True
+
+
+def populate_ride_pace_fields(form, ride):
+    categories = ride.display_pace_categories
+    form.is_multi_pace.data = bool(ride.is_multi_pace)
+    for pace in ('A', 'B', 'C', 'D'):
+        getattr(form, f'multi_pace_{pace.lower()}').data = pace in categories

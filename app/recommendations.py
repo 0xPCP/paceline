@@ -94,7 +94,8 @@ def _history_traits(user, today):
     type_counts = {}
     for signup in signups:
         ride = signup.ride
-        pace_counts[ride.pace_category] = pace_counts.get(ride.pace_category, 0) + 1
+        for pace in ride.display_pace_categories:
+            pace_counts[pace] = pace_counts.get(pace, 0) + 1
         ride_type = 'virtual' if ride.is_virtual else (ride.ride_type or 'road')
         type_counts[ride_type] = type_counts.get(ride_type, 0) + 1
     return pace_counts, type_counts
@@ -188,8 +189,9 @@ def recommend_rides_for_user(user, *, today=None, limit=5):
         score = 0
         if ride.club_id in joined_club_ids:
             score += 35
-        if ride.pace_category in pace_counts:
-            score += 20 + min(pace_counts[ride.pace_category], 5)
+        matching_paces = [pace for pace in ride.display_pace_categories if pace in pace_counts]
+        if matching_paces:
+            score += 20 + min(max(pace_counts[pace] for pace in matching_paces), 5)
         if ride_type in type_counts:
             score += 18 + min(type_counts[ride_type], 5)
         if distance is not None:
@@ -211,7 +213,7 @@ def recommend_rides_for_user(user, *, today=None, limit=5):
             reason=_reason_for_ride(
                 ride,
                 distance=distance,
-                pace_match=ride.pace_category in pace_counts,
+                pace_match=bool(matching_paces),
                 type_match=ride_type in type_counts or ride_type in allowed_types,
                 friend_count=friend_counts.get(ride.id, 0),
                 in_joined_club=ride.club_id in joined_club_ids,

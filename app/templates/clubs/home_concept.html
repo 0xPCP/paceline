@@ -1,4 +1,5 @@
 {% extends "base_club.html" %}
+{% import "_ride_pace.html" as ride_pace %}
 {% block title %}{{ club.name }}{% endblock %}
 {% block head %}{% include 'clubs/_theme.html' %}{% endblock %}
 
@@ -53,7 +54,7 @@
     </div>
     <div>
       <strong>{{ club_stats.total_rides }}</strong>
-      <span>Rides hosted</span>
+      <span>Rides Hosted</span>
     </div>
     <div>
       <strong>{{ club_stats.total_miles | dist(0) }}</strong>
@@ -89,7 +90,7 @@
     </div>
     <div class="min-w-0">
       <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
-        <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
+        {{ ride_pace.badges(ride) }}
         {% if ride.is_newbie_friendly %}<span class="badge-new-rider">New Rider Friendly</span>{% endif %}
         {% if w %}{% include '_weather_chip.html' with context %}{% endif %}
       </div>

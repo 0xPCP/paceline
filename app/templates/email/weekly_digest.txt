@@ -3,7 +3,7 @@ This week's rides — {{ club.name }}
 {% if rides %}Here's what's coming up this week:
 
 {% for ride in rides %}{{ ride.date.strftime('%a %b %-d') }} {{ ride.time.strftime('%-I:%M %p') }}
-{{ ride.title }} | {{ ride.pace_category }} | {{ ride.distance_miles }} mi{% if ride.meeting_location %} | {{ ride.meeting_location }}{% endif %}
+{{ ride.title }} | {{ ride.pace_summary }} | {{ ride.distance_miles }} mi{% if ride.meeting_location %} | {{ ride.meeting_location }}{% endif %}
 
 {% endfor %}View the full calendar: https://paceline.club/clubs/{{ club.slug }}/calendar/
 {% else %}No rides are scheduled this week. Check back soon!

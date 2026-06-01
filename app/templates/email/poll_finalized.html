@@ -13,7 +13,7 @@
   <tr><td>Start Time</td><td>{{ ride.time.strftime('%-I:%M %p') }}</td></tr>
   {% if ride.meeting_location %}<tr><td>Meet At</td><td>{{ ride.meeting_location }}</td></tr>{% endif %}
   <tr><td>Distance</td><td>{{ ride.distance_miles | dist }}</td></tr>
-  {% if ride.pace_category %}<tr><td>Pace</td><td>{{ ride.pace_label | pace }}</td></tr>{% endif %}
+  {% if ride.pace_category %}<tr><td>Pace</td><td>{{ ride.pace_label if ride.is_multi_pace else (ride.pace_label | pace) }}</td></tr>{% endif %}
 </table>
 
 <p>You participated in the poll — sign up now to lock in your spot.</p>

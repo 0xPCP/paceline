@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_ride_pace.html" as ride_pace %}
 {% block title %}{{ ride.title }} — Paceline{% endblock %}
 
 {% block head %}
@@ -69,7 +70,7 @@
     {# Left column: ride details #}
     <div class="col-lg-8">
       <div class="d-flex align-items-start gap-2 mb-3 flex-wrap">
-        <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
+        {{ ride_pace.badges(ride) }}
         {% if ride.is_virtual %}<span class="badge bg-info text-dark">Virtual</span>{% endif %}
         {% if ride.is_private %}
           <span class="badge bg-secondary">Private</span>
@@ -116,6 +117,16 @@
 
           <dt>Distance</dt>
           <dd>{{ ride.distance_miles | dist }}{% if ride.elevation_feet %} &bull; {{ ride.elevation_feet | elev }} elevation{% endif %}</dd>
+
+          <dt>Pace</dt>
+          <dd>
+            {% if ride.is_multi_pace %}
+              {{ ride.pace_summary }} groups on the same course
+              <div class="text-muted small">{{ ride.pace_detail_labels | join(' · ') }}</div>
+            {% else %}
+              {{ ride.pace_label | pace }}
+            {% endif %}
+          </dd>
 
           {% if ride.max_riders %}
           <dt>Capacity</dt>

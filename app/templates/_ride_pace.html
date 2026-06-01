@@ -1,0 +1,7 @@
+{% macro badges(ride) -%}
+  <span class="pace-badge-group" aria-label="{{ ride.pace_label }}">
+    {% for pace in ride.display_pace_categories %}
+    <span class="pace-badge pace-{{ pace }}">{{ pace }}</span>
+    {% endfor %}
+  </span>
+{%- endmacro %}

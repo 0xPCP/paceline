@@ -50,7 +50,7 @@ def index():
     if platform:
         query = query.filter(Ride.virtual_platform == platform)
     if pace in ('A', 'B', 'C', 'D'):
-        query = query.filter(Ride.pace_category == pace)
+        query = query.filter(Ride.includes_pace(pace))
 
     rides = query.order_by(Ride.date.asc(), Ride.time.asc()).all()
 

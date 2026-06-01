@@ -81,6 +81,32 @@ class TestCreate:
         signup = RideSignup.query.filter_by(ride_id=ride.id, user_id=regular_user.id).first()
         assert signup is not None
 
+    def test_create_multi_pace_ride(self, client, db, regular_user):
+        login(client, 'rider@test.com')
+        rv = client.post('/my-rides/create', data=_form_data(
+            pace_category='B',
+            is_multi_pace='y',
+            multi_pace_a='y',
+            multi_pace_b='y',
+            multi_pace_c='y',
+        ), follow_redirects=True)
+        assert rv.status_code == 200
+        ride = Ride.query.filter_by(owner_id=regular_user.id).first()
+        assert ride.is_multi_pace is True
+        assert ride.pace_category == 'A'
+        assert ride.pace_categories == ['A', 'B', 'C']
+        assert b'A / B / C groups on the same course' in rv.data
+
+    def test_create_multi_pace_requires_two_groups(self, client, db, regular_user):
+        login(client, 'rider@test.com')
+        rv = client.post('/my-rides/create', data=_form_data(
+            is_multi_pace='y',
+            multi_pace_b='y',
+        ), follow_redirects=True)
+        assert rv.status_code == 200
+        assert b'Select at least two pace groups' in rv.data
+        assert Ride.query.filter_by(owner_id=regular_user.id).count() == 0
+
     def test_create_private_ride(self, client, db, regular_user):
         login(client, 'rider@test.com')
         rv = client.post('/my-rides/create', data=_form_data(is_private='y'), follow_redirects=True)

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_ride_pace.html" as ride_pace %}
 {% block title %}{{ profile_user.username }} — Paceline{% endblock %}
 
 {% block content %}
@@ -154,7 +155,7 @@
           {% for s in upcoming_signups %}
           <li class="mb-2 pb-2 {% if not loop.last %}border-bottom{% endif %}">
             <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-              <span class="pace-badge pace-{{ s.ride.pace_category }}">{{ s.ride.pace_category }}</span>
+              {{ ride_pace.badges(s.ride) }}
               {% if s.ride.is_virtual %}<span class="badge bg-info text-dark" style="font-size:.65rem">Virtual</span>{% endif %}
             </div>
             {% if s.ride.owner_id %}
@@ -220,7 +221,7 @@
           {% for friend_user, ride in friends_rides %}
           <li class="mb-2 pb-2 border-bottom">
             <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
-              <span class="pace-badge pace-{{ ride.pace_category }}">{{ ride.pace_category }}</span>
+              {{ ride_pace.badges(ride) }}
               {% if ride.is_virtual %}<span class="badge bg-info text-dark" style="font-size:.65rem">Virtual</span>{% endif %}
               <span class="text-muted small">
                 <a href="{{ url_for('main.public_profile', username=friend_user.username) }}"

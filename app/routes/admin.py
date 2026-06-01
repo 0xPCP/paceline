@@ -18,7 +18,7 @@ from ..models import (AdminAuditLog, AdminMessage, AppErrorLog, BoardDigestItem,
                       ClubMembership, ClubMembershipPayment, ClubAdmin, ClubPost,
                       ClubLeader, ClubSponsor, ClubInvite, ClubOwnershipTransfer,
                       ClubShopItem, ClubShopOrder, UserRecommendationHidden)
-from ..forms import RideForm, ClubForm, ClubSettingsForm, ClubPostForm, PlatformPostForm, ClubLeaderForm, ClubSponsorForm, ClubInviteForm, BulkImportForm, ClubShopItemForm, ClubShopSettingsForm
+from ..forms import RideForm, ClubForm, ClubSettingsForm, ClubPostForm, PlatformPostForm, ClubLeaderForm, ClubSponsorForm, ClubInviteForm, BulkImportForm, ClubShopItemForm, ClubShopSettingsForm, selected_ride_paces, validate_ride_paces, populate_ride_pace_fields
 from ..recurrence import generate_instances, delete_future_instances
 from ..geocoding import geocode_zip
 from ..storage import get_storage
@@ -1424,13 +1424,14 @@ def ride_new(slug):
     form = RideForm()
     members = (ClubMembership.query.filter_by(club_id=club.id, status='active')
                .join(ClubMembership.user).order_by(User.username).all())
-    if form.validate_on_submit():
+    if form.validate_on_submit() and validate_ride_paces(form):
         is_virtual = form.is_virtual.data
         if not is_virtual and not form.meeting_location.data:
             form.meeting_location.errors.append('Meeting location is required for in-person rides.')
             return render_template('admin/ride_form.html', form=form, club=club,
                                    members=members, title='New Ride')
         leader_id, ride_leader = _resolve_leader(club)
+        pace_categories = selected_ride_paces(form)
         ride = Ride(
             club_id=club.id,
             title=form.title.data,
@@ -1439,7 +1440,9 @@ def ride_new(slug):
             meeting_location=form.meeting_location.data or None,
             distance_miles=form.distance_miles.data,
             elevation_feet=form.elevation_feet.data,
-            pace_category=form.pace_category.data,
+            pace_category=pace_categories[0],
+            is_multi_pace=form.is_multi_pace.data,
+            pace_categories=pace_categories if form.is_multi_pace.data else None,
             ride_type=form.ride_type.data,
             max_riders=form.max_riders.data or None,
             leader_id=leader_id,
@@ -1477,7 +1480,9 @@ def ride_edit(slug, ride_id):
     form = RideForm(obj=ride)
     members = (ClubMembership.query.filter_by(club_id=club.id, status='active')
                .join(ClubMembership.user).order_by(User.username).all())
-    if form.validate_on_submit():
+    if request.method == 'GET':
+        populate_ride_pace_fields(form, ride)
+    if form.validate_on_submit() and validate_ride_paces(form):
         is_virtual = form.is_virtual.data
         if not is_virtual and not form.meeting_location.data:
             form.meeting_location.errors.append('Meeting location is required for in-person rides.')
@@ -1486,13 +1491,16 @@ def ride_edit(slug, ride_id):
         was_recurring  = ride.is_recurring
         was_cancelled  = ride.is_cancelled
         leader_id, ride_leader = _resolve_leader(club)
+        pace_categories = selected_ride_paces(form)
         ride.title          = form.title.data
         ride.date           = form.date.data
         ride.time           = form.time.data
         ride.meeting_location = form.meeting_location.data or None
         ride.distance_miles = form.distance_miles.data
         ride.elevation_feet = form.elevation_feet.data
-        ride.pace_category  = form.pace_category.data
+        ride.pace_category  = pace_categories[0]
+        ride.is_multi_pace  = form.is_multi_pace.data
+        ride.pace_categories = pace_categories if form.is_multi_pace.data else None
         ride.ride_type      = form.ride_type.data or None
         ride.max_riders     = form.max_riders.data or None
         ride.leader_id      = leader_id
