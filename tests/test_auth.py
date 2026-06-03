@@ -517,35 +517,6 @@ class TestDistanceUnit:
         db.session.refresh(regular_user)
         assert regular_user.distance_unit is None
 
-    def test_training_goal_fields_on_profile_page(self, client, regular_user):
-        login(client)
-        resp = client.get('/auth/profile')
-        assert b'training_goal_mode' in resp.data
-        assert b'Weekly TSS goal' in resp.data
-        assert b'Goal CTL' in resp.data
-
-    def test_profile_saves_weekly_tss_goal(self, client, regular_user, db):
-        login(client)
-        self._profile_post(client, training_goal_mode='weekly_tss', training_goal_value='450')
-        db.session.refresh(regular_user)
-        assert regular_user.training_goal_mode == 'weekly_tss'
-        assert regular_user.training_goal_value == 450
-
-    def test_profile_saves_ctl_goal(self, client, regular_user, db):
-        login(client)
-        self._profile_post(client, training_goal_mode='ctl', training_goal_value='65')
-        db.session.refresh(regular_user)
-        assert regular_user.training_goal_mode == 'ctl'
-        assert regular_user.training_goal_value == 65
-
-    def test_profile_requires_training_goal_value_when_mode_selected(self, client, regular_user, db):
-        login(client)
-        resp = self._profile_post(client, training_goal_mode='weekly_tss', training_goal_value='')
-        assert b'Enter a goal value.' in resp.data
-        db.session.refresh(regular_user)
-        assert regular_user.training_goal_mode is None
-        assert regular_user.training_goal_value is None
-
     def test_dist_filter_miles(self, app):
         from app import _dist_filter
         with app.test_request_context('/'):

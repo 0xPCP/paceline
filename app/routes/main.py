@@ -14,13 +14,6 @@ from ..recommendations import recommend_clubs_for_user, recommend_rides_for_user
 
 main_bp = Blueprint('main', __name__)
 
-PACE_TSS_PER_MILE = {
-    'A': 3.1,
-    'B': 2.5,
-    'C': 1.9,
-    'D': 1.4,
-}
-
 
 @main_bp.route('/health')
 def health():
@@ -149,7 +142,6 @@ def _user_dashboard(today, platform_posts=None):
         signed_up_ride_ids=signed_up_ride_ids,
     )
     onboarding_complete = all(item['complete'] for item in onboarding_items)
-    training_goal = _weekly_tss_goal_progress(current_user, today)
 
     return render_template('dashboard.html',
                            my_rides=my_rides,
@@ -167,85 +159,7 @@ def _user_dashboard(today, platform_posts=None):
                            recommended_rides=recommended_rides,
                            recommended_clubs=recommended_clubs,
                            onboarding_items=onboarding_items,
-                           onboarding_complete=onboarding_complete,
-                           training_goal=training_goal)
-
-
-def _estimated_ride_tss(ride):
-    pace = (ride.pace_category or 'B').upper()
-    base = PACE_TSS_PER_MILE.get(pace, PACE_TSS_PER_MILE['B'])
-    distance_tss = (ride.distance_miles or 0) * base
-    elevation_tss = ((ride.elevation_feet or 0) / 1000) * 6
-    if ride.is_virtual:
-        elevation_tss *= 0.35
-    return max(0, int(round(distance_tss + elevation_tss)))
-
-
-def _weekly_tss_goal_progress(user, today):
-    if user.training_goal_mode not in ('weekly_tss', 'ctl') or not user.training_goal_value:
-        return None
-
-    week_start = today - timedelta(days=today.weekday())
-    week_end = week_start + timedelta(days=6)
-    last_week_start = week_start - timedelta(days=7)
-    last_week_end = week_start - timedelta(days=1)
-    weekly_target = user.training_goal_value
-    if user.training_goal_mode == 'ctl':
-        weekly_target = user.training_goal_value * 7
-
-    this_week_tss = _completed_tss_for_range(user, week_start, today, today)
-    last_week_tss = _completed_tss_for_range(user, last_week_start, last_week_end, today)
-    this_week = _tss_goal_status(this_week_tss, weekly_target)
-    last_week = _tss_goal_status(last_week_tss, weekly_target)
-    return {
-        'mode': user.training_goal_mode,
-        'configured_value': user.training_goal_value,
-        'target_tss': weekly_target,
-        'completed_tss': this_week_tss,
-        'remaining_tss': this_week['remaining_tss'],
-        'over_tss': this_week['over_tss'],
-        'percent': this_week['percent'],
-        'display_percent': this_week['display_percent'],
-        'week_start': week_start,
-        'week_end': week_end,
-        'last_week': {
-            'completed_tss': last_week_tss,
-            'under_tss': last_week['under_tss'],
-            'over_tss': last_week['over_tss'],
-            'hit_goal': last_week['hit_goal'],
-            'percent': last_week['percent'],
-            'week_start': last_week_start,
-            'week_end': last_week_end,
-        },
-    }
-
-
-def _completed_tss_for_range(user, start_date, end_date, today):
-    signups = (RideSignup.query
-               .filter_by(user_id=user.id, is_waitlist=False)
-               .join(Ride, RideSignup.ride_id == Ride.id)
-               .filter(Ride.date >= start_date,
-                       Ride.date <= end_date,
-                       Ride.is_cancelled == False)
-               .all())
-    completed = [
-        s for s in signups
-        if s.attended is not False and (s.attended is True or s.ride.date < today)
-    ]
-    return sum(_estimated_ride_tss(s.ride) for s in completed)
-
-
-def _tss_goal_status(completed_tss, weekly_target):
-    percent = round((completed_tss / weekly_target) * 100) if weekly_target else 0
-    remaining = weekly_target - completed_tss
-    return {
-        'remaining_tss': max(0, remaining),
-        'under_tss': max(0, remaining),
-        'over_tss': max(0, -remaining),
-        'hit_goal': completed_tss >= weekly_target,
-        'percent': percent,
-        'display_percent': min(percent, 125),
-    }
+                           onboarding_complete=onboarding_complete)
 
 
 def _dashboard_onboarding_items(active_club_ids, signed_up_ride_ids):

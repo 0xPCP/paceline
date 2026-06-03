@@ -78,8 +78,6 @@ class User(db.Model, UserMixin):
     recommendation_friend_activity_enabled = db.Column(db.Boolean, default=True, nullable=False)
     dashboard_recommendations_hidden = db.Column(db.Boolean, default=False, nullable=False)
     recommendation_ride_types = db.Column(db.JSON, nullable=True)
-    training_goal_mode = db.Column(db.String(20), nullable=True)  # weekly_tss | ctl
-    training_goal_value = db.Column(db.Integer, nullable=True)
 
     # Strava linking
     strava_id = db.Column(db.BigInteger, unique=True, nullable=True)
