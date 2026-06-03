@@ -81,6 +81,12 @@ def ensure_runtime_schema():
     if 'recommendation_ride_types' not in user_columns:
         db.session.execute(text('ALTER TABLE users ADD COLUMN recommendation_ride_types JSON'))
         changed = True
+    if 'training_goal_mode' not in user_columns:
+        db.session.execute(text('ALTER TABLE users ADD COLUMN training_goal_mode VARCHAR(20)'))
+        changed = True
+    if 'training_goal_value' not in user_columns:
+        db.session.execute(text('ALTER TABLE users ADD COLUMN training_goal_value INTEGER'))
+        changed = True
     if 'email_verified' not in user_columns:
         db.session.execute(text('ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT TRUE NOT NULL'))
         changed = True

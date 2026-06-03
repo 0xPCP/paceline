@@ -707,6 +707,8 @@ def profile():
         current_user.recommendation_history_enabled = bool(form.recommendation_history_enabled.data)
         current_user.recommendation_friend_activity_enabled = bool(form.recommendation_friend_activity_enabled.data)
         current_user.dashboard_recommendations_hidden = bool(form.dashboard_recommendations_hidden.data)
+        current_user.training_goal_mode = form.training_goal_mode.data or None
+        current_user.training_goal_value = form.training_goal_value.data if current_user.training_goal_mode else None
         valid_ride_types = {'road', 'gravel', 'social', 'training', 'event', 'night', 'virtual'}
         selected_ride_types = [v for v in request.form.getlist('recommendation_ride_types') if v in valid_ride_types]
         current_user.recommendation_ride_types = selected_ride_types or None

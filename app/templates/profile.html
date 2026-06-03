@@ -92,6 +92,10 @@
                       data-bs-target="#profile-recommendations" type="button" role="tab">Recommendations</button>
             </li>
             <li class="nav-item" role="presentation">
+              <button class="nav-link" id="profile-training-tab" data-bs-toggle="tab"
+                      data-bs-target="#profile-training" type="button" role="tab">Training</button>
+            </li>
+            <li class="nav-item" role="presentation">
               <button class="nav-link" id="profile-notifications-tab" data-bs-toggle="tab"
                       data-bs-target="#profile-notifications" type="button" role="tab">Notifications</button>
             </li>
@@ -231,6 +235,27 @@
           </div>
 
             </div>
+            <div class="tab-pane fade" id="profile-training" role="tabpanel"
+                 aria-labelledby="profile-training-tab" tabindex="0">
+
+          <hr class="my-3">
+          <h6 class="mb-1">Training Goal</h6>
+          <p class="text-muted small mb-3">Show a weekly TSS progress bubble on your dashboard. CTL goals are converted to an equivalent weekly target.</p>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              {{ form.training_goal_mode.label(class="form-label") }}
+              {{ form.training_goal_mode(class="form-select" + (" is-invalid" if form.training_goal_mode.errors else "")) }}
+              {% for e in form.training_goal_mode.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="col-md-6">
+              {{ form.training_goal_value.label(class="form-label") }}
+              {{ form.training_goal_value(class="form-control" + (" is-invalid" if form.training_goal_value.errors else ""), min="1", max="3000", inputmode="numeric", placeholder="e.g. 450 or 65") }}
+              {% for e in form.training_goal_value.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+              <div class="form-text">For CTL, enter your target CTL. For weekly TSS, enter the weekly TSS target.</div>
+            </div>
+          </div>
+
+            </div>
             <div class="tab-pane fade" id="profile-notifications" role="tabpanel"
                  aria-labelledby="profile-notifications-tab" tabindex="0">
 
@@ -283,6 +308,8 @@
           <input type="hidden" name="strava_profile_url" value="{{ current_user.strava_profile_url or '' }}">
           <input type="hidden" name="language" value="{{ current_user.language or '' }}">
           <input type="hidden" name="distance_unit" value="{{ current_user.distance_unit or '' }}">
+          <input type="hidden" name="training_goal_mode" value="{{ current_user.training_goal_mode or '' }}">
+          <input type="hidden" name="training_goal_value" value="{{ current_user.training_goal_value or '' }}">
           <input type="hidden" name="emergency_contact_name" value="{{ current_user.emergency_contact_name or '' }}">
           <input type="hidden" name="emergency_contact_phone" value="{{ current_user.emergency_contact_phone or '' }}">
           {% set email_prefs = current_user.email_preferences or {} %}

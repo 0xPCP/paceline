@@ -62,6 +62,77 @@ class TestDashboardSignupButton:
         assert r.status_code == 200
         assert b'data-testid="dashboard-onboarding-checklist"' not in r.data
 
+    def test_dashboard_shows_weekly_tss_goal_progress(
+            self, client, db, sample_club, regular_user, mock_weather):
+        regular_user.training_goal_mode = 'weekly_tss'
+        regular_user.training_goal_value = 100
+        ride = Ride(
+            club_id=sample_club.id,
+            title='Completed Training Ride',
+            date=date.today(),
+            time=time(8, 0),
+            meeting_location='Test Location',
+            distance_miles=20.0,
+            elevation_feet=0,
+            pace_category='B',
+            ride_type='training',
+        )
+        db.session.add(ride)
+        db.session.flush()
+        db.session.add(RideSignup(ride_id=ride.id, user_id=regular_user.id, attended=True))
+        db.session.commit()
+
+        login(client)
+        r = client.get('/', follow_redirects=True)
+        assert r.status_code == 200
+        assert b'Weekly TSS Goal' in r.data
+        assert b'50% of 100 weekly TSS' in r.data
+        assert b'50 TSS remaining' in r.data
+        assert b'Last week' in r.data
+        assert b'Under goal' in r.data
+        assert b'100 TSS short' in r.data
+
+    def test_dashboard_converts_ctl_goal_to_weekly_tss(
+            self, client, db, regular_user, mock_weather):
+        regular_user.training_goal_mode = 'ctl'
+        regular_user.training_goal_value = 10
+        db.session.commit()
+
+        login(client)
+        r = client.get('/', follow_redirects=True)
+        assert r.status_code == 200
+        assert b'0% of 70 weekly TSS' in r.data
+        assert b'Goal CTL 10 converts to 70 TSS/week.' in r.data
+
+    def test_dashboard_highlights_last_week_over_goal(
+            self, client, db, sample_club, regular_user, mock_weather):
+        regular_user.training_goal_mode = 'weekly_tss'
+        regular_user.training_goal_value = 100
+        today = date.today()
+        week_start = today - timedelta(days=today.weekday())
+        ride = Ride(
+            club_id=sample_club.id,
+            title='Last Week Big Ride',
+            date=week_start - timedelta(days=1),
+            time=time(8, 0),
+            meeting_location='Test Location',
+            distance_miles=50.0,
+            elevation_feet=0,
+            pace_category='B',
+            ride_type='training',
+        )
+        db.session.add(ride)
+        db.session.flush()
+        db.session.add(RideSignup(ride_id=ride.id, user_id=regular_user.id))
+        db.session.commit()
+
+        login(client)
+        r = client.get('/', follow_redirects=True)
+        assert r.status_code == 200
+        assert b'Last week' in r.data
+        assert b'Hit goal' in r.data
+        assert b'25 TSS over' in r.data
+
     def test_signup_button_shown_active_member_no_waiver(
             self, client, db, app, sample_club, regular_user, mock_weather):
         """Active member, club has no waiver → Sign Up button shown."""

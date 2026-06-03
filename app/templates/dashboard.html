@@ -294,6 +294,58 @@
     <!-- Sidebar -->
     <div class="col-lg-4">
 
+      {% if training_goal %}
+      {% set bubble_deg = (training_goal.display_percent * 3.6) | int %}
+      <div class="detail-card mb-4 training-goal-card">
+        <h5 class="detail-card-title">
+          <span>Weekly TSS Goal</span>
+          <a href="{{ url_for('auth.profile') }}#profile-training" class="detail-card-link">Settings</a>
+        </h5>
+        <div class="d-flex align-items-center gap-3">
+          <div class="training-goal-bubble {{ 'is-over' if training_goal.over_tss else '' }}"
+               style="--goal-progress: {{ bubble_deg }}deg">
+            <div class="training-goal-bubble-inner">
+              <strong>{{ training_goal.completed_tss }}</strong>
+              <span>TSS</span>
+            </div>
+          </div>
+          <div class="min-w-0">
+            <div class="fw-semibold">
+              {{ training_goal.percent }}% of {{ training_goal.target_tss }} weekly TSS
+            </div>
+            <div class="text-muted small">
+              {% if training_goal.mode == 'ctl' %}
+              Goal CTL {{ training_goal.configured_value }} converts to {{ training_goal.target_tss }} TSS/week.
+              {% else %}
+              Weekly goal set to {{ training_goal.target_tss }} TSS.
+              {% endif %}
+            </div>
+            <div class="small mt-1 {{ 'text-success' if training_goal.over_tss else 'text-muted' }}">
+              {% if training_goal.over_tss %}
+              {{ training_goal.over_tss }} TSS over goal
+              {% else %}
+              {{ training_goal.remaining_tss }} TSS remaining
+              {% endif %}
+            </div>
+            <div class="training-goal-last-week mt-2 {{ 'is-hit' if training_goal.last_week.hit_goal else 'is-miss' }}">
+              <span>Last week</span>
+              {% if training_goal.last_week.hit_goal %}
+              <strong>Hit goal</strong>
+              {% if training_goal.last_week.over_tss %}
+              <small>{{ training_goal.last_week.over_tss }} TSS over</small>
+              {% else %}
+              <small>Right on target</small>
+              {% endif %}
+              {% else %}
+              <strong>Under goal</strong>
+              <small>{{ training_goal.last_week.under_tss }} TSS short</small>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
       {% if pending_friend_requests %}
       <div class="detail-card mb-4">
         <h5 class="detail-card-title">Friend Requests</h5>

@@ -131,7 +131,17 @@ class ProfileForm(FlaskForm):
     recommendation_history_enabled = BooleanField('Use my ride history')
     recommendation_friend_activity_enabled = BooleanField('Use friend activity')
     dashboard_recommendations_hidden = BooleanField('Hide recommendations on my dashboard')
+    training_goal_mode = SelectField('Training goal', choices=[
+        ('', 'No training goal'),
+        ('weekly_tss', 'Weekly TSS goal'),
+        ('ctl', 'Goal CTL'),
+    ], validators=[Optional()])
+    training_goal_value = IntegerField('Goal value', validators=[Optional(), NumberRange(min=1, max=3000)])
     submit   = SubmitField('Save Changes')
+
+    def validate_training_goal_value(self, field):
+        if self.training_goal_mode.data and field.data is None:
+            raise ValidationError('Enter a goal value.')
 
 
 class ClubForm(FlaskForm):
