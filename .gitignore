@@ -8,3 +8,9 @@ venv/
 .pytest_cache/
 tests/screenshots/
 tests/live-workflow-audit/
+
+# Local runtime and generated browser-test output
+instance/
+artifacts/
+_logotest.db
+_maptest*.db
